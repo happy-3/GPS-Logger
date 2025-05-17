@@ -132,11 +132,14 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         let altitudeFt = rawGpsAltitude
         let now = Date()
 
+        let speedKt = settings.recordSpeed ? loc.speed * 1.94384 : nil
+        let latestAcc = settings.recordAcceleration ? altitudeFusionManager.latestAcceleration : nil
+
         let log = FlightLog(timestamp: now,
                              latitude: loc.coordinate.latitude,
                              longitude: loc.coordinate.longitude,
                              gpsAltitude: altitudeFt,
-                             speedKt: loc.speed * 1.94384,
+                             speedKt: speedKt,
                              magneticCourse: loc.course,
                              horizontalAccuracyM: loc.horizontalAccuracy,
                              verticalAccuracyFt: loc.verticalAccuracy * 3.28084,
@@ -144,7 +147,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              rawGpsAltitudeChangeRate: rawGpsAltitudeChangeRate,
                              relativeAltitude: altitudeFusionManager.relativeAltitude ?? 0,
                              barometricAltitude: altitudeFusionManager.baselineAltitude.map { $0 + (altitudeFusionManager.relativeAltitude ?? 0) } ?? altitudeFt,
-                             latestAcceleration: altitudeFusionManager.latestAcceleration,
+                             latestAcceleration: latestAcc,
                              fusedAltitude: altitudeFusionManager.fusedAltitude ?? altitudeFt,
                              fusedAltitudeChangeRate: altitudeFusionManager.altitudeChangeRate,
                              baselineAltitude: altitudeFusionManager.baselineAltitude,

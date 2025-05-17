@@ -9,6 +9,12 @@ final class FlightLogManager: ObservableObject {
     @Published var distanceMeasurements: [DistanceMeasurement] = []
     var sessionFolderURL: URL?
 
+    let settings: Settings
+
+    init(settings: Settings) {
+        self.settings = settings
+    }
+
     private var measurementStartTime: Date?
 
     /// Start a new logging session.
@@ -116,14 +122,24 @@ final class FlightLogManager: ObservableObject {
         let fileName = "FlightLog_\(Int(Date().timeIntervalSince1970)).csv"
         let fileURL = folderURL.appendingPathComponent(fileName)
 
-        var csvText = "timestamp,latitude,longitude,gpsAltitude(ft),speed(kt),magneticCourse,horizontalAccuracy(m),verticalAccuracy(ft),altimeterPressure,rawGpsAltitudeChangeRate(ft/min),relativeAltitude(ft),barometricAltitude(ft),latestAcceleration(ft/s²),fusedAltitude(ft),fusedAltitudeChangeRate(ft/min),baselineAltitude(ft),measuredAltitude(ft),kalmanUpdateInterval(s),photoIndex\n"
+        var headers = ["timestamp","latitude","longitude","gpsAltitude(ft)"]
+        if settings.recordSpeed { headers.append("speed(kt)") }
+        headers.append(contentsOf: ["magneticCourse","horizontalAccuracy(m)","verticalAccuracy(ft)","altimeterPressure","rawGpsAltitudeChangeRate(ft/min)","relativeAltitude(ft)","barometricAltitude(ft)"])
+        if settings.recordAcceleration { headers.append("latestAcceleration(ft/s²)") }
+        headers.append(contentsOf: ["fusedAltitude(ft)","fusedAltitudeChangeRate(ft/min)","baselineAltitude(ft)","measuredAltitude(ft)","kalmanUpdateInterval(s)","photoIndex"])
+        var csvText = headers.joined(separator: ",") + "\n"
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         isoFormatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
         for log in flightLogs {
             let ts = isoFormatter.string(from: log.timestamp)
             let photoIndexText = log.photoIndex.map(String.init) ?? ""
-            csvText.append("\(ts),\(log.latitude),\(log.longitude),\(log.gpsAltitude),\(log.speedKt),\(log.magneticCourse),\(log.horizontalAccuracyM),\(log.verticalAccuracyFt),\(log.altimeterPressure ?? 0),\(log.rawGpsAltitudeChangeRate),\(log.relativeAltitude),\(log.barometricAltitude),\(log.latestAcceleration),\(log.fusedAltitude),\(log.fusedAltitudeChangeRate),\(log.baselineAltitude ?? 0),\(log.measuredAltitude ?? 0),\(log.kalmanUpdateInterval ?? 0),\(photoIndexText)\n")
+            var row = ["\(ts)","\(log.latitude)","\(log.longitude)","\(log.gpsAltitude)"]
+            if settings.recordSpeed { row.append("\(log.speedKt ?? 0)") }
+            row.append(contentsOf: ["\(log.magneticCourse)","\(log.horizontalAccuracyM)","\(log.verticalAccuracyFt)","\(log.altimeterPressure ?? 0)","\(log.rawGpsAltitudeChangeRate)","\(log.relativeAltitude)","\(log.barometricAltitude)"])
+            if settings.recordAcceleration { row.append("\(log.latestAcceleration ?? 0)") }
+            row.append(contentsOf: ["\(log.fusedAltitude)","\(log.fusedAltitudeChangeRate)","\(log.baselineAltitude ?? 0)","\(log.measuredAltitude ?? 0)","\(log.kalmanUpdateInterval ?? 0)","\(photoIndexText)"])
+            csvText.append(row.joined(separator: ",") + "\n")
         }
 
         if let bom = "\u{FEFF}".data(using: .utf8), let csvData = csvText.data(using: .utf8) {

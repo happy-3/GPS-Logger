@@ -9,7 +9,7 @@ import Combine
 struct ContentView: View {
     // 各種ObservableObjectの生成（Settingsも含む）
     @StateObject var settings = Settings()
-    @StateObject var flightLogManager = FlightLogManager()
+    @StateObject var flightLogManager: FlightLogManager
     @StateObject var altitudeFusionManager: AltitudeFusionManager
     @StateObject var locationManager: LocationManager
     
@@ -66,7 +66,7 @@ struct ContentView: View {
     init() {
         // 初期化順序に注意
         let settings = Settings()
-        let flightLogManager = FlightLogManager()
+        let flightLogManager = FlightLogManager(settings: settings)
         let altitudeFusionManager = AltitudeFusionManager(settings: settings)
         let locationManager = LocationManager(flightLogManager: flightLogManager,
                                               altitudeFusionManager: altitudeFusionManager,
