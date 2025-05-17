@@ -218,6 +218,19 @@ struct ContentView: View {
 //                        }
 //                    }
                     
+                    if !flightLogManager.distanceMeasurements.isEmpty {
+                        VStack(alignment: .leading) {
+                            Text("距離計測ログ:")
+                                .font(.headline)
+                            ForEach(Array(flightLogManager.distanceMeasurements.enumerated()), id: \.offset) { index, m in
+                                Text(String(format: "#%d 水平: %.1f m 3D: %.1f m", index + 1, m.horizontalDistance, m.totalDistance))
+                                    .font(.footnote)
+                                    .padding(.leading, 8)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
                     Spacer()
                 }
                 .padding()
