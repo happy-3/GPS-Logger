@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import UIKit
 
 /// Displays altitude over time for a distance measurement.
 struct DistanceGraphView: View {
@@ -40,6 +41,13 @@ struct DistanceGraphView: View {
             }
         }
         .frame(height: 240)
+    }
+
+    /// Render the altitude chart to a `UIImage` for export.
+    func chartImage() -> UIImage? {
+        let renderer = ImageRenderer(content: altitudeChart)
+        renderer.scale = UIScreen.main.scale
+        return renderer.uiImage
     }
 }
 

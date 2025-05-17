@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import CoreLocation
+import UIKit
 
 /// Handles storage and export of flight log entries.
 final class FlightLogManager: ObservableObject {
@@ -206,6 +207,29 @@ final class FlightLogManager: ObservableObject {
             combined.append(bom)
             combined.append(csvData)
             try? combined.write(to: fileURL, options: .atomic)
+            return fileURL
+        }
+
+        return nil
+    }
+
+    /// Export an altitude chart image for a specific measurement.
+    /// - Parameters:
+    ///   - measurement: The associated distance measurement.
+    ///   - chartImage: Image created from `DistanceGraphView`.
+    /// - Returns: URL of the saved PNG if successful.
+    func exportMeasurementGraphImage(for measurement: DistanceMeasurement,
+                                     chartImage: UIImage) -> URL? {
+        guard let folderURL = sessionFolderURL else { return nil }
+
+        let nameFormatter = DateFormatter()
+        nameFormatter.dateFormat = "yyyyMMdd_HHmmss"
+        let name = nameFormatter.string(from: measurement.startTime)
+        let fileName = "MeasurementGraph_\(name).png"
+        let fileURL = folderURL.appendingPathComponent(fileName)
+
+        if let data = chartImage.pngData() {
+            try? data.write(to: fileURL, options: .atomic)
             return fileURL
         }
 
