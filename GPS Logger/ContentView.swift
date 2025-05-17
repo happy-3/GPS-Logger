@@ -19,6 +19,11 @@ struct ContentView: View {
     @State private var showingCompositeCamera = false
     @State private var showingShareSheet = false
     @State private var shareItems: [Any] = []
+
+    @State private var measuringDistance = false
+    @State private var measurementStart: Date?
+    @State private var measurementResultMessage: String?
+    @State private var showingMeasurementAlert = false
     
     // UI表示用のサンプルデータ
     @State var gpsTime: String = "12:34:56"
@@ -143,7 +148,31 @@ struct ContentView: View {
                             .background(Color.red)
                             .foregroundColor(.white)
                             .cornerRadius(15)
-                            
+
+                            Button(measuringDistance ? "距離計測終了" : "距離計測開始") {
+                                if measuringDistance {
+                                    let now = Date()
+                                    if let result = flightLogManager.finishMeasurement(at: now) {
+                                        measurementResultMessage = String(format: "水平距離: %.1f m\n3D距離: %.1f m", result.horizontalDistance, result.totalDistance)
+                                    } else {
+                                        measurementResultMessage = "計測に失敗しました"
+                                    }
+                                    showingMeasurementAlert = true
+                                    measuringDistance = false
+                                    measurementStart = nil
+                                } else {
+                                    let start = Date()
+                                    measurementStart = start
+                                    flightLogManager.startMeasurement(at: start)
+                                    measuringDistance = true
+                                }
+                            }
+                            .font(.title2)
+                            .frame(width: 160, height: 60)
+                            .background(measuringDistance ? Color.blue : Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(15)
+
                             Button("静止画撮影") {
                                 showingCompositeCamera = true
                             }
@@ -215,6 +244,9 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingShareSheet) {
                 ActivityView(activityItems: shareItems)
+            }
+            .alert(measurementResultMessage ?? "", isPresented: $showingMeasurementAlert) {
+                Button("OK", role: .cancel) {}
             }
         }
     }
