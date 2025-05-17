@@ -87,30 +87,30 @@ struct ContentView: View {
                                 var mc = loc.course - locationManager.declination
                                 mc = mc.truncatingRemainder(dividingBy: 360)
                                 if mc < 0 { mc += 360 }
-                                return String(format: "%.2f°", mc)
+                                return String(format: "%.0f°", mc)
                             }
                         }()
                         
                         VStack(alignment: .leading, spacing: 5) {
                             Text("GPS受信時刻 (JST): \(loc.timestamp, formatter: jstFormatter)")
                             Text("緯度: \(loc.coordinate.latitude.toDegMin())  経度: \(loc.coordinate.longitude.toDegMin())").padding(.top, 4)
-                            Text(String(format: "水平誤差: ±%.2f m", loc.horizontalAccuracy))
+                            Text(String(format: "水平誤差: ±%.1f m", loc.horizontalAccuracy))
                             Text("磁方位: \(magneticText)").font(.title)
-                            Text(String(format: "速度: %.2f kt", loc.speed * 1.94384)).font(.title)
-                            Text(String(format: "GPS 高度: %.2f ft", locationManager.rawGpsAltitude)).font(.title).padding(.top, 40)
+                            Text(String(format: "速度: %.1f kt", loc.speed * 1.94384)).font(.title)
+                            Text(String(format: "GPS 高度: %.1f ft", locationManager.rawGpsAltitude)).font(.title).padding(.top, 40)
                             
                             if let fusedAlt = altitudeFusionManager.fusedAltitude {
-                                Text(String(format: "高度 (Kalman): %.2f ft", fusedAlt))
+                                Text(String(format: "高度 (Kalman): %.1f ft", fusedAlt))
                             } else {
-                                Text(String(format: "高度: %.2f ft", loc.altitude * 3.28084))
+                                Text(String(format: "高度: %.1f ft", loc.altitude * 3.28084))
                             }
-                            Text(String(format: "垂直誤差: ±%.2f ft", loc.verticalAccuracy * 3.28084))
+                            Text(String(format: "垂直誤差: ±%.1f ft", loc.verticalAccuracy * 3.28084))
                                 .font(.title)
                                 .padding(.bottom, 40)
                                 .foregroundColor(verticalErrorColor(for: loc.verticalAccuracy * 3.28084))
-                            Text(String(format: "GPS 高度変化率: %.2f ft/min", locationManager.rawGpsAltitudeChangeRate))
+                            Text(String(format: "GPS 高度変化率: %.1f ft/min", locationManager.rawGpsAltitudeChangeRate))
 
-                            Text(String(format: "高度変化率 (Kalman): %.2f ft/min", altitudeFusionManager.altitudeChangeRate))
+                            Text(String(format: "高度変化率 (Kalman): %.1f ft/min", altitudeFusionManager.altitudeChangeRate))
 
 
                         }
@@ -136,6 +136,7 @@ struct ContentView: View {
                                     shareItems = [csvURL]
                                     showingShareSheet = true
                                 }
+                                flightLogManager.endSession()
                             }
                             .font(.title2)
                             .frame(width: 150, height: 60)
