@@ -177,4 +177,38 @@ final class FlightLogManager: ObservableObject {
         }
         return nil
     }
+
+    /// Export logs for a specific distance measurement as CSV.
+    /// - Parameters:
+    ///   - measurement: The measurement to export logs for.
+    ///   - logs: Flight logs displayed in the distance graph.
+    /// - Returns: URL of the exported CSV if successful.
+    func exportMeasurementLogs(for measurement: DistanceMeasurement,
+                               logs: [FlightLog]) -> URL? {
+        guard let folderURL = sessionFolderURL else { return nil }
+
+        let nameFormatter = DateFormatter()
+        nameFormatter.dateFormat = "yyyyMMdd_HHmmss"
+        let fileName = "MeasurementLog_\(nameFormatter.string(from: Date())).csv"
+        let fileURL = folderURL.appendingPathComponent(fileName)
+
+        var csvText = "timestamp,gpsAltitude(ft),fusedAltitude(ft),rawGpsAltitudeChangeRate(ft/min),fusedAltitudeChangeRate(ft/min)\n"
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        isoFormatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        for log in logs {
+            let ts = isoFormatter.string(from: log.timestamp)
+            csvText.append("\(ts),\(log.gpsAltitude),\(log.fusedAltitude),\(log.rawGpsAltitudeChangeRate),\(log.fusedAltitudeChangeRate)\n")
+        }
+
+        if let bom = "\u{FEFF}".data(using: .utf8), let csvData = csvText.data(using: .utf8) {
+            var combined = Data()
+            combined.append(bom)
+            combined.append(csvData)
+            try? combined.write(to: fileURL, options: .atomic)
+            return fileURL
+        }
+
+        return nil
+    }
 }
