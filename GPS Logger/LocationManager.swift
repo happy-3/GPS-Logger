@@ -143,7 +143,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              magneticCourse: loc.course,
                              horizontalAccuracyM: loc.horizontalAccuracy,
                              verticalAccuracyFt: loc.verticalAccuracy * 3.28084,
-                             altimeterPressure: nil,
+                             altimeterPressure: altitudeFusionManager.altimeterPressure,
                              rawGpsAltitudeChangeRate: rawGpsAltitudeChangeRate,
                              relativeAltitude: altitudeFusionManager.relativeAltitude ?? 0,
                              barometricAltitude: altitudeFusionManager.baselineAltitude.map { $0 + (altitudeFusionManager.relativeAltitude ?? 0) } ?? altitudeFt,
