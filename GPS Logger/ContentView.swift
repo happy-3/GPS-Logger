@@ -245,10 +245,11 @@ struct ContentView: View {
                 .padding()
             }
             .navigationTitle("GPS Logger")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: SettingsView(settings: settings)) {
-                        Image(systemName: "gearshape")
+                        Label("設定", systemImage: "gearshape")
                     }
                 }
             }
