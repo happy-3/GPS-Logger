@@ -128,7 +128,7 @@ class FlightLogManager: ObservableObject {
         
         // CSVヘッダ
         var csvText = """
-timestamp,latitude,longitude,gpsAltitude(ft),speed(kt),magneticCourse,horizontalAccuracy(ft),verticalAccuracy(ft),altimeterPressure,rawGpsAltitudeChangeRate(ft/min),relativeAltitude(ft),barometricAltitude(ft),latestAcceleration(ft/s²),fusedAltitude(ft),fusedAltitudeChangeRate(ft/min),baselineAltitude(ft),measuredAltitude(ft),kalmanUpdateInterval(s),photoIndex
+timestamp,latitude,longitude,gpsAltitude(ft),speed(kt),magneticCourse,horizontalAccuracy(m),verticalAccuracy(ft),altimeterPressure,rawGpsAltitudeChangeRate(ft/min),relativeAltitude(ft),barometricAltitude(ft),latestAcceleration(ft/s²),fusedAltitude(ft),fusedAltitudeChangeRate(ft/min),baselineAltitude(ft),measuredAltitude(ft),kalmanUpdateInterval(s),photoIndex
 """
         csvText.append("\n")
         
@@ -250,6 +250,7 @@ class AltitudeFusionManager: ObservableObject {
     @Published var kalmanUpdateInterval: Double? = nil
     @Published var gpsVerticalAccuracy: Double? = nil
     @Published var rawGpsVerticalSpeed: Double? = nil
+    @Published var latestGpsAltitude: Double? = nil
     
     private var kalmanFilter: KalmanFilter2D?
     private var lastKalmanUpdate: Date?
@@ -280,7 +281,8 @@ class AltitudeFusionManager: ObservableObject {
         if let gpsAlt = gpsAltitude, baselineAltitude == nil {
             baselineAltitude = gpsAlt
         }
-        startAltimeterUpdates(gpsAltitude: gpsAltitude)
+        latestGpsAltitude = gpsAltitude
+        startAltimeterUpdates()
         startMotionUpdates()
     }
     
@@ -292,6 +294,7 @@ class AltitudeFusionManager: ObservableObject {
             self.fusedAltitude = nil
             self.baselineAltitude = nil
             self.relativeAltitude = nil
+            self.latestGpsAltitude = nil
             self.latestAcceleration = 0.0
             self.altitudeChangeRate = 0.0
             self.kalmanFilter = nil
@@ -300,7 +303,7 @@ class AltitudeFusionManager: ObservableObject {
         }
     }
     
-    private func startAltimeterUpdates(gpsAltitude: Double?) {
+    private func startAltimeterUpdates() {
         guard CMAltimeter.isRelativeAltitudeAvailable() else {
             print("CMAltimeter is not available")
             return
@@ -314,7 +317,7 @@ class AltitudeFusionManager: ObservableObject {
             self.relativeAltitude = relAltFt
             if let baseline = self.baselineAltitude {
                 let barometricAltitude = baseline + relAltFt
-                self.updateFusion(gpsAltitude: gpsAltitude, baroAltitude: barometricAltitude)
+                self.updateFusion(gpsAltitude: self.latestGpsAltitude, baroAltitude: barometricAltitude)
             }
         }
     }
@@ -535,10 +538,11 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
         rawGpsAltitude = currentAltitude
         previousRawAltitudeTimestamp = Date()
-        
+
         // Update fusion manager with GPS vertical accuracy and vertical speed
         altitudeFusionManager.gpsVerticalAccuracy = location.verticalAccuracy * 3.28084
         altitudeFusionManager.rawGpsVerticalSpeed = rawGpsAltitudeChangeRate
+        altitudeFusionManager.latestGpsAltitude = currentAltitude
         
         if altitudeFusionManager.baselineAltitude == nil {
             altitudeFusionManager.baselineAltitude = currentAltitude
@@ -610,6 +614,15 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         )
         flightLogManager.addLog(newLog)
     }
+
+    // フュージョン結果へのアクセス用プロパティ
+    var fusedAltitude: Double? {
+        altitudeFusionManager.fusedAltitude
+    }
+
+    var fusedAltitudeChangeRate: Double {
+        altitudeFusionManager.altitudeChangeRate
+    }
 }
 
 // MARK: - CompositeCameraView（静止画撮影・オーバーレイ合成）
@@ -668,7 +681,7 @@ struct CompositeCameraView: UIViewControllerRepresentable {
         }
         
         func currentOverlayText(photoIndex: Int? = nil) -> String {
-            let photoText = "Photo Index: \(photoIndex != nil ? String(photoIndex!) : "Pending")"
+            let photoText = "写真番号: \(photoIndex.map(String.init) ?? "未確定")"
             if let loc = parent.locationManager.lastLocation {
                 let magneticText: String = {
                     if loc.course < 0 {
@@ -681,13 +694,15 @@ struct CompositeCameraView: UIViewControllerRepresentable {
                     }
                 }()
                 let speedKnots = loc.speed * 1.94384
-                let altitudeFt = loc.altitude * 3.28084
+                let altitudeFt = parent.locationManager.fusedAltitude ?? loc.altitude * 3.28084
+                let verticalSpeed = parent.locationManager.fusedAltitudeChangeRate
                 let verticalAccuracyFt = loc.verticalAccuracy * 3.28084
                 return """
                 \(photoText)
                 磁方位: \(magneticText)
                 速度: \(String(format: "%.2f kt", speedKnots))
                 高度: \(String(format: "%.2f ft", altitudeFt))
+                上昇下降率: \(String(format: "%.2f ft/min", verticalSpeed))
                 垂直誤差: \(String(format: "±%.2f ft", verticalAccuracyFt))
                 """
             } else {
@@ -884,7 +899,7 @@ struct CompositeCameraView: UIViewControllerRepresentable {
         controller.view.addSubview(zoomOutButton)
         
         let pinchGesture = UIPinchGestureRecognizer(target: context.coordinator,
-                                                    action: #selector(Coordinator.handlePinchGesture(_:)))
+                                                    action: #selector(Coordinator.handlePinchGesture(_:))
         controller.view.addGestureRecognizer(pinchGesture)
         
         return controller
@@ -1020,13 +1035,12 @@ struct ContentView: View {
     @State var speed: Double = 50.0
     @State var altitude: Double = 5000.0
     @State var altitudeChangeRate: Double = 20.0
-    @State var verticalError: Double = 15.0
     @State var latitude: Double = 35.6895
     @State var longitude: Double = 139.6917
-    
+
     // 垂直誤差に基づく色分けの関数
-    func verticalErrorColor() -> Color {
-        switch verticalError {
+    func verticalErrorColor(for error: Double) -> Color {
+        switch error {
         case ..<10:
             return Color.green    // 10ft未満：最適
         case 10..<20:
@@ -1098,7 +1112,10 @@ struct ContentView: View {
                             } else {
                                 Text(String(format: "高度: %.2f ft", loc.altitude * 3.28084))
                             }
-                            Text(String(format: "垂直誤差: ±%.2f ft", loc.verticalAccuracy * 3.28084)).font(.title).padding(.bottom, 40)
+                            Text(String(format: "垂直誤差: ±%.2f ft", loc.verticalAccuracy * 3.28084))
+                                .font(.title)
+                                .padding(.bottom, 40)
+                                .foregroundColor(verticalErrorColor(for: loc.verticalAccuracy * 3.28084))
                             Text(String(format: "GPS 高度変化率: %.2f ft/min", locationManager.rawGpsAltitudeChangeRate))
 
                             Text(String(format: "高度変化率 (Kalman): %.2f ft/min", altitudeFusionManager.altitudeChangeRate))
