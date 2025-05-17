@@ -24,6 +24,9 @@ struct ContentView: View {
     @State private var measurementStart: Date?
     @State private var measurementResultMessage: String?
     @State private var showingMeasurementAlert = false
+    @State private var showingDistanceGraph = false
+    @State private var graphLogs: [FlightLog] = []
+    @State private var lastMeasurement: DistanceMeasurement?
     
     // UI表示用のサンプルデータ
     @State var gpsTime: String = "12:34:56"
@@ -153,11 +156,16 @@ struct ContentView: View {
                                 if measuringDistance {
                                     let now = Date()
                                     if let result = flightLogManager.finishMeasurement(at: now) {
-                                        measurementResultMessage = String(format: "水平距離: %.1f m\n3D距離: %.1f m", result.horizontalDistance, result.totalDistance)
+                                        graphLogs = flightLogManager.flightLogs.filter { log in
+                                            log.timestamp >= result.startTime && log.timestamp <= result.endTime
+                                        }
+                                        lastMeasurement = result
+                                        showingDistanceGraph = true
+                                        measurementResultMessage = nil
                                     } else {
                                         measurementResultMessage = "計測に失敗しました"
+                                        showingMeasurementAlert = true
                                     }
-                                    showingMeasurementAlert = true
                                     measuringDistance = false
                                     measurementStart = nil
                                 } else {
@@ -165,6 +173,7 @@ struct ContentView: View {
                                     measurementStart = start
                                     flightLogManager.startMeasurement(at: start)
                                     measuringDistance = true
+                                    measurementResultMessage = nil
                                 }
                             }
                             .font(.title2)
@@ -257,6 +266,13 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingShareSheet) {
                 ActivityView(activityItems: shareItems)
+            }
+            .sheet(isPresented: $showingDistanceGraph) {
+                if let measurement = lastMeasurement {
+                    NavigationView {
+                        DistanceGraphView(logs: graphLogs, measurement: measurement)
+                    }
+                }
             }
             .alert(measurementResultMessage ?? "", isPresented: $showingMeasurementAlert) {
                 Button("OK", role: .cancel) {}
