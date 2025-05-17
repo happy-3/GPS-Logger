@@ -8,23 +8,7 @@ struct DistanceGraphView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Chart {
-                ForEach(logs) { log in
-                    LineMark(
-                        x: .value("Time", log.timestamp),
-                        y: .value("GPS Altitude", log.gpsAltitude)
-                    )
-                    .foregroundStyle(.red)
-                }
-                ForEach(logs) { log in
-                    LineMark(
-                        x: .value("Time", log.timestamp),
-                        y: .value("Kalman Altitude", log.fusedAltitude)
-                    )
-                    .foregroundStyle(.blue)
-                }
-            }
-            .frame(height: 240)
+            altitudeChart
 
             HStack {
                 Text(String(format: "水平距離: %.1f m", measurement.horizontalDistance))
@@ -36,6 +20,26 @@ struct DistanceGraphView: View {
         }
         .padding()
         .navigationTitle("Distance Graph")
+    }
+
+    private var altitudeChart: some View {
+        Chart {
+            ForEach(logs) { log in
+                LineMark(
+                    x: .value("Time", log.timestamp),
+                    y: .value("GPS Altitude", log.gpsAltitude)
+                )
+                .foregroundStyle(.red)
+            }
+            ForEach(logs) { log in
+                LineMark(
+                    x: .value("Time", log.timestamp),
+                    y: .value("Kalman Altitude", log.fusedAltitude)
+                )
+                .foregroundStyle(.blue)
+            }
+        }
+        .frame(height: 240)
     }
 }
 
