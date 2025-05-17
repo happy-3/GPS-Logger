@@ -150,4 +150,32 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         pendingPhotoIndex = nil
         flightLogManager.addLog(log)
     }
+
+    // MARK: - CLLocationManagerDelegate
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let latest = locations.last else { return }
+        DispatchQueue.main.async {
+            self.lastLocation = latest
+        }
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            startUpdatingForDisplay()
+        default:
+            break
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+        locationManagerDidChangeAuthorization(manager)
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        if newHeading.headingAccuracy >= 0 {
+            declination = newHeading.trueHeading - newHeading.magneticHeading
+        }
+    }
 }
