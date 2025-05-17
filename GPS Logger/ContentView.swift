@@ -128,7 +128,7 @@ class FlightLogManager: ObservableObject {
         
         // CSVヘッダ
         var csvText = """
-timestamp,latitude,longitude,gpsAltitude(ft),speed(kt),magneticCourse,horizontalAccuracy(ft),verticalAccuracy(ft),altimeterPressure,rawGpsAltitudeChangeRate(ft/min),relativeAltitude(ft),barometricAltitude(ft),latestAcceleration(ft/s²),fusedAltitude(ft),fusedAltitudeChangeRate(ft/min),baselineAltitude(ft),measuredAltitude(ft),kalmanUpdateInterval(s),photoIndex
+timestamp,latitude,longitude,gpsAltitude(ft),speed(kt),magneticCourse,horizontalAccuracy(m),verticalAccuracy(ft),altimeterPressure,rawGpsAltitudeChangeRate(ft/min),relativeAltitude(ft),barometricAltitude(ft),latestAcceleration(ft/s²),fusedAltitude(ft),fusedAltitudeChangeRate(ft/min),baselineAltitude(ft),measuredAltitude(ft),kalmanUpdateInterval(s),photoIndex
 """
         csvText.append("\n")
         
@@ -250,6 +250,7 @@ class AltitudeFusionManager: ObservableObject {
     @Published var kalmanUpdateInterval: Double? = nil
     @Published var gpsVerticalAccuracy: Double? = nil
     @Published var rawGpsVerticalSpeed: Double? = nil
+    @Published var latestGpsAltitude: Double? = nil
     
     private var kalmanFilter: KalmanFilter2D?
     private var lastKalmanUpdate: Date?
@@ -280,7 +281,8 @@ class AltitudeFusionManager: ObservableObject {
         if let gpsAlt = gpsAltitude, baselineAltitude == nil {
             baselineAltitude = gpsAlt
         }
-        startAltimeterUpdates(gpsAltitude: gpsAltitude)
+        latestGpsAltitude = gpsAltitude
+        startAltimeterUpdates()
         startMotionUpdates()
     }
     
@@ -292,6 +294,7 @@ class AltitudeFusionManager: ObservableObject {
             self.fusedAltitude = nil
             self.baselineAltitude = nil
             self.relativeAltitude = nil
+            self.latestGpsAltitude = nil
             self.latestAcceleration = 0.0
             self.altitudeChangeRate = 0.0
             self.kalmanFilter = nil
@@ -300,7 +303,7 @@ class AltitudeFusionManager: ObservableObject {
         }
     }
     
-    private func startAltimeterUpdates(gpsAltitude: Double?) {
+    private func startAltimeterUpdates() {
         guard CMAltimeter.isRelativeAltitudeAvailable() else {
             print("CMAltimeter is not available")
             return
@@ -314,7 +317,7 @@ class AltitudeFusionManager: ObservableObject {
             self.relativeAltitude = relAltFt
             if let baseline = self.baselineAltitude {
                 let barometricAltitude = baseline + relAltFt
-                self.updateFusion(gpsAltitude: gpsAltitude, baroAltitude: barometricAltitude)
+                self.updateFusion(gpsAltitude: self.latestGpsAltitude, baroAltitude: barometricAltitude)
             }
         }
     }
@@ -535,10 +538,11 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
         rawGpsAltitude = currentAltitude
         previousRawAltitudeTimestamp = Date()
-        
+
         // Update fusion manager with GPS vertical accuracy and vertical speed
         altitudeFusionManager.gpsVerticalAccuracy = location.verticalAccuracy * 3.28084
         altitudeFusionManager.rawGpsVerticalSpeed = rawGpsAltitudeChangeRate
+        altitudeFusionManager.latestGpsAltitude = currentAltitude
         
         if altitudeFusionManager.baselineAltitude == nil {
             altitudeFusionManager.baselineAltitude = currentAltitude
@@ -884,7 +888,7 @@ struct CompositeCameraView: UIViewControllerRepresentable {
         controller.view.addSubview(zoomOutButton)
         
         let pinchGesture = UIPinchGestureRecognizer(target: context.coordinator,
-                                                    action: #selector(Coordinator.handlePinchGesture(_:)))
+                                                    action: #selector(Coordinator.handlePinchGesture(_:))
         controller.view.addGestureRecognizer(pinchGesture)
         
         return controller
