@@ -130,7 +130,6 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     func recordLog() {
         guard let loc = lastLocation else { return }
         let altitudeFt = rawGpsAltitude
-        let vspeed = rawGpsAltitudeChangeRate
         let now = Date()
 
         let log = FlightLog(timestamp: now,
