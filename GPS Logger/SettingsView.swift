@@ -37,6 +37,11 @@ struct SettingsView: View {
                 }
                 Slider(value: $settings.baroWeight, in: 0...1, step: 0.05)
             }
+
+            Section(header: Text("Recorded Fields")) {
+                Toggle("Record Speed", isOn: $settings.recordSpeed)
+                Toggle("Record Acceleration", isOn: $settings.recordAcceleration)
+            }
         }
         .navigationTitle("Settings")
     }

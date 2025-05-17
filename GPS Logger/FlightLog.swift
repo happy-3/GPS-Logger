@@ -9,7 +9,7 @@ struct FlightLog: Identifiable {
 
     // GPS related data
     let gpsAltitude: Double           // ft
-    let speedKt: Double               // knots
+    let speedKt: Double?              // knots
     let magneticCourse: Double        // -1 if not available
     let horizontalAccuracyM: Double   // meters
     let verticalAccuracyFt: Double    // feet
@@ -19,7 +19,7 @@ struct FlightLog: Identifiable {
     let rawGpsAltitudeChangeRate: Double   // ft/min
     let relativeAltitude: Double           // ft
     let barometricAltitude: Double         // ft
-    let latestAcceleration: Double         // ft/s²
+    let latestAcceleration: Double?        // ft/s²
     let fusedAltitude: Double              // ft
     let fusedAltitudeChangeRate: Double    // ft/min
 

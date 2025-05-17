@@ -16,10 +16,20 @@ final class Settings: ObservableObject {
         didSet { UserDefaults.standard.set(baroWeight, forKey: "baroWeight") }
     }
 
+    // Recording options
+    @Published var recordSpeed: Bool {
+        didSet { UserDefaults.standard.set(recordSpeed, forKey: "recordSpeed") }
+    }
+    @Published var recordAcceleration: Bool {
+        didSet { UserDefaults.standard.set(recordAcceleration, forKey: "recordAcceleration") }
+    }
+
     init() {
         processNoise = UserDefaults.standard.object(forKey: "processNoise") as? Double ?? 0.2
         measurementNoise = UserDefaults.standard.object(forKey: "measurementNoise") as? Double ?? 15.0
         logInterval = UserDefaults.standard.object(forKey: "logInterval") as? Double ?? 1.0
         baroWeight = UserDefaults.standard.object(forKey: "baroWeight") as? Double ?? 0.75
+        recordSpeed = UserDefaults.standard.object(forKey: "recordSpeed") as? Bool ?? true
+        recordAcceleration = UserDefaults.standard.object(forKey: "recordAcceleration") as? Bool ?? true
     }
 }
