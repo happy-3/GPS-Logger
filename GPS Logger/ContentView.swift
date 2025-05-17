@@ -27,6 +27,7 @@ struct ContentView: View {
     @State private var showingDistanceGraph = false
     @State private var graphLogs: [FlightLog] = []
     @State private var lastMeasurement: DistanceMeasurement?
+    @State private var measurementLogURL: URL?
     
     // UI表示用のサンプルデータ
     @State var gpsTime: String = "12:34:56"
@@ -159,12 +160,15 @@ struct ContentView: View {
                                         graphLogs = flightLogManager.flightLogs.filter { log in
                                             log.timestamp >= result.startTime && log.timestamp <= result.endTime
                                         }
+                                        measurementLogURL = flightLogManager.exportMeasurementLogs(for: result,
+                                                                                                  logs: graphLogs)
                                         lastMeasurement = result
                                         showingDistanceGraph = true
                                         measurementResultMessage = nil
                                     } else {
                                         measurementResultMessage = "計測に失敗しました"
                                         showingMeasurementAlert = true
+                                        measurementLogURL = nil
                                     }
                                     measuringDistance = false
                                     measurementStart = nil
@@ -174,6 +178,7 @@ struct ContentView: View {
                                     flightLogManager.startMeasurement(at: start)
                                     measuringDistance = true
                                     measurementResultMessage = nil
+                                    measurementLogURL = nil
                                 }
                             }
                             .font(.title2)
