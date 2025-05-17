@@ -28,6 +28,7 @@ struct ContentView: View {
     @State private var graphLogs: [FlightLog] = []
     @State private var lastMeasurement: DistanceMeasurement?
     @State private var measurementLogURL: URL?
+    @State private var measurementGraphURL: URL?
     
     // UI表示用のサンプルデータ
     @State var gpsTime: String = "12:34:56"
@@ -161,7 +162,16 @@ struct ContentView: View {
                                             log.timestamp >= result.startTime && log.timestamp <= result.endTime
                                         }
                                         measurementLogURL = flightLogManager.exportMeasurementLogs(for: result,
-                                                                                                  logs: graphLogs)
+                                                                                                 logs: graphLogs)
+
+                                        let graphView = DistanceGraphView(logs: graphLogs, measurement: result)
+                                        if let image = graphView.chartImage() {
+                                            measurementGraphURL = flightLogManager.exportMeasurementGraphImage(for: result,
+                                                                                                             chartImage: image)
+                                        } else {
+                                            measurementGraphURL = nil
+                                        }
+
                                         lastMeasurement = result
                                         showingDistanceGraph = true
                                         measurementResultMessage = nil
@@ -169,6 +179,7 @@ struct ContentView: View {
                                         measurementResultMessage = "計測に失敗しました"
                                         showingMeasurementAlert = true
                                         measurementLogURL = nil
+                                        measurementGraphURL = nil
                                     }
                                     measuringDistance = false
                                     measurementStart = nil
@@ -179,6 +190,7 @@ struct ContentView: View {
                                     measuringDistance = true
                                     measurementResultMessage = nil
                                     measurementLogURL = nil
+                                    measurementGraphURL = nil
                                 }
                             }
                             .font(.title2)
