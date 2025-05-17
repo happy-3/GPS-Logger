@@ -244,6 +244,7 @@ struct ContentView: View {
                 }
                 .padding()
             }
+            .navigationTitle("GPS Logger")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: SettingsView(settings: settings)) {
