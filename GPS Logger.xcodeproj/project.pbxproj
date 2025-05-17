@@ -1,0 +1,575 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		5515563E2D8E4A880013DADD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 551556252D8E4A870013DADD /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5515562C2D8E4A870013DADD;
+			remoteInfo = "GPS Logger";
+		};
+		551556482D8E4A880013DADD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 551556252D8E4A870013DADD /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5515562C2D8E4A870013DADD;
+			remoteInfo = "GPS Logger";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		5515562D2D8E4A870013DADD /* GPS Logger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GPS Logger.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		5515563D2D8E4A880013DADD /* GPS LoggerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "GPS LoggerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		551556472D8E4A880013DADD /* GPS LoggerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "GPS LoggerUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		5515562F2D8E4A870013DADD /* GPS Logger */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "GPS Logger";
+			sourceTree = "<group>";
+		};
+		551556402D8E4A880013DADD /* GPS LoggerTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "GPS LoggerTests";
+			sourceTree = "<group>";
+		};
+		5515564A2D8E4A880013DADD /* GPS LoggerUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "GPS LoggerUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5515562A2D8E4A870013DADD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5515563A2D8E4A880013DADD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		551556442D8E4A880013DADD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		551556242D8E4A870013DADD = {
+			isa = PBXGroup;
+			children = (
+				5515562F2D8E4A870013DADD /* GPS Logger */,
+				551556402D8E4A880013DADD /* GPS LoggerTests */,
+				5515564A2D8E4A880013DADD /* GPS LoggerUITests */,
+				5515562E2D8E4A870013DADD /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5515562E2D8E4A870013DADD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5515562D2D8E4A870013DADD /* GPS Logger.app */,
+				5515563D2D8E4A880013DADD /* GPS LoggerTests.xctest */,
+				551556472D8E4A880013DADD /* GPS LoggerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5515562C2D8E4A870013DADD /* GPS Logger */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 551556512D8E4A880013DADD /* Build configuration list for PBXNativeTarget "GPS Logger" */;
+			buildPhases = (
+				551556292D8E4A870013DADD /* Sources */,
+				5515562A2D8E4A870013DADD /* Frameworks */,
+				5515562B2D8E4A870013DADD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5515562F2D8E4A870013DADD /* GPS Logger */,
+			);
+			name = "GPS Logger";
+			packageProductDependencies = (
+			);
+			productName = "GPS Logger";
+			productReference = 5515562D2D8E4A870013DADD /* GPS Logger.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5515563C2D8E4A880013DADD /* GPS LoggerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 551556542D8E4A880013DADD /* Build configuration list for PBXNativeTarget "GPS LoggerTests" */;
+			buildPhases = (
+				551556392D8E4A880013DADD /* Sources */,
+				5515563A2D8E4A880013DADD /* Frameworks */,
+				5515563B2D8E4A880013DADD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5515563F2D8E4A880013DADD /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				551556402D8E4A880013DADD /* GPS LoggerTests */,
+			);
+			name = "GPS LoggerTests";
+			packageProductDependencies = (
+			);
+			productName = "GPS LoggerTests";
+			productReference = 5515563D2D8E4A880013DADD /* GPS LoggerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		551556462D8E4A880013DADD /* GPS LoggerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 551556572D8E4A880013DADD /* Build configuration list for PBXNativeTarget "GPS LoggerUITests" */;
+			buildPhases = (
+				551556432D8E4A880013DADD /* Sources */,
+				551556442D8E4A880013DADD /* Frameworks */,
+				551556452D8E4A880013DADD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				551556492D8E4A880013DADD /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5515564A2D8E4A880013DADD /* GPS LoggerUITests */,
+			);
+			name = "GPS LoggerUITests";
+			packageProductDependencies = (
+			);
+			productName = "GPS LoggerUITests";
+			productReference = 551556472D8E4A880013DADD /* GPS LoggerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		551556252D8E4A870013DADD /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					5515562C2D8E4A870013DADD = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					5515563C2D8E4A880013DADD = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 5515562C2D8E4A870013DADD;
+					};
+					551556462D8E4A880013DADD = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 5515562C2D8E4A870013DADD;
+					};
+				};
+			};
+			buildConfigurationList = 551556282D8E4A870013DADD /* Build configuration list for PBXProject "GPS Logger" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 551556242D8E4A870013DADD;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5515562E2D8E4A870013DADD /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5515562C2D8E4A870013DADD /* GPS Logger */,
+				5515563C2D8E4A880013DADD /* GPS LoggerTests */,
+				551556462D8E4A880013DADD /* GPS LoggerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5515562B2D8E4A870013DADD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5515563B2D8E4A880013DADD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		551556452D8E4A880013DADD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		551556292D8E4A870013DADD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		551556392D8E4A880013DADD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		551556432D8E4A880013DADD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5515563F2D8E4A880013DADD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5515562C2D8E4A870013DADD /* GPS Logger */;
+			targetProxy = 5515563E2D8E4A880013DADD /* PBXContainerItemProxy */;
+		};
+		551556492D8E4A880013DADD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5515562C2D8E4A870013DADD /* GPS Logger */;
+			targetProxy = 551556482D8E4A880013DADD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		5515564F2D8E4A880013DADD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		551556502D8E4A880013DADD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		551556522D8E4A880013DADD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"GPS Logger/Preview Content\"";
+				DEVELOPMENT_TEAM = J3P9F27XZ9;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "GPS-Logger-Info.plist";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "記録保存のためメディアライブラリにアクセスします。";
+				INFOPLIST_KEY_NSCameraUsageDescription = "撮影のためカメラを使います。";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "バックグラウンドでも位置情報を取得するために使用します";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "フライトログ記録のために位置情報を使用します";
+				INFOPLIST_KEY_NSMotionUsageDescription = "記録のためにモーションを使います。";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "happy.GPS-Logger";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		551556532D8E4A880013DADD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"GPS Logger/Preview Content\"";
+				DEVELOPMENT_TEAM = J3P9F27XZ9;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "GPS-Logger-Info.plist";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "記録保存のためメディアライブラリにアクセスします。";
+				INFOPLIST_KEY_NSCameraUsageDescription = "撮影のためカメラを使います。";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "バックグラウンドでも位置情報を取得するために使用します";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "フライトログ記録のために位置情報を使用します";
+				INFOPLIST_KEY_NSMotionUsageDescription = "記録のためにモーションを使います。";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "happy.GPS-Logger";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		551556552D8E4A880013DADD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J3P9F27XZ9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "happy.GPS-LoggerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GPS Logger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GPS Logger";
+			};
+			name = Debug;
+		};
+		551556562D8E4A880013DADD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J3P9F27XZ9;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "happy.GPS-LoggerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GPS Logger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GPS Logger";
+			};
+			name = Release;
+		};
+		551556582D8E4A880013DADD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J3P9F27XZ9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "happy.GPS-LoggerUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "GPS Logger";
+			};
+			name = Debug;
+		};
+		551556592D8E4A880013DADD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = J3P9F27XZ9;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "happy.GPS-LoggerUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "GPS Logger";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		551556282D8E4A870013DADD /* Build configuration list for PBXProject "GPS Logger" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5515564F2D8E4A880013DADD /* Debug */,
+				551556502D8E4A880013DADD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		551556512D8E4A880013DADD /* Build configuration list for PBXNativeTarget "GPS Logger" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				551556522D8E4A880013DADD /* Debug */,
+				551556532D8E4A880013DADD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		551556542D8E4A880013DADD /* Build configuration list for PBXNativeTarget "GPS LoggerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				551556552D8E4A880013DADD /* Debug */,
+				551556562D8E4A880013DADD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		551556572D8E4A880013DADD /* Build configuration list for PBXNativeTarget "GPS LoggerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				551556582D8E4A880013DADD /* Debug */,
+				551556592D8E4A880013DADD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 551556252D8E4A870013DADD /* Project object */;
+}
