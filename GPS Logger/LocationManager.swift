@@ -98,7 +98,6 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         logTimer?.invalidate()
         logTimer = nil
         altitudeFusionManager.stopUpdates()
-        flightLogManager.endSession()
     }
 
     func recordPhotoCapture() -> Int? {
@@ -108,8 +107,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         return photoCounter
     }
 
-    func recordLog() {
-        guard let loc = lastLocation else { return }
+    private func updateAltitude(with loc: CLLocation) {
         let altitudeFt = loc.altitude * 3.28084
         let now = Date()
         var vspeed = rawGpsAltitudeChangeRate
@@ -127,6 +125,13 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         altitudeFusionManager.rawGpsVerticalSpeed = vspeed
         altitudeFusionManager.gpsVerticalAccuracy = loc.verticalAccuracy * 3.28084
         altitudeFusionManager.startUpdates(gpsAltitude: altitudeFt)
+    }
+
+    func recordLog() {
+        guard let loc = lastLocation else { return }
+        let altitudeFt = rawGpsAltitude
+        let vspeed = rawGpsAltitudeChangeRate
+        let now = Date()
 
         let log = FlightLog(timestamp: now,
                              latitude: loc.coordinate.latitude,
@@ -157,6 +162,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         guard let latest = locations.last else { return }
         DispatchQueue.main.async {
             self.lastLocation = latest
+            self.updateAltitude(with: latest)
         }
     }
 

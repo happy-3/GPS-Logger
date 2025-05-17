@@ -22,6 +22,12 @@ struct CompositeCameraView: UIViewControllerRepresentable {
                 if let loc = parent.locationManager.lastLocation {
                     parent.capturedOverlayText = String(format: "Lat: %.5f\nLon: %.5f", loc.coordinate.latitude, loc.coordinate.longitude)
                 }
+                if let index = parent.locationManager.recordPhotoCapture(),
+                   let folderURL = parent.locationManager.flightLogManager.sessionFolderURL,
+                   let data = image.jpegData(compressionQuality: 0.9) {
+                    let fileURL = folderURL.appendingPathComponent("Photo_\(index).jpg")
+                    try? data.write(to: fileURL)
+                }
             }
             picker.dismiss(animated: true)
         }
