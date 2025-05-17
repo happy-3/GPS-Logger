@@ -17,6 +17,7 @@ final class AltitudeFusionManager: ObservableObject {
     @Published var gpsVerticalAccuracy: Double? = nil
     @Published var rawGpsVerticalSpeed: Double? = nil
     @Published var latestGpsAltitude: Double? = nil
+    @Published var altimeterPressure: Double? = nil   // kPa
 
     private var kalmanFilter: KalmanFilter2D?
     private var lastKalmanUpdate: Date?
@@ -59,6 +60,7 @@ final class AltitudeFusionManager: ObservableObject {
             self.kalmanFilter = nil
             self.lastKalmanUpdate = nil
             self.lastMotionTimestamp = nil
+            self.altimeterPressure = nil
         }
     }
 
@@ -67,6 +69,7 @@ final class AltitudeFusionManager: ObservableObject {
         altimeter.startRelativeAltitudeUpdates(to: .main) { [weak self] data, error in
             guard let self, let data, error == nil else { return }
             let relAltFt = data.relativeAltitude.doubleValue * 3.28084
+            self.altimeterPressure = data.pressure.doubleValue
             self.relativeAltitude = relAltFt
             if let baseline = self.baselineAltitude {
                 let barometricAltitude = baseline + relAltFt
