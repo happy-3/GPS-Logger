@@ -82,6 +82,7 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
+            ZStack {
                 VStack(spacing: 40) {
                     Text("現在時刻 (JST): \(currentTime, formatter: jstFormatter)")
                         .font(.title)
@@ -261,14 +262,15 @@ struct ContentView: View {
                     Spacer()
                 }
                 .padding()
+
+                NavigationLink(isActive: $showSettings) {
+                    SettingsView(settings: settings)
+                } label: {
+                    EmptyView()
+                }
             }
             .navigationTitle("GPS Logger")
             .navigationBarTitleDisplayMode(.inline)
-            .background(
-                NavigationLink(destination: SettingsView(settings: settings), isActive: $showSettings) {
-                    EmptyView()
-                }
-            )
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
