@@ -3,7 +3,7 @@ import Combine
 
 /// A property wrapper that synchronizes a value with UserDefaults and publishes changes.
 @propertyWrapper
-struct UserDefaultBacked<Value> {
+final class UserDefaultBacked<Value> {
     private let key: String
     private let defaultValue: Value
     @Published private var value: Value
@@ -22,6 +22,6 @@ struct UserDefaultBacked<Value> {
         self.key = key
         self.defaultValue = defaultValue
         let stored = UserDefaults.standard.object(forKey: key) as? Value ?? defaultValue
-        self._value = Published(initialValue: stored)
+        self.value = stored
     }
 }
