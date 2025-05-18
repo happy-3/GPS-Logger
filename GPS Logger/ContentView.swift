@@ -29,6 +29,7 @@ struct ContentView: View {
     @State private var lastMeasurement: DistanceMeasurement?
     @State private var measurementLogURL: URL?
     @State private var measurementGraphURL: URL?
+    @State private var showSettings = false
     
     // UI表示用のサンプルデータ
     @State var gpsTime: String = "12:34:56"
@@ -263,9 +264,16 @@ struct ContentView: View {
             }
             .navigationTitle("GPS Logger")
             .navigationBarTitleDisplayMode(.inline)
+            .background(
+                NavigationLink(destination: SettingsView(settings: settings), isActive: $showSettings) {
+                    EmptyView()
+                }
+            )
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SettingsView(settings: settings)) {
+                    Button {
+                        showSettings = true
+                    } label: {
                         Label("設定", systemImage: "gearshape")
                     }
                 }
