@@ -16,12 +16,12 @@ struct FlightLog: Identifiable {
     let altimeterPressure: Double?    // optional
 
     // Sensor / fusion related data
-    let rawGpsAltitudeChangeRate: Double   // ft/min
-    let relativeAltitude: Double           // ft
-    let barometricAltitude: Double         // ft
+    let rawGpsAltitudeChangeRate: Double?   // ft/min
+    let relativeAltitude: Double?           // ft
+    let barometricAltitude: Double?         // ft
     let latestAcceleration: Double?        // ft/s²
-    let fusedAltitude: Double              // ft
-    let fusedAltitudeChangeRate: Double    // ft/min
+    let fusedAltitude: Double?              // ft
+    let fusedAltitudeChangeRate: Double?    // ft/min
 
     // Parameters used for log optimisation
     let baselineAltitude: Double?          // initial GPS altitude

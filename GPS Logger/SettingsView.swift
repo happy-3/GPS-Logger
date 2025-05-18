@@ -39,8 +39,16 @@ struct SettingsView: View {
             }
 
             Section(header: Text("Recorded Fields")) {
-                Toggle("Record Speed", isOn: $settings.recordSpeed)
                 Toggle("Record Acceleration", isOn: $settings.recordAcceleration)
+                Toggle("Record Altimeter Pressure", isOn: $settings.recordAltimeterPressure)
+                Toggle("Record Raw GPS Rate", isOn: $settings.recordRawGpsRate)
+                Toggle("Record Relative Altitude", isOn: $settings.recordRelativeAltitude)
+                Toggle("Record Barometric Altitude", isOn: $settings.recordBarometricAltitude)
+                Toggle("Record Fused Altitude", isOn: $settings.recordFusedAltitude)
+                Toggle("Record Fused Rate", isOn: $settings.recordFusedRate)
+                Toggle("Record Baseline Altitude", isOn: $settings.recordBaselineAltitude)
+                Toggle("Record Measured Altitude", isOn: $settings.recordMeasuredAltitude)
+                Toggle("Record Kalman Interval", isOn: $settings.recordKalmanInterval)
             }
         }
         .navigationTitle("Settings")

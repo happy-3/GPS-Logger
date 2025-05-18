@@ -132,7 +132,10 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         let altitudeFt = rawGpsAltitude
         let now = Date()
 
-        let speedKt = settings.recordSpeed ? loc.speed * 1.94384 : nil
+        let speedKt: Double? = {
+            let spd = loc.speed
+            return spd >= 0 ? spd * 1.94384 : nil
+        }()
         let latestAcc = settings.recordAcceleration ? altitudeFusionManager.latestAcceleration : nil
 
         let log = FlightLog(timestamp: now,
@@ -143,16 +146,16 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              magneticCourse: loc.course,
                              horizontalAccuracyM: loc.horizontalAccuracy,
                              verticalAccuracyFt: loc.verticalAccuracy * 3.28084,
-                             altimeterPressure: altitudeFusionManager.altimeterPressure,
-                             rawGpsAltitudeChangeRate: rawGpsAltitudeChangeRate,
-                             relativeAltitude: altitudeFusionManager.relativeAltitude ?? 0,
-                             barometricAltitude: altitudeFusionManager.baselineAltitude.map { $0 + (altitudeFusionManager.relativeAltitude ?? 0) } ?? altitudeFt,
+                             altimeterPressure: settings.recordAltimeterPressure ? altitudeFusionManager.altimeterPressure : nil,
+                             rawGpsAltitudeChangeRate: settings.recordRawGpsRate ? rawGpsAltitudeChangeRate : nil,
+                             relativeAltitude: settings.recordRelativeAltitude ? altitudeFusionManager.relativeAltitude : nil,
+                             barometricAltitude: settings.recordBarometricAltitude ? altitudeFusionManager.baselineAltitude.map { $0 + (altitudeFusionManager.relativeAltitude ?? 0) } ?? altitudeFt : nil,
                              latestAcceleration: latestAcc,
-                             fusedAltitude: altitudeFusionManager.fusedAltitude ?? altitudeFt,
-                             fusedAltitudeChangeRate: altitudeFusionManager.altitudeChangeRate,
-                             baselineAltitude: altitudeFusionManager.baselineAltitude,
-                             measuredAltitude: altitudeFusionManager.measuredAltitude,
-                             kalmanUpdateInterval: altitudeFusionManager.kalmanUpdateInterval,
+                             fusedAltitude: settings.recordFusedAltitude ? (altitudeFusionManager.fusedAltitude ?? altitudeFt) : nil,
+                             fusedAltitudeChangeRate: settings.recordFusedRate ? altitudeFusionManager.altitudeChangeRate : nil,
+                             baselineAltitude: settings.recordBaselineAltitude ? altitudeFusionManager.baselineAltitude : nil,
+                             measuredAltitude: settings.recordMeasuredAltitude ? altitudeFusionManager.measuredAltitude : nil,
+                             kalmanUpdateInterval: settings.recordKalmanInterval ? altitudeFusionManager.kalmanUpdateInterval : nil,
                              photoIndex: pendingPhotoIndex)
         pendingPhotoIndex = nil
         flightLogManager.addLog(log)
