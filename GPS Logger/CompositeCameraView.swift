@@ -1,52 +1,93 @@
 import SwiftUI
+import AVFoundation
 import UIKit
 
-/// A simple camera view that saves captured image and overlay text.
-/// This is a minimal placeholder implementation and does not include
-/// advanced functionality.
+/// SwiftUI wrapper around `CameraViewController`.
 struct CompositeCameraView: UIViewControllerRepresentable {
     @Binding var capturedCompositeImage: UIImage?
     @Binding var capturedOverlayText: String
     @EnvironmentObject var locationManager: LocationManager
+    let settings: Settings
 
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        var parent: CompositeCameraView
-
-        init(parent: CompositeCameraView) {
-            self.parent = parent
-        }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.capturedCompositeImage = image
-                if let loc = parent.locationManager.lastLocation {
-                    parent.capturedOverlayText = String(format: "Lat: %.5f\nLon: %.5f", loc.coordinate.latitude, loc.coordinate.longitude)
-                }
-                if let index = parent.locationManager.recordPhotoCapture(),
-                   let folderURL = parent.locationManager.flightLogManager.sessionFolderURL,
-                   let data = image.jpegData(compressionQuality: 0.9) {
-                    let fileURL = folderURL.appendingPathComponent("Photo_\(index).jpg")
-                    try? data.write(to: fileURL)
-                }
+    func makeUIViewController(context: Context) -> CameraViewController {
+        let manager = CameraSessionManager(logInterval: settings.logInterval)
+        let vc = CameraViewController(manager: manager, locationManager: locationManager) { image in
+            capturedCompositeImage = image
+            if let loc = locationManager.lastLocation {
+                capturedOverlayText = String(format: "Lat: %.5f\nLon: %.5f", loc.coordinate.latitude, loc.coordinate.longitude)
             }
-            picker.dismiss(animated: true)
         }
+        return vc
+    }
 
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            picker.dismiss(animated: true)
+    func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {
+        // no-op
+    }
+}
+
+/// Basic view controller displaying camera preview and a shutter button.
+final class CameraViewController: UIViewController {
+    private let manager: CameraSessionManager
+    private weak var locationManager: LocationManager?
+    private let completion: (UIImage?) -> Void
+    private var previewLayer: AVCaptureVideoPreviewLayer?
+
+    init(manager: CameraSessionManager,
+         locationManager: LocationManager,
+         completion: @escaping (UIImage?) -> Void) {
+        self.manager = manager
+        self.locationManager = locationManager
+        self.completion = completion
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .black
+
+        let layer = AVCaptureVideoPreviewLayer(session: manager.session)
+        layer.videoGravity = .resizeAspectFill
+        layer.frame = view.bounds
+        view.layer.addSublayer(layer)
+        previewLayer = layer
+
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setTitle("\u{f030}", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 40)
+        button.addTarget(self, action: #selector(shutterTapped), for: .touchUpInside)
+        view.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            button.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
+        ])
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        manager.startSession()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        manager.stopSession()
+    }
+
+    @objc private func shutterTapped() {
+        guard let index = locationManager?.recordPhotoCapture(),
+              let folderURL = locationManager?.flightLogManager.sessionFolderURL else {
+            dismiss(animated: true)
+            return
+        }
+        // Capture frames after 3 seconds then save.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            guard let self else { return }
+            self.manager.saveBufferedFrames(to: folderURL, index: index)
+            let first = self.manager.bufferedFrames().last
+            self.completion(first)
+            self.dismiss(animated: true)
         }
     }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 }
