@@ -38,6 +38,22 @@ struct SettingsView: View {
                 Slider(value: $settings.baroWeight, in: 0...1, step: 0.05)
             }
 
+            Section(header: Text("Photo Buffer")) {
+                HStack {
+                    Text("Seconds Before")
+                    Spacer()
+                    Text(String(format: "%.1f", settings.photoPreSeconds))
+                }
+                Slider(value: $settings.photoPreSeconds, in: 0...10, step: 0.5)
+
+                HStack {
+                    Text("Seconds After")
+                    Spacer()
+                    Text(String(format: "%.1f", settings.photoPostSeconds))
+                }
+                Slider(value: $settings.photoPostSeconds, in: 0...10, step: 0.5)
+            }
+
             Section(header: Text("Recorded Fields")) {
                 Toggle("Record Acceleration", isOn: $settings.recordAcceleration)
                 Toggle("Record Altimeter Pressure", isOn: $settings.recordAltimeterPressure)

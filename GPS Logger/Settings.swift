@@ -8,6 +8,10 @@ final class Settings: ObservableObject {
     @UserDefaultBacked(key: "logInterval") var logInterval: Double = 1.0
     @UserDefaultBacked(key: "baroWeight") var baroWeight: Double = 0.75
 
+    // Photo capture options
+    @UserDefaultBacked(key: "photoPreSeconds") var photoPreSeconds: Double = 3.0
+    @UserDefaultBacked(key: "photoPostSeconds") var photoPostSeconds: Double = 3.0
+
     // Recording options
     @UserDefaultBacked(key: "recordAcceleration") var recordAcceleration: Bool = true
     @UserDefaultBacked(key: "recordAltimeterPressure") var recordAltimeterPressure: Bool = true
