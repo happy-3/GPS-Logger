@@ -33,11 +33,13 @@ struct DistanceGraphView: View {
                 .foregroundStyle(.red)
             }
             ForEach(logs) { log in
-                LineMark(
-                    x: .value("Time", log.timestamp),
-                    y: .value("Kalman Altitude", log.fusedAltitude)
-                )
-                .foregroundStyle(.blue)
+                if let fused = log.fusedAltitude {
+                    LineMark(
+                        x: .value("Time", log.timestamp),
+                        y: .value("Kalman Altitude", fused)
+                    )
+                    .foregroundStyle(.blue)
+                }
             }
         }
         .frame(height: 240)

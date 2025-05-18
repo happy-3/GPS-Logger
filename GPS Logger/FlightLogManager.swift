@@ -123,11 +123,18 @@ final class FlightLogManager: ObservableObject {
         let fileName = "FlightLog_\(Int(Date().timeIntervalSince1970)).csv"
         let fileURL = folderURL.appendingPathComponent(fileName)
 
-        var headers = ["timestamp","latitude","longitude","gpsAltitude(ft)"]
-        if settings.recordSpeed { headers.append("speed(kt)") }
-        headers.append(contentsOf: ["magneticCourse","horizontalAccuracy(m)","verticalAccuracy(ft)","altimeterPressure","rawGpsAltitudeChangeRate(ft/min)","relativeAltitude(ft)","barometricAltitude(ft)"])
+        var headers = ["timestamp","latitude","longitude","gpsAltitude(ft)","speed(kt)","magneticCourse","horizontalAccuracy(m)","verticalAccuracy(ft)"]
+        if settings.recordAltimeterPressure { headers.append("altimeterPressure") }
+        if settings.recordRawGpsRate { headers.append("rawGpsAltitudeChangeRate(ft/min)") }
+        if settings.recordRelativeAltitude { headers.append("relativeAltitude(ft)") }
+        if settings.recordBarometricAltitude { headers.append("barometricAltitude(ft)") }
         if settings.recordAcceleration { headers.append("latestAcceleration(ft/s²)") }
-        headers.append(contentsOf: ["fusedAltitude(ft)","fusedAltitudeChangeRate(ft/min)","baselineAltitude(ft)","measuredAltitude(ft)","kalmanUpdateInterval(s)","photoIndex"])
+        if settings.recordFusedAltitude { headers.append("fusedAltitude(ft)") }
+        if settings.recordFusedRate { headers.append("fusedAltitudeChangeRate(ft/min)") }
+        if settings.recordBaselineAltitude { headers.append("baselineAltitude(ft)") }
+        if settings.recordMeasuredAltitude { headers.append("measuredAltitude(ft)") }
+        if settings.recordKalmanInterval { headers.append("kalmanUpdateInterval(s)") }
+        headers.append("photoIndex")
         var csvText = headers.joined(separator: ",") + "\n"
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -135,11 +142,18 @@ final class FlightLogManager: ObservableObject {
         for log in flightLogs {
             let ts = isoFormatter.string(from: log.timestamp)
             let photoIndexText = log.photoIndex.map(String.init) ?? ""
-            var row = ["\(ts)","\(log.latitude)","\(log.longitude)","\(log.gpsAltitude)"]
-            if settings.recordSpeed { row.append("\(log.speedKt ?? 0)") }
-            row.append(contentsOf: ["\(log.magneticCourse)","\(log.horizontalAccuracyM)","\(log.verticalAccuracyFt)","\(log.altimeterPressure ?? 0)","\(log.rawGpsAltitudeChangeRate)","\(log.relativeAltitude)","\(log.barometricAltitude)"])
+            var row = ["\(ts)","\(log.latitude)","\(log.longitude)","\(log.gpsAltitude)","\(log.speedKt ?? 0)","\(log.magneticCourse)","\(log.horizontalAccuracyM)","\(log.verticalAccuracyFt)"]
+            if settings.recordAltimeterPressure { row.append("\(log.altimeterPressure ?? 0)") }
+            if settings.recordRawGpsRate { row.append("\(log.rawGpsAltitudeChangeRate ?? 0)") }
+            if settings.recordRelativeAltitude { row.append("\(log.relativeAltitude ?? 0)") }
+            if settings.recordBarometricAltitude { row.append("\(log.barometricAltitude ?? 0)") }
             if settings.recordAcceleration { row.append("\(log.latestAcceleration ?? 0)") }
-            row.append(contentsOf: ["\(log.fusedAltitude)","\(log.fusedAltitudeChangeRate)","\(log.baselineAltitude ?? 0)","\(log.measuredAltitude ?? 0)","\(log.kalmanUpdateInterval ?? 0)","\(photoIndexText)"])
+            if settings.recordFusedAltitude { row.append("\(log.fusedAltitude ?? 0)") }
+            if settings.recordFusedRate { row.append("\(log.fusedAltitudeChangeRate ?? 0)") }
+            if settings.recordBaselineAltitude { row.append("\(log.baselineAltitude ?? 0)") }
+            if settings.recordMeasuredAltitude { row.append("\(log.measuredAltitude ?? 0)") }
+            if settings.recordKalmanInterval { row.append("\(log.kalmanUpdateInterval ?? 0)") }
+            row.append(photoIndexText)
             csvText.append(row.joined(separator: ",") + "\n")
         }
 
@@ -193,13 +207,21 @@ final class FlightLogManager: ObservableObject {
         let fileName = "MeasurementLog_\(nameFormatter.string(from: Date())).csv"
         let fileURL = folderURL.appendingPathComponent(fileName)
 
-        var csvText = "timestamp,gpsAltitude(ft),fusedAltitude(ft),rawGpsAltitudeChangeRate(ft/min),fusedAltitudeChangeRate(ft/min)\n"
+        var headers = ["timestamp","gpsAltitude(ft)"]
+        if settings.recordFusedAltitude { headers.append("fusedAltitude(ft)") }
+        if settings.recordRawGpsRate { headers.append("rawGpsAltitudeChangeRate(ft/min)") }
+        if settings.recordFusedRate { headers.append("fusedAltitudeChangeRate(ft/min)") }
+        var csvText = headers.joined(separator: ",") + "\n"
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         isoFormatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
         for log in logs {
             let ts = isoFormatter.string(from: log.timestamp)
-            csvText.append("\(ts),\(log.gpsAltitude),\(log.fusedAltitude),\(log.rawGpsAltitudeChangeRate),\(log.fusedAltitudeChangeRate)\n")
+            var row = ["\(ts)","\(log.gpsAltitude)"]
+            if settings.recordFusedAltitude { row.append("\(log.fusedAltitude ?? 0)") }
+            if settings.recordRawGpsRate { row.append("\(log.rawGpsAltitudeChangeRate ?? 0)") }
+            if settings.recordFusedRate { row.append("\(log.fusedAltitudeChangeRate ?? 0)") }
+            csvText.append(row.joined(separator: ",") + "\n")
         }
 
         if let bom = "\u{FEFF}".data(using: .utf8), let csvData = csvText.data(using: .utf8) {
