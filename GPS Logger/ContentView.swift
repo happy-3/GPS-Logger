@@ -296,6 +296,24 @@ struct ContentView: View {
                 if let measurement = lastMeasurement {
                     NavigationStack {
                         DistanceGraphView(logs: graphLogs, measurement: measurement)
+                            .toolbar {
+                                ToolbarItem(placement: .navigationBarTrailing) {
+                                    if measurementLogURL != nil || measurementGraphURL != nil {
+                                        Button {
+                                            shareItems.removeAll()
+                                            if let logURL = measurementLogURL {
+                                                shareItems.append(logURL)
+                                            }
+                                            if let graphURL = measurementGraphURL {
+                                                shareItems.append(graphURL)
+                                            }
+                                            showingShareSheet = true
+                                        } label: {
+                                            Image(systemName: "square.and.arrow.up")
+                                        }
+                                    }
+                                }
+                            }
                     }
                 }
             }
