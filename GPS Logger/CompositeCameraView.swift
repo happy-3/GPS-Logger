@@ -5,7 +5,6 @@ import UIKit
 /// SwiftUI wrapper around `CameraViewController`.
 struct CompositeCameraView: UIViewControllerRepresentable {
     @Binding var capturedCompositeImage: UIImage?
-    @Binding var capturedOverlayText: String
     @EnvironmentObject var locationManager: LocationManager
     let settings: Settings
 
@@ -13,9 +12,6 @@ struct CompositeCameraView: UIViewControllerRepresentable {
         let manager = CameraSessionManager(logInterval: settings.logInterval)
         let vc = CameraViewController(manager: manager, locationManager: locationManager) { image in
             capturedCompositeImage = image
-            if let loc = locationManager.lastLocation {
-                capturedOverlayText = String(format: "Lat: %.5f\nLon: %.5f", loc.coordinate.latitude, loc.coordinate.longitude)
-            }
         }
         return vc
     }

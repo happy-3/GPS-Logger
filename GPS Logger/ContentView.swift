@@ -15,7 +15,6 @@ struct ContentView: View {
     
     @State private var currentTime = Date()
     @State private var capturedCompositeImage: UIImage?
-    @State private var capturedOverlayText: String = ""
     @State private var showingCompositeCamera = false
     @State private var showingShareSheet = false
     @State private var shareItems: [Any] = []
@@ -221,30 +220,6 @@ struct ContentView: View {
                         .cornerRadius(15)
                     }
                     
-//                    if let compositeImage = capturedCompositeImage {
-//                        Button(action: {
-//                            // 画像プレビュー表示
-//                            showingCompositeCamera = false
-//                        }) {
-//                            Image(uiImage: compositeImage)
-//                                .resizable()
-//                                .scaledToFit()
-//                                .frame(height: 200)
-//                        }
-//                        .sheet(isPresented: Binding(
-//                            get: { capturedCompositeImage != nil },
-//                            set: { newValue in
-//                                if !newValue { capturedCompositeImage = nil }
-//                            }
-//                        ), onDismiss: {
-//                            capturedCompositeImage = nil
-//                        }) {
-//                            if let compositeImage = capturedCompositeImage {
-//                                ImagePreviewView(image: compositeImage,
-//                                                 overlayText: capturedOverlayText)
-//                            }
-//                        }
-//                    }
                     
                     if !flightLogManager.distanceMeasurements.isEmpty {
                         VStack(alignment: .leading) {
@@ -292,7 +267,6 @@ struct ContentView: View {
             }
             .fullScreenCover(isPresented: $showingCompositeCamera) {
                 CompositeCameraView(capturedCompositeImage: $capturedCompositeImage,
-                                    capturedOverlayText: $capturedOverlayText,
                                     settings: settings)
                     .environmentObject(locationManager)
             }
