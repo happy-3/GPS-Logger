@@ -255,6 +255,13 @@ struct ContentView: View {
                                     .font(.footnote)
                                     .padding(.leading, 8)
                             }
+                            Button("距離CSV出力") {
+                                if let csvURL = flightLogManager.exportDistanceCSV() {
+                                    shareItems = [csvURL]
+                                    showingShareSheet = true
+                                }
+                            }
+                            .padding(.top, 4)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
