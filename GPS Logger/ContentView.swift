@@ -315,6 +315,8 @@ struct ContentView: View {
         return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
     }
 
+}
+
 
 // MARK: - Preview
 struct ContentView_Previews: PreviewProvider {
