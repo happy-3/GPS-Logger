@@ -60,6 +60,16 @@ class CameraSessionManager: NSObject {
         }
     }
 
+    /// Configure the connection orientation for the next frame capture.
+    private func captureCurrentFrame() {
+        guard let connection = videoOutput.connection(with: .video) else { return }
+        if #available(iOS 17, *) {
+            connection.videoRotationAngle = 90
+        } else {
+            connection.videoOrientation = .portrait
+        }
+    }
+
     // Previous capture time is used instead of a repeating timer to sample frames
 
     /// Retrieve the buffered frames for saving.
@@ -90,7 +100,7 @@ extension CameraSessionManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         if let last = lastCaptureTime, now.timeIntervalSince(last) < logInterval {
             return
         }
-        connection.videoOrientation = .portrait
+        captureCurrentFrame()
         guard let image = imageFromSampleBuffer(sampleBuffer) else { return }
         if ringBuffer.count >= ringCapacity {
             ringBuffer.removeFirst()
