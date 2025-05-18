@@ -5,13 +5,18 @@ import UIKit
 /// captured at the application's log interval. The buffer keeps roughly
 /// six seconds of frames so that three seconds before and after a shutter
 /// event can be retrieved.
+struct Frame {
+    let image: UIImage
+    let timestamp: Date
+}
+
 class CameraSessionManager: NSObject {
     let session = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
     private let queue = DispatchQueue(label: "CameraSessionQueue")
 
     private var lastCaptureTime: Date?
-    private var ringBuffer: [UIImage] = []
+    private var ringBuffer: [Frame] = []
     private let ringCapacity: Int
     private var logInterval: Double
 
@@ -55,18 +60,20 @@ class CameraSessionManager: NSObject {
     // Previous capture time is used instead of a repeating timer to sample frames
 
     /// Retrieve the buffered frames for saving.
-    func bufferedFrames() -> [UIImage] {
+    func bufferedFrames() -> [Frame] {
         return ringBuffer
     }
 
     /// Save buffered frames to a folder named Photo_<index> inside the provided session URL.
-    func saveBufferedFrames(to sessionURL: URL, index: Int) {
+    func saveBufferedFrames(to sessionURL: URL, index: Int, shutterTime: Date) {
         let folder = sessionURL.appendingPathComponent("Photo_\(index)")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        for (i, image) in ringBuffer.enumerated() {
-            let filename = String(format: "frame_%04d.jpg", i + 1)
-            let url = folder.appendingPathComponent(filename)
-            if let data = image.jpegData(compressionQuality: 0.8) {
+        for frame in ringBuffer {
+            let diff = frame.timestamp.timeIntervalSince(shutterTime)
+            let prefix = diff < 0 ? "m" : "p"
+            let name = String(format: "%@%.1fs.jpg", prefix, abs(diff))
+            let url = folder.appendingPathComponent(name)
+            if let data = frame.image.jpegData(compressionQuality: 0.8) {
                 try? data.write(to: url)
             }
         }
@@ -84,7 +91,7 @@ extension CameraSessionManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         if ringBuffer.count >= ringCapacity {
             ringBuffer.removeFirst()
         }
-        ringBuffer.append(image)
+        ringBuffer.append(Frame(image: image, timestamp: now))
         lastCaptureTime = now
     }
 
