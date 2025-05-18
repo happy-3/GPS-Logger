@@ -285,7 +285,8 @@ struct ContentView: View {
             }
             .fullScreenCover(isPresented: $showingCompositeCamera) {
                 CompositeCameraView(capturedCompositeImage: $capturedCompositeImage,
-                                    capturedOverlayText: $capturedOverlayText)
+                                    capturedOverlayText: $capturedOverlayText,
+                                    settings: settings)
                     .environmentObject(locationManager)
             }
             .sheet(isPresented: $showingShareSheet) {
