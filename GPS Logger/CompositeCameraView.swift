@@ -9,8 +9,12 @@ struct CompositeCameraView: UIViewControllerRepresentable {
     let settings: Settings
 
     func makeUIViewController(context: Context) -> CameraViewController {
-        let manager = CameraSessionManager(logInterval: settings.logInterval)
-        let vc = CameraViewController(manager: manager, locationManager: locationManager) { image in
+        let manager = CameraSessionManager(logInterval: settings.logInterval,
+                                           preDuration: settings.photoPreSeconds,
+                                           postDuration: settings.photoPostSeconds)
+        let vc = CameraViewController(manager: manager,
+                                      locationManager: locationManager,
+                                      postDuration: settings.photoPostSeconds) { image in
             capturedCompositeImage = image
         }
         return vc
@@ -27,12 +31,15 @@ final class CameraViewController: UIViewController {
     private weak var locationManager: LocationManager?
     private let completion: (UIImage?) -> Void
     private var previewLayer: AVCaptureVideoPreviewLayer?
+    private let postDuration: Double
 
     init(manager: CameraSessionManager,
          locationManager: LocationManager,
+         postDuration: Double,
          completion: @escaping (UIImage?) -> Void) {
         self.manager = manager
         self.locationManager = locationManager
+        self.postDuration = postDuration
         self.completion = completion
         super.init(nibName: nil, bundle: nil)
     }
@@ -77,9 +84,9 @@ final class CameraViewController: UIViewController {
             dismiss(animated: true)
             return
         }
-        // Capture frames after 3 seconds then save.
+        // Capture frames after the configured post duration then save.
         let shutterTime = Date()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + postDuration) { [weak self] in
             guard let self else { return }
             self.manager.saveBufferedFrames(to: folderURL, index: index, shutterTime: shutterTime)
             let first = self.manager.bufferedFrames().last?.image

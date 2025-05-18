@@ -2,9 +2,9 @@ import AVFoundation
 import UIKit
 
 /// Manages an AVCaptureSession and keeps a rolling buffer of still images
-/// captured at the application's log interval. The buffer keeps roughly
-/// six seconds of frames so that three seconds before and after a shutter
-/// event can be retrieved.
+/// captured at the application's log interval. The buffer length is
+/// determined by the configured pre/post capture durations so that frames
+/// around the shutter event can be retrieved.
 struct Frame {
     let image: UIImage
     let timestamp: Date
@@ -19,10 +19,14 @@ class CameraSessionManager: NSObject {
     private var ringBuffer: [Frame] = []
     private let ringCapacity: Int
     private var logInterval: Double
+    private let preDuration: Double
+    private let postDuration: Double
 
-    init(logInterval: Double) {
+    init(logInterval: Double, preDuration: Double, postDuration: Double) {
         self.logInterval = logInterval
-        self.ringCapacity = Int(ceil(6.0 / logInterval))
+        self.preDuration = preDuration
+        self.postDuration = postDuration
+        self.ringCapacity = Int(ceil((preDuration + postDuration) / logInterval))
         super.init()
         configureSession()
     }
@@ -87,11 +91,32 @@ class CameraSessionManager: NSObject {
         let frames = queue.sync { ringBuffer }
         let folder = sessionURL.appendingPathComponent("Photo_\(index)")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        for frame in frames {
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        let baseName = formatter.string(from: shutterTime)
+
+        let validFrames = frames.filter { frame in
             let diff = frame.timestamp.timeIntervalSince(shutterTime)
-            let prefix = diff < 0 ? "m" : "p"
-            let name = String(format: "%@%.1fs.jpg", prefix, abs(diff))
-            let url = folder.appendingPathComponent(name)
+            return diff >= -preDuration && diff <= postDuration
+        }
+
+        guard !validFrames.isEmpty else { return }
+        let center = validFrames.min { a, b in
+            abs(a.timestamp.timeIntervalSince(shutterTime)) < abs(b.timestamp.timeIntervalSince(shutterTime))
+        }
+
+        for frame in validFrames {
+            let diff = frame.timestamp.timeIntervalSince(shutterTime)
+            let fileName: String
+            if frame.timestamp == center?.timestamp {
+                fileName = "\(baseName).jpg"
+            } else if diff < 0 {
+                fileName = String(format: "\(baseName)-%.1fs.jpg", abs(diff))
+            } else {
+                fileName = String(format: "\(baseName)+%.1fs.jpg", diff)
+            }
+            let url = folder.appendingPathComponent(fileName)
             if let data = frame.image.jpegData(compressionQuality: 0.8) {
                 try? data.write(to: url)
             }
