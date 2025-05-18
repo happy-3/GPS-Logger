@@ -82,10 +82,11 @@ final class CameraViewController: UIViewController {
             return
         }
         // Capture frames after 3 seconds then save.
+        let shutterTime = Date()
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
             guard let self else { return }
-            self.manager.saveBufferedFrames(to: folderURL, index: index)
-            let first = self.manager.bufferedFrames().last
+            self.manager.saveBufferedFrames(to: folderURL, index: index, shutterTime: shutterTime)
+            let first = self.manager.bufferedFrames().last?.image
             self.completion(first)
             self.dismiss(animated: true)
         }
