@@ -263,11 +263,6 @@ struct ContentView: View {
                 }
                 .padding()
 
-                NavigationLink(isActive: $showSettings) {
-                    SettingsView(settings: settings)
-                } label: {
-                    EmptyView()
-                }
             }
             .navigationTitle("GPS Logger")
             .navigationBarTitleDisplayMode(.inline)
@@ -306,6 +301,9 @@ struct ContentView: View {
             .alert(measurementResultMessage ?? "", isPresented: $showingMeasurementAlert) {
                 Button("OK", role: .cancel) {}
             }
+            .navigationDestination(isPresented: $showSettings) {
+                SettingsView(settings: settings)
+            }
         }
     }
     
@@ -316,6 +314,8 @@ struct ContentView: View {
         let seconds = Int(elapsed) % 60
         return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
     }
+
+}
 
 
 // MARK: - Preview
