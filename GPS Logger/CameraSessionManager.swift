@@ -10,7 +10,7 @@ class CameraSessionManager: NSObject {
     private let videoOutput = AVCaptureVideoDataOutput()
     private let queue = DispatchQueue(label: "CameraSessionQueue")
 
-    private var timer: Timer?
+    private var lastCaptureTime: Date?
     private var ringBuffer: [UIImage] = []
     private let ringCapacity: Int
     private var logInterval: Double
@@ -44,30 +44,15 @@ class CameraSessionManager: NSObject {
     func startSession() {
         guard !session.isRunning else { return }
         session.startRunning()
-        startTimer()
     }
 
     /// Stop the session and clear the ring buffer.
     func stopSession() {
-        timer?.invalidate()
-        timer = nil
         session.stopRunning()
         ringBuffer.removeAll()
     }
 
-    private func startTimer() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: logInterval, repeats: true) { [weak self] _ in
-            self?.captureCurrentFrame()
-        }
-    }
-
-    /// Capture the most recent frame in the video output and store it in the ring buffer.
-    private func captureCurrentFrame() {
-        guard let connection = videoOutput.connection(with: .video) else { return }
-        connection.videoOrientation = .portrait
-        // Actual frame capture happens via delegate; here we just ensure we get called regularly.
-    }
+    // Previous capture time is used instead of a repeating timer to sample frames
 
     /// Retrieve the buffered frames for saving.
     func bufferedFrames() -> [UIImage] {
@@ -90,11 +75,17 @@ class CameraSessionManager: NSObject {
 
 extension CameraSessionManager: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        let now = Date()
+        if let last = lastCaptureTime, now.timeIntervalSince(last) < logInterval {
+            return
+        }
+        connection.videoOrientation = .portrait
         guard let image = imageFromSampleBuffer(sampleBuffer) else { return }
         if ringBuffer.count >= ringCapacity {
             ringBuffer.removeFirst()
         }
         ringBuffer.append(image)
+        lastCaptureTime = now
     }
 
     private func imageFromSampleBuffer(_ sampleBuffer: CMSampleBuffer) -> UIImage? {
