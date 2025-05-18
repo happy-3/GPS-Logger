@@ -86,7 +86,7 @@ struct DistanceGraphView_Previews: PreviewProvider {
                 photoIndex: nil
             )
         }
-        NavigationView {
+        NavigationStack {
             DistanceGraphView(logs: logs, measurement: measurement)
         }
     }

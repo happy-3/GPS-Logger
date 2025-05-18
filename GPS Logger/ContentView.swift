@@ -80,7 +80,7 @@ struct ContentView: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
                 VStack(spacing: 40) {
                     Text("現在時刻 (JST): \(currentTime, formatter: jstFormatter)")
                         .font(.title)
@@ -288,7 +288,7 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingDistanceGraph) {
                 if let measurement = lastMeasurement {
-                    NavigationView {
+                    NavigationStack {
                         DistanceGraphView(logs: graphLogs, measurement: measurement)
                     }
                 }
