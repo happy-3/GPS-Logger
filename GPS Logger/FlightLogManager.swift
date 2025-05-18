@@ -123,37 +123,43 @@ final class FlightLogManager: ObservableObject {
         let fileName = "FlightLog_\(Int(Date().timeIntervalSince1970)).csv"
         let fileURL = folderURL.appendingPathComponent(fileName)
 
-        var headers = ["timestamp","latitude","longitude","gpsAltitude(ft)","speed(kt)","magneticCourse","horizontalAccuracy(m)","verticalAccuracy(ft)"]
-        if settings.recordAltimeterPressure { headers.append("altimeterPressure") }
-        if settings.recordRawGpsRate { headers.append("rawGpsAltitudeChangeRate(ft/min)") }
-        if settings.recordRelativeAltitude { headers.append("relativeAltitude(ft)") }
-        if settings.recordBarometricAltitude { headers.append("barometricAltitude(ft)") }
-        if settings.recordAcceleration { headers.append("latestAcceleration(ft/s²)") }
-        if settings.recordFusedAltitude { headers.append("fusedAltitude(ft)") }
-        if settings.recordFusedRate { headers.append("fusedAltitudeChangeRate(ft/min)") }
-        if settings.recordBaselineAltitude { headers.append("baselineAltitude(ft)") }
-        if settings.recordMeasuredAltitude { headers.append("measuredAltitude(ft)") }
-        if settings.recordKalmanInterval { headers.append("kalmanUpdateInterval(s)") }
-        headers.append("photoIndex")
-        var csvText = headers.joined(separator: ",") + "\n"
+        struct Field {
+            let header: String
+            let include: Bool
+            let value: (FlightLog) -> String
+        }
+
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         isoFormatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
+
+        let fields: [Field] = [
+            Field(header: "timestamp", include: true) { isoFormatter.string(from: $0.timestamp) },
+            Field(header: "latitude", include: true) { "\($0.latitude)" },
+            Field(header: "longitude", include: true) { "\($0.longitude)" },
+            Field(header: "gpsAltitude(ft)", include: true) { "\($0.gpsAltitude)" },
+            Field(header: "speed(kt)", include: true) { "\($0.speedKt ?? 0)" },
+            Field(header: "magneticCourse", include: true) { "\($0.magneticCourse)" },
+            Field(header: "horizontalAccuracy(m)", include: true) { "\($0.horizontalAccuracyM)" },
+            Field(header: "verticalAccuracy(ft)", include: true) { "\($0.verticalAccuracyFt)" },
+            Field(header: "altimeterPressure", include: settings.recordAltimeterPressure) { "\($0.altimeterPressure ?? 0)" },
+            Field(header: "rawGpsAltitudeChangeRate(ft/min)", include: settings.recordRawGpsRate) { "\($0.rawGpsAltitudeChangeRate ?? 0)" },
+            Field(header: "relativeAltitude(ft)", include: settings.recordRelativeAltitude) { "\($0.relativeAltitude ?? 0)" },
+            Field(header: "barometricAltitude(ft)", include: settings.recordBarometricAltitude) { "\($0.barometricAltitude ?? 0)" },
+            Field(header: "latestAcceleration(ft/s²)", include: settings.recordAcceleration) { "\($0.latestAcceleration ?? 0)" },
+            Field(header: "fusedAltitude(ft)", include: settings.recordFusedAltitude) { "\($0.fusedAltitude ?? 0)" },
+            Field(header: "fusedAltitudeChangeRate(ft/min)", include: settings.recordFusedRate) { "\($0.fusedAltitudeChangeRate ?? 0)" },
+            Field(header: "baselineAltitude(ft)", include: settings.recordBaselineAltitude) { "\($0.baselineAltitude ?? 0)" },
+            Field(header: "measuredAltitude(ft)", include: settings.recordMeasuredAltitude) { "\($0.measuredAltitude ?? 0)" },
+            Field(header: "kalmanUpdateInterval(s)", include: settings.recordKalmanInterval) { "\($0.kalmanUpdateInterval ?? 0)" },
+            Field(header: "photoIndex", include: true) { $0.photoIndex.map(String.init) ?? "" }
+        ]
+
+        let activeFields = fields.filter { $0.include }
+        var csvText = activeFields.map { $0.header }.joined(separator: ",") + "\n"
+
         for log in flightLogs {
-            let ts = isoFormatter.string(from: log.timestamp)
-            let photoIndexText = log.photoIndex.map(String.init) ?? ""
-            var row = ["\(ts)","\(log.latitude)","\(log.longitude)","\(log.gpsAltitude)","\(log.speedKt ?? 0)","\(log.magneticCourse)","\(log.horizontalAccuracyM)","\(log.verticalAccuracyFt)"]
-            if settings.recordAltimeterPressure { row.append("\(log.altimeterPressure ?? 0)") }
-            if settings.recordRawGpsRate { row.append("\(log.rawGpsAltitudeChangeRate ?? 0)") }
-            if settings.recordRelativeAltitude { row.append("\(log.relativeAltitude ?? 0)") }
-            if settings.recordBarometricAltitude { row.append("\(log.barometricAltitude ?? 0)") }
-            if settings.recordAcceleration { row.append("\(log.latestAcceleration ?? 0)") }
-            if settings.recordFusedAltitude { row.append("\(log.fusedAltitude ?? 0)") }
-            if settings.recordFusedRate { row.append("\(log.fusedAltitudeChangeRate ?? 0)") }
-            if settings.recordBaselineAltitude { row.append("\(log.baselineAltitude ?? 0)") }
-            if settings.recordMeasuredAltitude { row.append("\(log.measuredAltitude ?? 0)") }
-            if settings.recordKalmanInterval { row.append("\(log.kalmanUpdateInterval ?? 0)") }
-            row.append(photoIndexText)
+            let row = activeFields.map { $0.value(log) }
             csvText.append(row.joined(separator: ",") + "\n")
         }
 
