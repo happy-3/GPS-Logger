@@ -10,8 +10,106 @@ import Testing
 
 struct GPS_LoggerTests {
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    /// Verify that logs are stored and CSV export creates a file.
+    @Test func testLogSavingAndCSVExport() async throws {
+        let settings = Settings()
+        let manager = FlightLogManager(settings: settings)
+        manager.startSession()
+        // Use a temporary directory for predictable behavior
+        manager.sessionFolderURL = FileManager.default.temporaryDirectory
+
+        let now = Date()
+        let log = FlightLog(
+            timestamp: now,
+            latitude: 35.0,
+            longitude: 135.0,
+            gpsAltitude: 1000,
+            speedKt: 100,
+            magneticCourse: 0,
+            horizontalAccuracyM: 5,
+            verticalAccuracyFt: 10,
+            altimeterPressure: nil,
+            rawGpsAltitudeChangeRate: nil,
+            relativeAltitude: nil,
+            barometricAltitude: nil,
+            latestAcceleration: nil,
+            fusedAltitude: nil,
+            fusedAltitudeChangeRate: nil,
+            baselineAltitude: nil,
+            measuredAltitude: nil,
+            kalmanUpdateInterval: nil,
+            photoIndex: nil)
+        manager.addLog(log)
+
+        #expect(manager.flightLogs.count == 1)
+        if let url = manager.exportCSV() {
+            let exists = FileManager.default.fileExists(atPath: url.path)
+            #expect(exists)
+        } else {
+            #expect(false, "CSV export failed")
+        }
+    }
+
+    /// Ensure a distance measurement can be completed using stored logs.
+    @Test func testDistanceMeasurement() async throws {
+        let settings = Settings()
+        let manager = FlightLogManager(settings: settings)
+        manager.startSession()
+
+        let start = Date()
+        let end = start.addingTimeInterval(60)
+
+        let log1 = FlightLog(
+            timestamp: start,
+            latitude: 35.0,
+            longitude: 135.0,
+            gpsAltitude: 0,
+            speedKt: nil,
+            magneticCourse: 0,
+            horizontalAccuracyM: 5,
+            verticalAccuracyFt: 10,
+            altimeterPressure: nil,
+            rawGpsAltitudeChangeRate: nil,
+            relativeAltitude: nil,
+            barometricAltitude: nil,
+            latestAcceleration: nil,
+            fusedAltitude: nil,
+            fusedAltitudeChangeRate: nil,
+            baselineAltitude: nil,
+            measuredAltitude: nil,
+            kalmanUpdateInterval: nil,
+            photoIndex: nil)
+        let log2 = FlightLog(
+            timestamp: end,
+            latitude: 35.001,
+            longitude: 135.001,
+            gpsAltitude: 100,
+            speedKt: nil,
+            magneticCourse: 0,
+            horizontalAccuracyM: 5,
+            verticalAccuracyFt: 10,
+            altimeterPressure: nil,
+            rawGpsAltitudeChangeRate: nil,
+            relativeAltitude: nil,
+            barometricAltitude: nil,
+            latestAcceleration: nil,
+            fusedAltitude: nil,
+            fusedAltitudeChangeRate: nil,
+            baselineAltitude: nil,
+            measuredAltitude: nil,
+            kalmanUpdateInterval: nil,
+            photoIndex: nil)
+        manager.addLog(log1)
+        manager.addLog(log2)
+
+        manager.startMeasurement(at: start)
+        let result = manager.finishMeasurement(at: end)
+
+        #expect(result != nil)
+        if let m = result {
+            #expect(m.horizontalDistance > 0)
+            #expect(m.totalDistance > 0)
+        }
     }
 
 }

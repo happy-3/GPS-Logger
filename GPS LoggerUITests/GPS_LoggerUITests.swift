@@ -22,13 +22,28 @@ final class GPS_LoggerUITests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
+    /// Basic recording and measurement flow.
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testRecordAndMeasureFlow() throws {
         let app = XCUIApplication()
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        let startButton = app.buttons["記録開始"]
+        XCTAssertTrue(startButton.waitForExistence(timeout: 2))
+        startButton.tap()
+
+        let stopButton = app.buttons["記録停止"]
+        XCTAssertTrue(stopButton.waitForExistence(timeout: 2))
+
+        let measureStart = app.buttons["距離計測開始"]
+        XCTAssertTrue(measureStart.waitForExistence(timeout: 2))
+        measureStart.tap()
+
+        let measureEnd = app.buttons["距離計測終了"]
+        XCTAssertTrue(measureEnd.waitForExistence(timeout: 2))
+        measureEnd.tap()
+
+        stopButton.tap()
     }
 
     @MainActor
