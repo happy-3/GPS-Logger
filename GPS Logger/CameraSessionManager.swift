@@ -91,6 +91,11 @@ class CameraSessionManager: NSObject {
                 try? data.write(to: url)
             }
         }
+        // Clear any frames that were just saved so previous captures are not
+        // mixed into the next shutter event.
+        queue.sync {
+            ringBuffer.removeAll()
+        }
     }
 }
 
