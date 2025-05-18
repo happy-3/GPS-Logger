@@ -54,21 +54,25 @@ class CameraSessionManager: NSObject {
     /// Stop the session and clear the ring buffer.
     func stopSession() {
         session.stopRunning()
-        ringBuffer.removeAll()
+        queue.sync {
+            ringBuffer.removeAll()
+            lastCaptureTime = nil
+        }
     }
 
     // Previous capture time is used instead of a repeating timer to sample frames
 
     /// Retrieve the buffered frames for saving.
     func bufferedFrames() -> [Frame] {
-        return ringBuffer
+        return queue.sync { ringBuffer }
     }
 
     /// Save buffered frames to a folder named Photo_<index> inside the provided session URL.
     func saveBufferedFrames(to sessionURL: URL, index: Int, shutterTime: Date) {
+        let frames = queue.sync { ringBuffer }
         let folder = sessionURL.appendingPathComponent("Photo_\(index)")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        for frame in ringBuffer {
+        for frame in frames {
             let diff = frame.timestamp.timeIntervalSince(shutterTime)
             let prefix = diff < 0 ? "m" : "p"
             let name = String(format: "%@%.1fs.jpg", prefix, abs(diff))
