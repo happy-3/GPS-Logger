@@ -263,11 +263,6 @@ struct ContentView: View {
                 }
                 .padding()
 
-                NavigationLink(isActive: $showSettings) {
-                    SettingsView(settings: settings)
-                } label: {
-                    EmptyView()
-                }
             }
             .navigationTitle("GPS Logger")
             .navigationBarTitleDisplayMode(.inline)
@@ -305,6 +300,9 @@ struct ContentView: View {
             }
             .alert(measurementResultMessage ?? "", isPresented: $showingMeasurementAlert) {
                 Button("OK", role: .cancel) {}
+            }
+            .navigationDestination(isPresented: $showSettings) {
+                SettingsView(settings: settings)
             }
         }
     }
