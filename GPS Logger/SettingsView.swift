@@ -9,49 +9,49 @@ struct SettingsView: View {
             Section(header: Text("Kalman Filter")) {
                 HStack {
                     Text("Process Noise")
-                    Spacer()
+                    Slider(value: $settings.processNoise, in: 0...1, step: 0.05)
                     Text(String(format: "%.2f", settings.processNoise))
+                        .frame(width: 50, alignment: .trailing)
                 }
-                Slider(value: $settings.processNoise, in: 0...1, step: 0.05)
 
                 HStack {
                     Text("Measurement Noise")
-                    Spacer()
+                    Slider(value: $settings.measurementNoise, in: 1...50, step: 0.5)
                     Text(String(format: "%.2f", settings.measurementNoise))
+                        .frame(width: 50, alignment: .trailing)
                 }
-                Slider(value: $settings.measurementNoise, in: 1...50, step: 0.5)
             }
 
             Section(header: Text("Logging")) {
                 HStack {
                     Text("Interval (s)")
-                    Spacer()
+                    Slider(value: $settings.logInterval, in: 0.5...10, step: 0.5)
                     Text(String(format: "%.1f", settings.logInterval))
+                        .frame(width: 50, alignment: .trailing)
                 }
-                Slider(value: $settings.logInterval, in: 0.5...10, step: 0.5)
 
                 HStack {
                     Text("Barometer Weight")
-                    Spacer()
+                    Slider(value: $settings.baroWeight, in: 0...1, step: 0.05)
                     Text(String(format: "%.2f", settings.baroWeight))
+                        .frame(width: 50, alignment: .trailing)
                 }
-                Slider(value: $settings.baroWeight, in: 0...1, step: 0.05)
             }
 
             Section(header: Text("Photo Buffer")) {
                 HStack {
                     Text("Seconds Before")
-                    Spacer()
+                    Slider(value: $settings.photoPreSeconds, in: 0...10, step: 0.5)
                     Text(String(format: "%.1f", settings.photoPreSeconds))
+                        .frame(width: 50, alignment: .trailing)
                 }
-                Slider(value: $settings.photoPreSeconds, in: 0...10, step: 0.5)
 
                 HStack {
                     Text("Seconds After")
-                    Spacer()
+                    Slider(value: $settings.photoPostSeconds, in: 0...10, step: 0.5)
                     Text(String(format: "%.1f", settings.photoPostSeconds))
+                        .frame(width: 50, alignment: .trailing)
                 }
-                Slider(value: $settings.photoPostSeconds, in: 0...10, step: 0.5)
             }
 
             Section(header: Text("Recorded Fields")) {
