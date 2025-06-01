@@ -152,6 +152,17 @@ struct ContentView: View {
                         locationManager.pressureAltitudeFt = pressureAltitude
                     }
 
+                    // 推算CAS/TAS/OAT 表示
+                    if let est = estimatedValues() {
+                        Text(String(format: "推算CAS: %.1f kt", est.cas))
+                        Text(String(format: "推算TAS: %.1f kt", est.tas))
+                        Text(String(format: "推算OAT: %.1f ℃", est.oat))
+                    } else {
+                        Text("推算CAS: 推算不可")
+                        Text("推算TAS: 推算不可")
+                        Text("推算OAT: 推算不可")
+                    }
+
                 }
                 .font(.title2)
                 .monospacedDigit()
@@ -273,6 +284,19 @@ struct ContentView: View {
         let speedOfSound = sqrt(1.4 * 287.05 * tIsa)
         let mach = tasMps / speedOfSound
         return FlightAssistUtils.oat(tasMps: tasMps, mach: mach)
+    }
+
+    /// 風情報に基づき CAS, TAS, OAT を推算する
+    func estimatedValues() -> (cas: Double, tas: Double, oat: Double)? {
+        guard let loc = locationManager.lastLocation else { return nil }
+        guard windDirection != nil && windSpeed != nil else { return nil }
+        let within = windBaseAltitude.map { abs(locationManager.rawGpsAltitude - $0) <= 500 } ?? false
+        guard within, let tas = computeTAS(from: loc) else { return nil }
+        let oat = computeOAT(tasKt: tas, altitudeFt: locationManager.rawGpsAltitude)
+        let cas = FlightAssistUtils.cas(tasKt: tas,
+                                        altitudeFt: locationManager.rawGpsAltitude,
+                                        oatC: oat)
+        return (cas, tas, oat)
     }
 
     // Bottom ribbon containing action buttons
