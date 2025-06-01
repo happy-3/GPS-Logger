@@ -156,6 +156,11 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              baselineAltitude: settings.recordBaselineAltitude ? altitudeFusionManager.baselineAltitude : nil,
                              measuredAltitude: settings.recordMeasuredAltitude ? altitudeFusionManager.measuredAltitude : nil,
                              kalmanUpdateInterval: settings.recordKalmanInterval ? altitudeFusionManager.kalmanUpdateInterval : nil,
+                             estimatedOAT: nil,
+                             theoreticalCAS: nil,
+                             theoreticalHP: nil,
+                             deltaCAS: nil,
+                             deltaHP: nil,
                              photoIndex: pendingPhotoIndex)
         pendingPhotoIndex = nil
         flightLogManager.addLog(log)
