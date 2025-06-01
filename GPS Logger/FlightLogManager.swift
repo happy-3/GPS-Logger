@@ -152,7 +152,12 @@ final class FlightLogManager: ObservableObject {
             Field(header: "baselineAltitude(ft)", include: settings.recordBaselineAltitude) { "\($0.baselineAltitude ?? 0)" },
             Field(header: "measuredAltitude(ft)", include: settings.recordMeasuredAltitude) { "\($0.measuredAltitude ?? 0)" },
             Field(header: "kalmanUpdateInterval(s)", include: settings.recordKalmanInterval) { "\($0.kalmanUpdateInterval ?? 0)" },
-            Field(header: "photoIndex", include: true) { $0.photoIndex.map(String.init) ?? "" }
+            Field(header: "photoIndex", include: true) { $0.photoIndex.map(String.init) ?? "" },
+            Field(header: "estimatedOAT(C)", include: true) { "\($0.estimatedOAT ?? 0)" },
+            Field(header: "theoreticalCAS(kt)", include: true) { "\($0.theoreticalCAS ?? 0)" },
+            Field(header: "theoreticalHP(ft)", include: true) { "\($0.theoreticalHP ?? 0)" },
+            Field(header: "deltaCAS(kt)", include: true) { "\($0.deltaCAS ?? 0)" },
+            Field(header: "deltaHP(ft)", include: true) { "\($0.deltaHP ?? 0)" }
         ]
 
         let activeFields = fields.filter { $0.include }

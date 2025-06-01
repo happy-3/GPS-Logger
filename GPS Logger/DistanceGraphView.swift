@@ -85,6 +85,11 @@ struct DistanceGraphView_Previews: PreviewProvider {
                 baselineAltitude: nil,
                 measuredAltitude: nil,
                 kalmanUpdateInterval: nil,
+                estimatedOAT: nil,
+                theoreticalCAS: nil,
+                theoreticalHP: nil,
+                deltaCAS: nil,
+                deltaHP: nil,
                 photoIndex: nil
             )
         }

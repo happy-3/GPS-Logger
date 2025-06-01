@@ -28,6 +28,13 @@ struct FlightLog: Identifiable {
     let measuredAltitude: Double?          // weighted altitude
     let kalmanUpdateInterval: Double?      // seconds
 
+    // Flight Assist 計算値
+    let estimatedOAT: Double?              // ℃
+    let theoreticalCAS: Double?            // kt
+    let theoreticalHP: Double?             // ft
+    let deltaCAS: Double?                  // kt
+    let deltaHP: Double?                   // ft
+
     // photo index (when capturing)
     let photoIndex: Int?
 }
