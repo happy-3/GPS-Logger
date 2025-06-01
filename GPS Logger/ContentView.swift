@@ -31,15 +31,6 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showFlightAssist = false
     
-    // UI表示用のサンプルデータ
-    @State var gpsTime: String = "12:34:56"
-    @State var isGPSAvailable: Bool = true
-    @State var magneticHeading: Double = 123.45
-    @State var speed: Double = 50.0
-    @State var altitude: Double = 5000.0
-    @State var altitudeChangeRate: Double = 20.0
-    @State var latitude: Double = 35.6895
-    @State var longitude: Double = 139.6917
 
     // 風情報
     @State private var windDirection: Double?
@@ -247,43 +238,6 @@ struct ContentView: View {
         _locationManager = StateObject(wrappedValue: locationManager)
     }
 
-    /// ナビゲーションバー左側のボタン
-    private var assistButton: some View {
-        Button {
-            showFlightAssist = true
-        } label: {
-            Label("Assist", systemImage: "airplane")
-        }
-    }
-
-    /// ナビゲーションバー右側のボタン
-    private var settingsButton: some View {
-        Button {
-            showSettings = true
-        } label: {
-            Label("設定", systemImage: "gearshape")
-        }
-    }
-
-    /// グラフ表示画面の共有ボタン
-    private var shareButton: some View {
-        Group {
-            if measurementLogURL != nil || measurementGraphURL != nil {
-                Button {
-                    shareItems.removeAll()
-                    if let logURL = measurementLogURL {
-                        shareItems.append(logURL)
-                    }
-                    if let graphURL = measurementGraphURL {
-                        shareItems.append(graphURL)
-                    }
-                    showingShareSheet = true
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                }
-            }
-        }
-    }
 
     /// ナビゲーション周りをまとめたビュー
     private var navigationContent: some View {
@@ -575,6 +529,44 @@ private struct NavigationContentView: View {
             NavigationStack {
                 DistanceGraphView(logs: graphLogs, measurement: measurement)
                     .navigationBarItems(trailing: shareButton)
+            }
+        }
+    }
+
+    /// ナビゲーションバー左側のボタン
+    private var assistButton: some View {
+        Button {
+            showFlightAssist = true
+        } label: {
+            Label("Assist", systemImage: "airplane")
+        }
+    }
+
+    /// ナビゲーションバー右側のボタン
+    private var settingsButton: some View {
+        Button {
+            showSettings = true
+        } label: {
+            Label("設定", systemImage: "gearshape")
+        }
+    }
+
+    /// グラフ表示画面の共有ボタン
+    private var shareButton: some View {
+        Group {
+            if measurementLogURL != nil || measurementGraphURL != nil {
+                Button {
+                    shareItems.removeAll()
+                    if let logURL = measurementLogURL {
+                        shareItems.append(logURL)
+                    }
+                    if let graphURL = measurementGraphURL {
+                        shareItems.append(graphURL)
+                    }
+                    showingShareSheet = true
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
             }
         }
     }
