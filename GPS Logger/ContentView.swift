@@ -247,21 +247,40 @@ struct ContentView: View {
         _locationManager = StateObject(wrappedValue: locationManager)
     }
 
-    /// ナビゲーションバーのツールバー
-    @ToolbarContentBuilder
-    private var navigationToolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
-            Button {
-                showFlightAssist = true
-            } label: {
-                Label("Assist", systemImage: "airplane")
-            }
+    /// ナビゲーションバー左側のボタン
+    private var assistButton: some View {
+        Button {
+            showFlightAssist = true
+        } label: {
+            Label("Assist", systemImage: "airplane")
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button {
-                showSettings = true
-            } label: {
-                Label("設定", systemImage: "gearshape")
+    }
+
+    /// ナビゲーションバー右側のボタン
+    private var settingsButton: some View {
+        Button {
+            showSettings = true
+        } label: {
+            Label("設定", systemImage: "gearshape")
+        }
+    }
+
+    /// グラフ表示画面の共有ボタン
+    private var shareButton: some View {
+        Group {
+            if measurementLogURL != nil || measurementGraphURL != nil {
+                Button {
+                    shareItems.removeAll()
+                    if let logURL = measurementLogURL {
+                        shareItems.append(logURL)
+                    }
+                    if let graphURL = measurementGraphURL {
+                        shareItems.append(graphURL)
+                    }
+                    showingShareSheet = true
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
             }
         }
     }
@@ -514,7 +533,7 @@ private struct NavigationContentView: View {
         ZStack { mainContent }
             .navigationTitle("GPS Logger")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar(role: .automatic) { navigationToolbar }
+            .navigationBarItems(leading: assistButton, trailing: settingsButton)
             .onAppear {
                 UIApplication.shared.isIdleTimerDisabled = true
                 locationManager.startUpdatingForDisplay()
@@ -555,45 +574,11 @@ private struct NavigationContentView: View {
         if let measurement = lastMeasurement {
             NavigationStack {
                 DistanceGraphView(logs: graphLogs, measurement: measurement)
-                    .toolbar(role: .automatic) {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            if measurementLogURL != nil || measurementGraphURL != nil {
-                                Button {
-                                    shareItems.removeAll()
-                                    if let logURL = measurementLogURL {
-                                        shareItems.append(logURL)
-                                    }
-                                    if let graphURL = measurementGraphURL {
-                                        shareItems.append(graphURL)
-                                    }
-                                    showingShareSheet = true
-                                } label: {
-                                    Image(systemName: "square.and.arrow.up")
-                                }
-                            }
-                        }
-                    }
+                    .navigationBarItems(trailing: shareButton)
             }
         }
     }
 
-    @ToolbarContentBuilder
-    private var navigationToolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
-            Button {
-                showFlightAssist = true
-            } label: {
-                Label("Assist", systemImage: "airplane")
-            }
-        }
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button {
-                showSettings = true
-            } label: {
-                Label("設定", systemImage: "gearshape")
-            }
-        }
-    }
 }
 
 
