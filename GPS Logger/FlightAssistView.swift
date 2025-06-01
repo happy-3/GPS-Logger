@@ -2,15 +2,20 @@ import SwiftUI
 
 /// Flight Assist の表示とレグ管理を行うビュー。
 struct FlightAssistView: View {
-    static let stableDuration: TimeInterval = 3
     @EnvironmentObject var locationManager: LocationManager
+    @EnvironmentObject var settings: Settings
     @Environment(\.dismiss) private var dismiss
 
     /// 各レグで収集したサンプルから統計を算出するヘルパ
     struct LegRecorder {
         let heading: Int
         private(set) var samples: [(track: Double, speed: Double, time: Date)] = []
-        private let window: TimeInterval = FlightAssistView.stableDuration
+        let window: TimeInterval
+
+        init(heading: Int, window: TimeInterval) {
+            self.heading = heading
+            self.window = window
+        }
 
         mutating func add(track: Double, speed: Double, at time: Date = Date()) {
             samples.append((track, speed, time))
@@ -33,9 +38,10 @@ struct FlightAssistView: View {
             guard !windowSamples.isEmpty else { return nil }
             let tracks = windowSamples.map { $0.track }
             let speeds = windowSamples.map { $0.speed }
-            let avgTrack = tracks.reduce(0, +) / Double(tracks.count)
+            let avgTrack = FlightAssistUtils.circularMeanDeg(tracks)
             let avgSpeed = speeds.reduce(0, +) / Double(speeds.count)
-            let sdTrack = sqrt(tracks.map { pow($0 - avgTrack, 2) }.reduce(0, +) / Double(tracks.count))
+            let diffs = tracks.map { FlightAssistUtils.angleDifferenceDeg($0, avgTrack) }
+            let sdTrack = sqrt(diffs.map { $0 * $0 }.reduce(0, +) / Double(diffs.count))
             let sdSpeed = sqrt(speeds.map { pow($0 - avgSpeed, 2) }.reduce(0, +) / Double(speeds.count))
             let ciTrack = 1.96 * sdTrack / sqrt(Double(tracks.count))
             let ciSpeed = 1.96 * sdSpeed / sqrt(Double(speeds.count))
@@ -59,8 +65,10 @@ struct FlightAssistView: View {
         let ciSpeed: Double
         let duration: TimeInterval
 
-        var isStable: Bool {
-            duration >= FlightAssistView.stableDuration && ciTrack <= 3 && ciSpeed <= 3
+        func isStable(using settings: Settings) -> Bool {
+            duration >= settings.faStableDuration &&
+            ciTrack <= settings.faTrackCILimit &&
+            ciSpeed <= settings.faSpeedCILimit
         }
     }
 
@@ -73,13 +81,15 @@ struct FlightAssistView: View {
     @State private var tasResult: Double?
     @State private var windDirResult: Double?
     @State private var windSpeedResult: Double?
+    @State private var windDirCI: Double?
+    @State private var windSpeedCI: Double?
 
     @State private var turnDirection: Int? = nil // -1 left, 1 right
     @State private var showRestart = false
 
     // MARK: 基本処理
     private func startNewLeg() {
-        currentLeg = LegRecorder(heading: headingMag)
+        currentLeg = LegRecorder(heading: headingMag, window: settings.faStableDuration)
     }
 
     private func finalizeCurrentLeg() {
@@ -102,10 +112,49 @@ struct FlightAssistView: View {
             tasResult = result.tasKt
             windDirResult = result.windDirectionDeg
             windSpeedResult = result.windSpeedKt
+            if let ci = windConfidenceIntervals(base: result) {
+                windDirCI = ci.0
+                windSpeedCI = ci.1
+            } else {
+                windDirCI = nil
+                windSpeedCI = nil
+            }
             locationManager.windDirection = windDirResult
             locationManager.windSpeed = windSpeedResult
             locationManager.windSource = "triangle"
+            locationManager.windDirectionCI = windDirCI
+            locationManager.windSpeedCI = windSpeedCI
         }
+    }
+
+    private func windConfidenceIntervals(base: (tasKt: Double, windDirectionDeg: Double, windSpeedKt: Double)) -> (Double, Double)? {
+        let iterations = 200
+        var dirs: [Double] = []
+        var speeds: [Double] = []
+        for _ in 0..<iterations {
+            var legs: [TASTriangularSolver.Leg] = []
+            for sum in summaries {
+                var hd = Double(sum.heading) + locationManager.declination
+                hd.formTruncatingRemainder(dividingBy: 360)
+                if hd < 0 { hd += 360 }
+                let tr = FlightAssistUtils.randomNormal(mean: sum.avgTrack, sd: sum.ciTrack / 1.96)
+                let sp = FlightAssistUtils.randomNormal(mean: sum.avgSpeed, sd: sum.ciSpeed / 1.96)
+                legs.append(TASTriangularSolver.Leg(headingDeg: hd, trackDeg: tr, groundSpeedKt: sp))
+            }
+            if let r = TASTriangularSolver.solve(legs: legs) {
+                dirs.append(r.windDirectionDeg)
+                speeds.append(r.windSpeedKt)
+            }
+        }
+        guard !dirs.isEmpty else { return nil }
+        let meanDir = base.windDirectionDeg
+        let dirDiffs = dirs.map { FlightAssistUtils.angleDifferenceDeg($0, meanDir) }
+        let dirSD = sqrt(dirDiffs.map { $0*$0 }.reduce(0, +) / Double(dirDiffs.count))
+        let dirCI = dirSD * 1.96
+        let meanSpeed = base.windSpeedKt
+        let speedSD = sqrt(speeds.map { pow($0 - meanSpeed, 2) }.reduce(0, +) / Double(speeds.count))
+        let speedCI = speedSD * 1.96
+        return (dirCI, speedCI)
     }
 
     private func resetAll() {
@@ -113,6 +162,8 @@ struct FlightAssistView: View {
         tasResult = nil
         windDirResult = nil
         windSpeedResult = nil
+        windDirCI = nil
+        windSpeedCI = nil
         turnDirection = nil
         showRestart = false
         isRunning = false
@@ -160,7 +211,7 @@ struct FlightAssistView: View {
                         Text(String(format: "GT %.0f° ±%.1f°", sum.avgTrack, sum.ciTrack))
                         Text(String(format: "GS %.1f ±%.1f kt", sum.avgSpeed, sum.ciSpeed))
                     }
-                    .foregroundColor(sum.isStable ? .green : .primary)
+                    .foregroundColor(sum.isStable(using: settings) ? .green : .primary)
                 }
                 if let running = currentLeg, let sum = running.summary() {
                     HStack {
@@ -169,9 +220,9 @@ struct FlightAssistView: View {
                         Text(String(format: "GT %.0f° ±%.1f°", sum.avgTrack, sum.ciTrack))
                         Text(String(format: "GS %.1f ±%.1f kt", sum.avgSpeed, sum.ciSpeed))
                     }
-                    .foregroundColor(sum.isStable ? .green : .primary)
-                    if !sum.isStable {
-                        Text(String(format: "安定まで %.1f 秒", max(0, FlightAssistView.stableDuration - sum.duration)))
+                    .foregroundColor(sum.isStable(using: settings) ? .green : .primary)
+                    if !sum.isStable(using: settings) {
+                        Text(String(format: "安定まで %.1f 秒", max(0, settings.faStableDuration - sum.duration)))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -259,7 +310,9 @@ struct FlightAssistView: View {
             }
 
             if let tas = tasResult, let wd = windDirResult, let ws = windSpeedResult {
-                Text(String(format: "TAS %.1f kt\n風向 %.0f° 風速 %.1f kt", tas, wd, ws))
+                let dirCIText = windDirCI.map { String(format: " ±%.1f°", $0) } ?? ""
+                let spdCIText = windSpeedCI.map { String(format: " ±%.1f", $0) } ?? ""
+                Text(String(format: "TAS %.1f kt\n風向 %.0f°%@ 風速 %.1f kt%@", tas, wd, dirCIText, ws, spdCIText))
                     .font(.headline)
                     .multilineTextAlignment(.center)
                     .padding(.top)
@@ -273,7 +326,7 @@ struct FlightAssistView: View {
         .onReceive(locationManager.$lastLocation.compactMap { $0 }) { loc in
             guard isRunning, var leg = currentLeg, loc.course >= 0, loc.speed >= 0 else { return }
             leg.add(track: loc.course, speed: loc.speed * 1.94384)
-            if let sum = leg.summary(), sum.isStable {
+            if let sum = leg.summary(), sum.isStable(using: settings) {
                 currentLeg = leg
                 finalizeCurrentLeg()
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -298,6 +351,7 @@ struct FlightAssistView_Previews: PreviewProvider {
                 .environmentObject(LocationManager(flightLogManager: FlightLogManager(settings: Settings()),
                                                 altitudeFusionManager: AltitudeFusionManager(settings: Settings()),
                                                 settings: Settings()))
+                .environmentObject(Settings())
         }
     }
 }

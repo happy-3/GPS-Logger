@@ -28,6 +28,8 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var windDirection: Double?
     @Published var windSpeed: Double?
     @Published var windSource: String?
+    @Published var windDirectionCI: Double?
+    @Published var windSpeedCI: Double?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -169,6 +171,8 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              windDirection: windDirection,
                              windSpeed: windSpeed,
                              windSource: windSource,
+                             windDirectionCI: windDirectionCI,
+                             windSpeedCI: windSpeedCI,
                              photoIndex: pendingPhotoIndex)
         pendingPhotoIndex = nil
         flightLogManager.addLog(log)

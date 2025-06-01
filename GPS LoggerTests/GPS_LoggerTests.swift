@@ -41,6 +41,8 @@ struct GPS_LoggerTests {
             windDirection: nil,
             windSpeed: nil,
             windSource: nil,
+            windDirectionCI: nil,
+            windSpeedCI: nil,
             photoIndex: nil)
         manager.addLog(log)
 
@@ -84,6 +86,8 @@ struct GPS_LoggerTests {
             windDirection: nil,
             windSpeed: nil,
             windSource: nil,
+            windDirectionCI: nil,
+            windSpeedCI: nil,
             photoIndex: nil)
         let log2 = FlightLog(
             timestamp: end,
@@ -107,6 +111,8 @@ struct GPS_LoggerTests {
             windDirection: nil,
             windSpeed: nil,
             windSource: nil,
+            windDirectionCI: nil,
+            windSpeedCI: nil,
             photoIndex: nil)
         manager.addLog(log1)
         manager.addLog(log2)

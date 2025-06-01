@@ -54,6 +54,29 @@ struct SettingsView: View {
                 }
             }
 
+            Section(header: Text("Flight Assist")) {
+                HStack {
+                    Text("Stable Duration")
+                    Slider(value: $settings.faStableDuration, in: 1...10, step: 0.5)
+                    Text(String(format: "%.1f", settings.faStableDuration))
+                        .frame(width: 50, alignment: .trailing)
+                }
+
+                HStack {
+                    Text("Track CI Limit")
+                    Slider(value: $settings.faTrackCILimit, in: 1...10, step: 0.5)
+                    Text(String(format: "%.1f", settings.faTrackCILimit))
+                        .frame(width: 50, alignment: .trailing)
+                }
+
+                HStack {
+                    Text("Speed CI Limit")
+                    Slider(value: $settings.faSpeedCILimit, in: 1...10, step: 0.5)
+                    Text(String(format: "%.1f", settings.faSpeedCILimit))
+                        .frame(width: 50, alignment: .trailing)
+                }
+            }
+
             Section(header: Text("Recorded Fields")) {
                 Toggle("Record Acceleration", isOn: $settings.recordAcceleration)
                 Toggle("Record Altimeter Pressure", isOn: $settings.recordAltimeterPressure)
