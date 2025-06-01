@@ -91,19 +91,9 @@ struct ContentView: View {
         NavigationStack {
             ZStack {
                 VStack(spacing: 40) {
-                    let showCurrentTime: Bool = {
-                        if let loc = locationManager.lastLocation {
-                            return abs(currentTime.timeIntervalSince(loc.timestamp)) > 1
-                        } else {
-                            return true
-                        }
-                    }()
-
-                    if showCurrentTime {
-                        Text("現在時刻 (JST): \(currentTime, formatter: jstFormatter)")
-                            .font(.title)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    Text("現在時刻 (JST): \(currentTime, formatter: jstFormatter)")
+                        .font(.title)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     
                     if let loc = locationManager.lastLocation {
                         let timeDiff = currentTime.timeIntervalSince(loc.timestamp)
@@ -152,11 +142,23 @@ struct ContentView: View {
                                     Text(String(format: "外気温: %.1f ℃", oat))
                                 }
                             } else {
-                                VStack(alignment: .leading) {
-                                    TextField("風向°", text: $manualWindDirection)
-                                        .keyboardType(.numberPad)
-                                    TextField("風速kt", text: $manualWindSpeed)
-                                        .keyboardType(.decimalPad)
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("風向")
+                                            .frame(width: 40, alignment: .leading)
+                                        TextField("°", text: $manualWindDirection)
+                                            .keyboardType(.numberPad)
+                                            .textFieldStyle(.roundedBorder)
+                                            .frame(width: 70)
+                                    }
+                                    HStack {
+                                        Text("風速")
+                                            .frame(width: 40, alignment: .leading)
+                                        TextField("kt", text: $manualWindSpeed)
+                                            .keyboardType(.decimalPad)
+                                            .textFieldStyle(.roundedBorder)
+                                            .frame(width: 70)
+                                    }
                                     Button("風入力保存") {
                                         if let d = Double(manualWindDirection), let s = Double(manualWindSpeed) {
                                             windDirection = d
