@@ -23,9 +23,7 @@ final class FlightLogManager: ObservableObject {
         flightLogs.removeAll()
         distanceMeasurements.removeAll()
         measurementStartTime = nil
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy_MM_dd_HHmmss"
-        let folderName = "FlightLog_\(formatter.string(from: Date()))"
+        let folderName = "FlightLog_\(DateFormatter.logFolderNameFormatter.string(from: Date()))"
 
         if let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
             let folderURL = docsURL.appendingPathComponent(folderName)
@@ -129,9 +127,7 @@ final class FlightLogManager: ObservableObject {
             let value: (FlightLog) -> String
         }
 
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        isoFormatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        let isoFormatter = ISO8601DateFormatter.jst
 
         let fields: [Field] = [
             Field(header: "timestamp", include: true) { isoFormatter.string(from: $0.timestamp) },
@@ -190,9 +186,7 @@ final class FlightLogManager: ObservableObject {
         let fileURL = folderURL.appendingPathComponent(fileName)
 
         var csvText = "startTime,endTime,horizontalDistance(m),totalDistance(m)\n"
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        isoFormatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        let isoFormatter = ISO8601DateFormatter.jst
         for m in distanceMeasurements {
             let start = isoFormatter.string(from: m.startTime)
             let end = isoFormatter.string(from: m.endTime)
@@ -219,9 +213,7 @@ final class FlightLogManager: ObservableObject {
                                logs: [FlightLog]) -> URL? {
         guard let folderURL = sessionFolderURL else { return nil }
 
-        let nameFormatter = DateFormatter()
-        nameFormatter.dateFormat = "yyyyMMdd_HHmmss"
-        let fileName = "MeasurementLog_\(nameFormatter.string(from: Date())).csv"
+        let fileName = "MeasurementLog_\(DateFormatter.shortNameFormatter.string(from: Date())).csv"
         let fileURL = folderURL.appendingPathComponent(fileName)
 
         var headers = ["timestamp","gpsAltitude(ft)"]
@@ -229,9 +221,7 @@ final class FlightLogManager: ObservableObject {
         if settings.recordRawGpsRate { headers.append("rawGpsAltitudeChangeRate(ft/min)") }
         if settings.recordFusedRate { headers.append("fusedAltitudeChangeRate(ft/min)") }
         var csvText = headers.joined(separator: ",") + "\n"
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        isoFormatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
+        let isoFormatter = ISO8601DateFormatter.jst
         for log in logs {
             let ts = isoFormatter.string(from: log.timestamp)
             var row = ["\(ts)","\(log.gpsAltitude)"]
@@ -261,9 +251,7 @@ final class FlightLogManager: ObservableObject {
                                      chartImage: UIImage) -> URL? {
         guard let folderURL = sessionFolderURL else { return nil }
 
-        let nameFormatter = DateFormatter()
-        nameFormatter.dateFormat = "yyyyMMdd_HHmmss"
-        let name = nameFormatter.string(from: measurement.startTime)
+        let name = DateFormatter.shortNameFormatter.string(from: measurement.startTime)
         let fileName = "MeasurementGraph_\(name).png"
         let fileURL = folderURL.appendingPathComponent(fileName)
 
