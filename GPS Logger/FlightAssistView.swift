@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Flight Assist の表示とレグ管理を行うビュー。
 struct FlightAssistView: View {
+    static let stableDuration: TimeInterval = 3
     @EnvironmentObject var locationManager: LocationManager
     @Environment(\.dismiss) private var dismiss
 
@@ -9,7 +10,7 @@ struct FlightAssistView: View {
     struct LegRecorder {
         let heading: Int
         private(set) var samples: [(track: Double, speed: Double, time: Date)] = []
-        private let window: TimeInterval = 5
+        private let window: TimeInterval = FlightAssistView.stableDuration
 
         mutating func add(track: Double, speed: Double, at time: Date = Date()) {
             samples.append((track, speed, time))
@@ -58,7 +59,9 @@ struct FlightAssistView: View {
         let ciSpeed: Double
         let duration: TimeInterval
 
-        var isStable: Bool { duration >= 5 && ciTrack <= 3 && ciSpeed <= 3 }
+        var isStable: Bool {
+            duration >= FlightAssistView.stableDuration && ciTrack <= 3 && ciSpeed <= 3
+        }
     }
 
     // MARK: 状態
@@ -167,6 +170,11 @@ struct FlightAssistView: View {
                         Text(String(format: "GS %.1f ±%.1f kt", sum.avgSpeed, sum.ciSpeed))
                     }
                     .foregroundColor(sum.isStable ? .green : .primary)
+                    if !sum.isStable {
+                        Text(String(format: "安定まで %.1f 秒", max(0, FlightAssistView.stableDuration - sum.duration)))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
 

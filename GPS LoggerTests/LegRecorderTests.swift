@@ -10,8 +10,8 @@ struct LegRecorderTests {
             leg.add(track: Double(i), speed: 100, at: base.addingTimeInterval(Double(i)))
         }
         if let summary = leg.summary(at: base.addingTimeInterval(10)) {
-            #expect(summary.duration <= 5.1 && summary.duration >= 4.9)
-            #expect(abs(summary.avgTrack - 7) < 0.1)
+            #expect(summary.duration <= 3.1 && summary.duration >= 2.9)
+            #expect(abs(summary.avgTrack - 8) < 0.1)
         } else {
             #expect(false, "summary was nil")
         }
