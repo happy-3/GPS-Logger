@@ -68,6 +68,160 @@ struct ContentView: View {
             return Color.red      // 100ft超：非常に悪い
         }
     }
+
+    @ViewBuilder
+    private var mainContent: some View {
+        VStack(spacing: 40) {
+            Text("現在時刻 (JST): \(currentTime, formatter: DateFormatter.jstFormatter)")
+                .font(.title)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let loc = locationManager.lastLocation {
+                let timeDiff = currentTime.timeIntervalSince(loc.timestamp)
+                let gpsColor: Color = timeDiff > 3 ? .red : .white
+
+                let magneticText: String = {
+                    if loc.course < 0 {
+                        return "未計測"
+                    } else {
+                        var mc = loc.course - locationManager.declination
+                        mc = mc.truncatingRemainder(dividingBy: 360)
+                        if mc < 0 { mc += 360 }
+                        return String(format: "%.0f°", mc)
+                    }
+                }()
+
+                VStack(alignment: .leading, spacing: 5) {
+                    if timeDiff > 3 {
+                        Text(String(format: "未受信 %.0f 秒", timeDiff))
+                            .foregroundColor(.red)
+                    }
+                    Text(String(format: "水平誤差: ±%.1f m", loc.horizontalAccuracy))
+                    Text("磁方位: \(magneticText)").font(.title)
+                    Text(String(format: "速度: %.1f kt", loc.speed * 1.94384)).font(.title)
+                    Text(String(format: "GPS 高度: %.1f ft", locationManager.rawGpsAltitude)).font(.title).padding(.top, 40)
+
+                    if let fusedAlt = altitudeFusionManager.fusedAltitude {
+                        Text(String(format: "高度 (Kalman): %.1f ft", fusedAlt))
+                    } else {
+                        Text(String(format: "高度: %.1f ft", loc.altitude * 3.28084))
+                    }
+                    Text(String(format: "垂直誤差: ±%.1f ft", loc.verticalAccuracy * 3.28084))
+                        .font(.title)
+                        .padding(.bottom, 40)
+                        .foregroundColor(verticalErrorColor(for: loc.verticalAccuracy * 3.28084))
+                    Text(String(format: "GPS 高度変化率: %.1f ft/min", locationManager.rawGpsAltitudeChangeRate))
+
+                    Text(String(format: "高度変化率 (Kalman): %.1f ft/min", altitudeFusionManager.altitudeChangeRate))
+
+                    if let wd = windDirection, let ws = windSpeed {
+                        let within = windBaseAltitude.map { abs(locationManager.rawGpsAltitude - $0) <= 500 } ?? false
+                        if let base = windBaseAltitude, let hp = pressureAltitude, abs(locationManager.rawGpsAltitude - base) > 2000 {
+                            Text("高度が2000ft以上変化しました。気圧高度を再入力してください")
+                                .foregroundColor(.orange)
+                        }
+                        let tas = within ? computeTAS(from: loc) : nil
+                        let oat = tas.map { computeOAT(tasKt: $0, altitudeFt: locationManager.rawGpsAltitude) }
+                        Text(String(format: "風向 %.0f° 風速 %.1f kt (%@)", wd, ws, windSource ?? ""))
+                        if let tas = tas {
+                            Text(String(format: "TAS: %.1f kt", tas))
+                        }
+                        if let tas = tas, let oat = oat {
+                            Text(String(format: "外気温: %.1f ℃", oat))
+                            let cas = FlightAssistUtils.cas(tasKt: tas, altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
+                            let hp = FlightAssistUtils.pressureAltitude(altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
+                            Text(String(format: "CAS: %.1f kt", cas))
+                            Text(String(format: "気圧高度: %.0f ft", hp))
+                            locationManager.estimatedOAT = oat
+                            locationManager.theoreticalCAS = cas
+                            locationManager.theoreticalHP = hp
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("風向")
+                                    .frame(width: 40, alignment: .leading)
+                                TextField("°", text: $manualWindDirection)
+                                    .keyboardType(.numberPad)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 70)
+                            }
+                            HStack {
+                                Text("風速")
+                                    .frame(width: 40, alignment: .leading)
+                                TextField("kt", text: $manualWindSpeed)
+                                    .keyboardType(.decimalPad)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 70)
+                            }
+                            Button("風入力保存") {
+                                if let d = Double(manualWindDirection), let s = Double(manualWindSpeed) {
+                                    windDirection = d
+                                    windSpeed = s
+                                    windSource = "manual"
+                                    windBaseAltitude = locationManager.rawGpsAltitude
+                                    locationManager.windDirection = d
+                                    locationManager.windSpeed = s
+                                    locationManager.windSource = "manual"
+                                }
+                            }
+                        }
+                    }
+
+                    if pressureAltitude == nil {
+                        Stepper(value: $pressureInput, in: -10000...60000, step: 1000) {
+                            Text("気圧高度: \(pressureInput) ft")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        Button("HP保存") {
+                            pressureAltitude = Double(pressureInput)
+                            locationManager.pressureAltitudeFt = pressureAltitude
+                        }
+                    } else {
+                        Text(String(format: "気圧高度: %.0f ft", pressureAltitude!))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                }
+                .font(.body)
+                .foregroundColor(gpsColor)
+            } else {
+                Text("GPSデータ未取得")
+                    .font(.title)
+                    .foregroundColor(.gray)
+            }
+
+            if locationManager.isRecording,
+               let startTime = flightLogManager.flightLogs.first?.timestamp {
+                Text("記録経過時間: \(elapsedTimeString(from: startTime))")
+                    .font(.title2)
+            }
+
+            if !flightLogManager.distanceMeasurements.isEmpty {
+                VStack(alignment: .leading) {
+                    Text("距離計測ログ:")
+                        .font(.headline)
+                    ForEach(Array(flightLogManager.distanceMeasurements.enumerated()), id: \.offset) { index, m in
+                        Text(String(format: "#%d 水平: %.1f m 3D: %.1f m", index + 1, m.horizontalDistance, m.totalDistance))
+                            .font(.footnote)
+                            .padding(.leading, 8)
+                    }
+                    Button("距離CSV出力") {
+                        if let csvURL = flightLogManager.exportDistanceCSV() {
+                            shareItems = [csvURL]
+                            showingShareSheet = true
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Spacer()
+            buttonRibbon
+        }
+        .padding()
+    }
     
     
     let uiUpdateTimer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
@@ -89,158 +243,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                VStack(spacing: 40) {
-                    Text("現在時刻 (JST): \(currentTime, formatter: DateFormatter.jstFormatter)")
-                        .font(.title)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    if let loc = locationManager.lastLocation {
-                        let timeDiff = currentTime.timeIntervalSince(loc.timestamp)
-                        let gpsColor: Color = timeDiff > 3 ? .red : .white
-                        
-                        let magneticText: String = {
-                            if loc.course < 0 {
-                                return "未計測"
-                            } else {
-                                var mc = loc.course - locationManager.declination
-                                mc = mc.truncatingRemainder(dividingBy: 360)
-                                if mc < 0 { mc += 360 }
-                                return String(format: "%.0f°", mc)
-                            }
-                        }()
-                        
-                        VStack(alignment: .leading, spacing: 5) {
-                            if timeDiff > 3 {
-                                Text(String(format: "未受信 %.0f 秒", timeDiff))
-                                    .foregroundColor(.red)
-                            }
-                            Text(String(format: "水平誤差: ±%.1f m", loc.horizontalAccuracy))
-                            Text("磁方位: \(magneticText)").font(.title)
-                            Text(String(format: "速度: %.1f kt", loc.speed * 1.94384)).font(.title)
-                            Text(String(format: "GPS 高度: %.1f ft", locationManager.rawGpsAltitude)).font(.title).padding(.top, 40)
-                            
-                            if let fusedAlt = altitudeFusionManager.fusedAltitude {
-                                Text(String(format: "高度 (Kalman): %.1f ft", fusedAlt))
-                            } else {
-                                Text(String(format: "高度: %.1f ft", loc.altitude * 3.28084))
-                            }
-                            Text(String(format: "垂直誤差: ±%.1f ft", loc.verticalAccuracy * 3.28084))
-                                .font(.title)
-                                .padding(.bottom, 40)
-                                .foregroundColor(verticalErrorColor(for: loc.verticalAccuracy * 3.28084))
-                            Text(String(format: "GPS 高度変化率: %.1f ft/min", locationManager.rawGpsAltitudeChangeRate))
-
-                            Text(String(format: "高度変化率 (Kalman): %.1f ft/min", altitudeFusionManager.altitudeChangeRate))
-
-                            if let wd = windDirection, let ws = windSpeed {
-                                let within = windBaseAltitude.map { abs(locationManager.rawGpsAltitude - $0) <= 500 } ?? false
-                                if let base = windBaseAltitude, let hp = pressureAltitude, abs(locationManager.rawGpsAltitude - base) > 2000 {
-                                    Text("高度が2000ft以上変化しました。気圧高度を再入力してください")
-                                        .foregroundColor(.orange)
-                                }
-                                let tas = within ? computeTAS(from: loc) : nil
-                                let oat = tas.map { computeOAT(tasKt: $0, altitudeFt: locationManager.rawGpsAltitude) }
-                                Text(String(format: "風向 %.0f° 風速 %.1f kt (%@)", wd, ws, windSource ?? ""))
-                                if let tas = tas {
-                                    Text(String(format: "TAS: %.1f kt", tas))
-                                }
-                                if let tas = tas, let oat = oat {
-                                    Text(String(format: "外気温: %.1f ℃", oat))
-                                    let cas = FlightAssistUtils.cas(tasKt: tas, altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
-                                    let hp = FlightAssistUtils.pressureAltitude(altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
-                                    Text(String(format: "CAS: %.1f kt", cas))
-                                    Text(String(format: "気圧高度: %.0f ft", hp))
-                                    locationManager.estimatedOAT = oat
-                                    locationManager.theoreticalCAS = cas
-                                    locationManager.theoreticalHP = hp
-                                }
-                            } else {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("風向")
-                                            .frame(width: 40, alignment: .leading)
-                                        TextField("°", text: $manualWindDirection)
-                                            .keyboardType(.numberPad)
-                                            .textFieldStyle(.roundedBorder)
-                                            .frame(width: 70)
-                                    }
-                                    HStack {
-                                        Text("風速")
-                                            .frame(width: 40, alignment: .leading)
-                                        TextField("kt", text: $manualWindSpeed)
-                                            .keyboardType(.decimalPad)
-                                            .textFieldStyle(.roundedBorder)
-                                            .frame(width: 70)
-                                    }
-                                    Button("風入力保存") {
-                                        if let d = Double(manualWindDirection), let s = Double(manualWindSpeed) {
-                                            windDirection = d
-                                            windSpeed = s
-                                            windSource = "manual"
-                                            windBaseAltitude = locationManager.rawGpsAltitude
-                                            locationManager.windDirection = d
-                                            locationManager.windSpeed = s
-                                            locationManager.windSource = "manual"
-                                        }
-                                    }
-                                }
-                            }
-
-                            if pressureAltitude == nil {
-                                Stepper(value: $pressureInput, in: -10000...60000, step: 1000) {
-                                    Text("気圧高度: \(pressureInput) ft")
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                Button("HP保存") {
-                                    pressureAltitude = Double(pressureInput)
-                                    locationManager.pressureAltitudeFt = pressureAltitude
-                                }
-                            } else {
-                                Text(String(format: "気圧高度: %.0f ft", pressureAltitude!))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-
-                        }
-                        .font(.body)
-                        .foregroundColor(gpsColor)
-                    } else {
-                        Text("GPSデータ未取得")
-                            .font(.title)
-                            .foregroundColor(.gray)
-                    }
-                    
-                    if locationManager.isRecording,
-                       let startTime = flightLogManager.flightLogs.first?.timestamp {
-                        Text("記録経過時間: \(elapsedTimeString(from: startTime))")
-                            .font(.title2)
-                    }
-                    
-                    
-                    
-                    if !flightLogManager.distanceMeasurements.isEmpty {
-                        VStack(alignment: .leading) {
-                            Text("距離計測ログ:")
-                                .font(.headline)
-                            ForEach(Array(flightLogManager.distanceMeasurements.enumerated()), id: \.offset) { index, m in
-                                Text(String(format: "#%d 水平: %.1f m 3D: %.1f m", index + 1, m.horizontalDistance, m.totalDistance))
-                                    .font(.footnote)
-                                    .padding(.leading, 8)
-                            }
-                            Button("距離CSV出力") {
-                                if let csvURL = flightLogManager.exportDistanceCSV() {
-                                    shareItems = [csvURL]
-                                    showingShareSheet = true
-                                }
-                            }
-                            .padding(.top, 4)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
-                    Spacer()
-                    buttonRibbon
-                }
-                .padding()
+                mainContent
 
             }
             .navigationTitle("GPS Logger")
