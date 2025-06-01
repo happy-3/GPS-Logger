@@ -41,6 +41,10 @@ struct FlightLog: Identifiable {
     let windSpeed: Double?
     /// 風情報の入力ソース。"measured" または "manual" などを想定。
     let windSource: String?
+    /// 風向の95%信頼区間
+    let windDirectionCI: Double?
+    /// 風速の95%信頼区間
+    let windSpeedCI: Double?
 
     // photo index (when capturing)
     let photoIndex: Int?

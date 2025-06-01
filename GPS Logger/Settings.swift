@@ -11,6 +11,11 @@ final class Settings: ObservableObject {
     @UserDefaultBacked(key: "logInterval") var logInterval: Double = 1.0
     @UserDefaultBacked(key: "baroWeight") var baroWeight: Double = 0.75
 
+    // Flight Assist stability thresholds
+    @UserDefaultBacked(key: "faStableDuration") var faStableDuration: Double = 3.0
+    @UserDefaultBacked(key: "faTrackCILimit") var faTrackCILimit: Double = 3.0
+    @UserDefaultBacked(key: "faSpeedCILimit") var faSpeedCILimit: Double = 3.0
+
     // Photo capture options
     @UserDefaultBacked(key: "photoPreSeconds") var photoPreSeconds: Double = 3.0
     @UserDefaultBacked(key: "photoPostSeconds") var photoPostSeconds: Double = 3.0
@@ -89,6 +94,18 @@ final class Settings: ObservableObject {
             .store(in: &cancellables)
 
         $recordKalmanInterval
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $faStableDuration
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $faTrackCILimit
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $faSpeedCILimit
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
     }

@@ -378,6 +378,7 @@ struct ContentView: View {
             .navigationDestination(isPresented: $showFlightAssist) {
                 FlightAssistView()
                     .environmentObject(locationManager)
+                    .environmentObject(settings)
             }
         }
     }

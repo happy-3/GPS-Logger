@@ -93,6 +93,8 @@ struct DistanceGraphView_Previews: PreviewProvider {
                 windDirection: nil,
                 windSpeed: nil,
                 windSource: nil,
+                windDirectionCI: nil,
+                windSpeedCI: nil,
                 photoIndex: nil
             )
         }
