@@ -36,8 +36,6 @@ struct ContentView: View {
     @State private var windDirection: Double?
     @State private var windSpeed: Double?
     @State private var windSource: String?
-    @State private var manualWindDirection = ""
-    @State private var manualWindSpeed = ""
     @State private var windBaseAltitude: Double?
 
     // 気圧高度入力
@@ -64,7 +62,8 @@ struct ContentView: View {
     private var mainContent: some View {
         VStack(spacing: 40) {
             Text("現在時刻 (JST): \(currentTime, formatter: DateFormatter.jstFormatter)")
-                .font(.title)
+                .font(.title2)
+                .monospacedDigit()
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if let loc = locationManager.lastLocation {
@@ -98,8 +97,6 @@ struct ContentView: View {
                         } else {
                             Text(String(format: "高度: %.1f ft", loc.altitude * 3.28084))
                         }
-                    } else {
-                        Text(String(format: "高度: %.1f ft", loc.altitude * 3.28084))
                     }
                     Text(String(format: "垂直誤差: ±%.1f ft", loc.verticalAccuracy * 3.28084))
                         .font(.title)
@@ -141,53 +138,21 @@ struct ContentView: View {
                             }
                         }
                     } else {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("風向")
-                                    .frame(width: 40, alignment: .leading)
-                                TextField("°", text: $manualWindDirection)
-                                    .keyboardType(.numberPad)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 70)
-                            }
-                            HStack {
-                                Text("風速")
-                                    .frame(width: 40, alignment: .leading)
-                                TextField("kt", text: $manualWindSpeed)
-                                    .keyboardType(.decimalPad)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 70)
-                            }
-                            Button("風入力保存") {
-                                if let d = Double(manualWindDirection), let s = Double(manualWindSpeed) {
-                                    windDirection = d
-                                    windSpeed = s
-                                    windSource = "manual"
-                                    windBaseAltitude = locationManager.rawGpsAltitude
-                                    locationManager.windDirection = d
-                                    locationManager.windSpeed = s
-                                    locationManager.windSource = "manual"
-                                }
-                            }
-                        }
+                        Text("風情報なし")
                     }
 
-                    if pressureAltitude == nil {
-                        Stepper(value: $pressureInput, in: -10000...60000, step: 1000) {
-                            Text("気圧高度: \(pressureInput) ft")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        Button("HP保存") {
-                            pressureAltitude = Double(pressureInput)
-                            locationManager.pressureAltitudeFt = pressureAltitude
-                        }
-                    } else {
-                        Text(String(format: "気圧高度: %.0f ft", pressureAltitude!))
+                    Stepper(value: $pressureInput, in: -10000...60000, step: 500) {
+                        Text("気圧高度: \(pressureInput) ft")
                             .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .onChange(of: pressureInput) { newValue in
+                        pressureAltitude = Double(newValue)
+                        locationManager.pressureAltitudeFt = pressureAltitude
                     }
 
                 }
-                .font(.body)
+                .font(.title2)
+                .monospacedDigit()
                 .foregroundColor(gpsColor)
             } else {
                 Text("GPSデータ未取得")

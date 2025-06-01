@@ -87,6 +87,9 @@ struct FlightAssistView: View {
     @State private var turnDirection: Int? = nil // -1 left, 1 right
     @State private var showRestart = false
 
+    @State private var manualWindDirection = ""
+    @State private var manualWindSpeed = ""
+
     // MARK: 基本処理
     private func startNewLeg() {
         currentLeg = LegRecorder(heading: headingMag, window: settings.faStableDuration)
@@ -236,6 +239,32 @@ struct FlightAssistView: View {
                 }
             }
 
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("風向")
+                        .frame(width: 40, alignment: .leading)
+                    TextField("°", text: $manualWindDirection)
+                        .keyboardType(.numberPad)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 70)
+                }
+                HStack {
+                    Text("風速")
+                        .frame(width: 40, alignment: .leading)
+                    TextField("kt", text: $manualWindSpeed)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 70)
+                }
+                Button("風入力保存") {
+                    if let d = Double(manualWindDirection), let s = Double(manualWindSpeed) {
+                        locationManager.windDirection = d
+                        locationManager.windSpeed = s
+                        locationManager.windSource = "manual"
+                    }
+                }
+            }
+
             if isRunning {
                 HStack(spacing: 40) {
                     if summaries.isEmpty {
@@ -326,6 +355,8 @@ struct FlightAssistView: View {
             }
         }
         .padding()
+        .font(.title2)
+        .monospacedDigit()
         .navigationTitle("測風")
         .onAppear {
             headingMag = nearestHeading()
