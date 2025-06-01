@@ -246,102 +246,109 @@ struct ContentView: View {
         _altitudeFusionManager = StateObject(wrappedValue: altitudeFusionManager)
         _locationManager = StateObject(wrappedValue: locationManager)
     }
-    
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                mainContent
 
+    /// ナビゲーションバーのツールバー
+    private var navigationToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button {
+                showFlightAssist = true
+            } label: {
+                Label("Assist", systemImage: "airplane")
             }
-            .navigationTitle("GPS Logger")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(role: .automatic, content: {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        showFlightAssist = true
-                    } label: {
-                        Label("Assist", systemImage: "airplane" )
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Label("設定", systemImage: "gearshape")
-                    }
-                }
-            })
-            .onAppear {
-                UIApplication.shared.isIdleTimerDisabled = true
-                locationManager.startUpdatingForDisplay()
-                altitudeFusionManager.startUpdates(gpsAltitude: nil)
+        }
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button {
+                showSettings = true
+            } label: {
+                Label("設定", systemImage: "gearshape")
             }
-            .onReceive(uiUpdateTimer) { _ in
-                currentTime = Date()
+        }
+    }
+
+    /// ナビゲーション周りをまとめたビュー
+    private var navigationContent: some View {
+        ZStack {
+            mainContent
+        }
+        .navigationTitle("GPS Logger")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(role: .automatic) { navigationToolbar }
+        .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
+            locationManager.startUpdatingForDisplay()
+            altitudeFusionManager.startUpdates(gpsAltitude: nil)
+        }
+        .onReceive(uiUpdateTimer) { _ in
+            currentTime = Date()
+        }
+        .onReceive(locationManager.$windDirection) { new in
+            windDirection = new
+            if new != nil {
+                windBaseAltitude = locationManager.rawGpsAltitude
             }
-            .onReceive(locationManager.$windDirection) { new in
-                windDirection = new
-                if new != nil {
-                    windBaseAltitude = locationManager.rawGpsAltitude
-                }
+        }
+        .onReceive(locationManager.$windSpeed) { new in
+            windSpeed = new
+        }
+        .onReceive(locationManager.$windSource) { new in
+            windSource = new
+        }
+        .onReceive(locationManager.$pressureAltitudeFt) { new in
+            pressureAltitude = new
+            if let val = new {
+                pressureInput = Int(val)
             }
-            .onReceive(locationManager.$windSpeed) { new in
-                windSpeed = new
-            }
-            .onReceive(locationManager.$windSource) { new in
-                windSource = new
-            }
-            .onReceive(locationManager.$pressureAltitudeFt) { new in
-                pressureAltitude = new
-                if let val = new {
-                    pressureInput = Int(val)
-                }
-            }
-            .fullScreenCover(isPresented: $showingCompositeCamera) {
-                CompositeCameraView(capturedCompositeImage: $capturedCompositeImage,
-                                    settings: settings)
-                    .environmentObject(locationManager)
-            }
-            .sheet(isPresented: $showingShareSheet) {
-                ActivityView(activityItems: shareItems)
-            }
-            .sheet(isPresented: $showingDistanceGraph) {
-                if let measurement = lastMeasurement {
-                    NavigationStack {
-                        DistanceGraphView(logs: graphLogs, measurement: measurement)
-                            .toolbar(role: .automatic, content: {
-                                ToolbarItem(placement: .navigationBarTrailing) {
-                                    if measurementLogURL != nil || measurementGraphURL != nil {
-                                        Button {
-                                            shareItems.removeAll()
-                                            if let logURL = measurementLogURL {
-                                                shareItems.append(logURL)
-                                            }
-                                            if let graphURL = measurementGraphURL {
-                                                shareItems.append(graphURL)
-                                            }
-                                            showingShareSheet = true
-                                        } label: {
-                                            Image(systemName: "square.and.arrow.up")
+        }
+        .fullScreenCover(isPresented: $showingCompositeCamera) {
+            CompositeCameraView(capturedCompositeImage: $capturedCompositeImage,
+                                settings: settings)
+                .environmentObject(locationManager)
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            ActivityView(activityItems: shareItems)
+        }
+        .sheet(isPresented: $showingDistanceGraph) {
+            if let measurement = lastMeasurement {
+                NavigationStack {
+                    DistanceGraphView(logs: graphLogs, measurement: measurement)
+                        .toolbar(role: .automatic) {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                if measurementLogURL != nil || measurementGraphURL != nil {
+                                    Button {
+                                        shareItems.removeAll()
+                                        if let logURL = measurementLogURL {
+                                            shareItems.append(logURL)
                                         }
+                                        if let graphURL = measurementGraphURL {
+                                            shareItems.append(graphURL)
+                                        }
+                                        showingShareSheet = true
+                                    } label: {
+                                        Image(systemName: "square.and.arrow.up")
                                     }
                                 }
-                            })
-                    }
+                            }
+                        }
                 }
             }
-            .alert(measurementResultMessage ?? "", isPresented: $showingMeasurementAlert) {
-                Button("OK", role: .cancel) {}
-            }
-            .navigationDestination(isPresented: $showSettings) {
-                SettingsView(settings: settings)
-                    .environmentObject(locationManager)
-            }
-            .navigationDestination(isPresented: $showFlightAssist) {
-                FlightAssistView()
-                    .environmentObject(locationManager)
-                    .environmentObject(settings)
-            }
+        }
+        .alert(measurementResultMessage ?? "", isPresented: $showingMeasurementAlert) {
+            Button("OK", role: .cancel) {}
+        }
+        .navigationDestination(isPresented: $showSettings) {
+            SettingsView(settings: settings)
+                .environmentObject(locationManager)
+        }
+        .navigationDestination(isPresented: $showFlightAssist) {
+            FlightAssistView()
+                .environmentObject(locationManager)
+                .environmentObject(settings)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            navigationContent
         }
     }
     
