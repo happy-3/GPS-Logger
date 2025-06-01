@@ -8,6 +8,7 @@ final class Settings: ObservableObject {
 
     @UserDefaultBacked(key: "processNoise") var processNoise: Double = 0.2
     @UserDefaultBacked(key: "measurementNoise") var measurementNoise: Double = 15.0
+    @UserDefaultBacked(key: "useKalmanFilter") var useKalmanFilter: Bool = true
     @UserDefaultBacked(key: "logInterval") var logInterval: Double = 1.0
     @UserDefaultBacked(key: "baroWeight") var baroWeight: Double = 0.75
 
@@ -94,6 +95,10 @@ final class Settings: ObservableObject {
             .store(in: &cancellables)
 
         $recordKalmanInterval
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $useKalmanFilter
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
 
