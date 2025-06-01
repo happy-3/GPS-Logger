@@ -203,8 +203,18 @@ struct FlightAssistView: View {
             .padding(.top)
 
             if let loc = locationManager.lastLocation {
+                let trackText: String = {
+                    if loc.course < 0 { return "計測不可" }
+                    var mc = loc.course - locationManager.declination
+                    mc = mc.truncatingRemainder(dividingBy: 360)
+                    if mc < 0 { mc += 360 }
+                    return String(format: "%.0f°", mc)
+                }()
+                let trackColor: Color = loc.course < 0 ? .red : .primary
+
                 VStack(alignment: .leading) {
-                    Text(String(format: "グランドトラック: %.0f°", loc.course))
+                    Text("グランドトラック: \(trackText)")
+                        .foregroundColor(trackColor)
                     Text(String(format: "グランドスピード: %.1f kt", max(0, loc.speed * 1.94384)))
                     Text(String(format: "高度: %.0f ft", locationManager.rawGpsAltitude))
                 }

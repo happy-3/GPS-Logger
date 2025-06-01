@@ -12,7 +12,10 @@ struct FlightLog: Identifiable {
     // GPS related data
     let gpsAltitude: Double           // ft
     let speedKt: Double?              // knots
-    let magneticCourse: Double        // -1 if not available
+    /// 真方位のグランドトラック。-1 の場合は計測不可。
+    let trueCourse: Double
+    /// 磁気偏差（真北 - 磁北）。
+    let magneticVariation: Double
     let horizontalAccuracyM: Double   // meters
     let verticalAccuracyFt: Double    // feet
     let altimeterPressure: Double?    // optional

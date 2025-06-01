@@ -70,14 +70,14 @@ struct ContentView: View {
                 let timeDiff = currentTime.timeIntervalSince(loc.timestamp)
                 let gpsColor: Color = timeDiff > 3 ? .red : .white
 
-                let magneticText: String = {
+                let (trackText, trackColor): (String, Color) = {
                     if loc.course < 0 {
-                        return "未計測"
+                        return ("計測不可", .red)
                     } else {
                         var mc = loc.course - locationManager.declination
                         mc = mc.truncatingRemainder(dividingBy: 360)
                         if mc < 0 { mc += 360 }
-                        return String(format: "%.0f°", mc)
+                        return (String(format: "%.0f°", mc), gpsColor)
                     }
                 }()
 
@@ -87,7 +87,9 @@ struct ContentView: View {
                             .foregroundColor(.red)
                     }
                     Text(String(format: "水平誤差: ±%.1f m", loc.horizontalAccuracy))
-                    Text("磁方位: \(magneticText)").font(.title)
+                    Text("グランドトラック: \(trackText)")
+                        .font(.title)
+                        .foregroundColor(trackColor)
                     Text(String(format: "速度: %.1f kt", loc.speed * 1.94384)).font(.title)
                     Text(String(format: "GPS 高度: %.1f ft", locationManager.rawGpsAltitude)).font(.title).padding(.top, 40)
 
