@@ -84,9 +84,19 @@ struct ContentView: View {
         NavigationStack {
             ZStack {
                 VStack(spacing: 40) {
-                    Text("現在時刻 (JST): \(currentTime, formatter: jstFormatter)")
-                        .font(.title)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    let showCurrentTime: Bool = {
+                        if let loc = locationManager.lastLocation {
+                            return abs(currentTime.timeIntervalSince(loc.timestamp)) > 1
+                        } else {
+                            return true
+                        }
+                    }()
+
+                    if showCurrentTime {
+                        Text("現在時刻 (JST): \(currentTime, formatter: jstFormatter)")
+                            .font(.title)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     
                     if let loc = locationManager.lastLocation {
                         let timeDiff = currentTime.timeIntervalSince(loc.timestamp)
