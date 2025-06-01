@@ -124,6 +124,13 @@ struct FlightAssistView: View {
             locationManager.windSource = "triangle"
             locationManager.windDirectionCI = windDirCI
             locationManager.windSpeedCI = windSpeedCI
+
+            let oat = FlightAssistUtils.oat(tasKt: result.tasKt, altitudeFt: locationManager.rawGpsAltitude)
+            let cas = FlightAssistUtils.cas(tasKt: result.tasKt, altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
+            let hp = FlightAssistUtils.pressureAltitude(altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
+            locationManager.estimatedOAT = oat
+            locationManager.theoreticalCAS = cas
+            locationManager.theoreticalHP = hp
         }
     }
 
