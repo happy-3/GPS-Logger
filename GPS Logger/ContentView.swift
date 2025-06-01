@@ -65,12 +65,6 @@ struct ContentView: View {
         }
     }
     
-    let jstFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        f.timeZone = TimeZone(identifier: "Asia/Tokyo")
-        return f
-    }()
     
     let uiUpdateTimer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
     
@@ -92,7 +86,7 @@ struct ContentView: View {
         NavigationStack {
             ZStack {
                 VStack(spacing: 40) {
-                    Text("現在時刻 (JST): \(currentTime, formatter: jstFormatter)")
+                    Text("現在時刻 (JST): \(currentTime, formatter: DateFormatter.jstFormatter)")
                         .font(.title)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
@@ -112,7 +106,7 @@ struct ContentView: View {
                         }()
                         
                         VStack(alignment: .leading, spacing: 5) {
-                            Text("GPS受信時刻 (JST): \(loc.timestamp, formatter: jstFormatter)")
+                            Text("GPS受信時刻 (JST): \(loc.timestamp, formatter: DateFormatter.jstFormatter)")
                             Text("緯度: \(loc.coordinate.latitude.toDegMin())  経度: \(loc.coordinate.longitude.toDegMin())").padding(.top, 4)
                             Text(String(format: "水平誤差: ±%.1f m", loc.horizontalAccuracy))
                             Text("磁方位: \(magneticText)").font(.title)

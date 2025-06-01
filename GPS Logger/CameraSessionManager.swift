@@ -92,9 +92,7 @@ class CameraSessionManager: NSObject {
         let folder = sessionURL.appendingPathComponent("Photo_\(index)")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd_HHmmss"
-        let baseName = formatter.string(from: shutterTime)
+        let baseName = DateFormatter.shortNameFormatter.string(from: shutterTime)
 
         let validFrames = frames.filter { frame in
             let diff = frame.timestamp.timeIntervalSince(shutterTime)
