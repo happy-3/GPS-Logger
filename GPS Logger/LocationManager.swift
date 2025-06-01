@@ -151,6 +151,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         let latestAcc = settings.recordAcceleration ? altitudeFusionManager.latestAcceleration : nil
 
         let log = FlightLog(timestamp: now,
+                             gpsTimestamp: loc.timestamp,
                              latitude: loc.coordinate.latitude,
                              longitude: loc.coordinate.longitude,
                              gpsAltitude: altitudeFt,

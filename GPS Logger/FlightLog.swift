@@ -4,6 +4,8 @@ import Foundation
 struct FlightLog: Identifiable {
     let id = UUID()
     let timestamp: Date
+    /// The timestamp provided by the GPS fix
+    let gpsTimestamp: Date
     let latitude: Double
     let longitude: Double
 

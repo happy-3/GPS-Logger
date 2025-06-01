@@ -68,6 +68,7 @@ struct DistanceGraphView_Previews: PreviewProvider {
 
             return FlightLog(
                 timestamp: timestamp,
+                gpsTimestamp: timestamp,
                 latitude: 0,
                 longitude: 0,
                 gpsAltitude: gpsAlt,

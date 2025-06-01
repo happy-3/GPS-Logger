@@ -21,6 +21,7 @@ struct GPS_LoggerTests {
         let now = Date()
         let log = FlightLog(
             timestamp: now,
+            gpsTimestamp: now,
             latitude: 35.0,
             longitude: 135.0,
             gpsAltitude: 1000,
@@ -66,6 +67,7 @@ struct GPS_LoggerTests {
 
         let log1 = FlightLog(
             timestamp: start,
+            gpsTimestamp: start,
             latitude: 35.0,
             longitude: 135.0,
             gpsAltitude: 0,
@@ -91,6 +93,7 @@ struct GPS_LoggerTests {
             photoIndex: nil)
         let log2 = FlightLog(
             timestamp: end,
+            gpsTimestamp: end,
             latitude: 35.001,
             longitude: 135.001,
             gpsAltitude: 100,

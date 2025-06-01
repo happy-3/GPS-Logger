@@ -131,6 +131,7 @@ final class FlightLogManager: ObservableObject {
 
         let fields: [Field] = [
             Field(header: "timestamp", include: true) { isoFormatter.string(from: $0.timestamp) },
+            Field(header: "gpsTimestamp", include: true) { isoFormatter.string(from: $0.gpsTimestamp) },
             Field(header: "latitude", include: true) { "\($0.latitude)" },
             Field(header: "longitude", include: true) { "\($0.longitude)" },
             Field(header: "gpsAltitude(ft)", include: true) { "\($0.gpsAltitude)" },
