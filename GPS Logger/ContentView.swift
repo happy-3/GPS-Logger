@@ -443,7 +443,74 @@ private struct NavigationContentView: View {
     let uiUpdateTimer: Publishers.Autoconnect<Timer.TimerPublisher>
     let mainContent: AnyView
 
+    init(
+        mainContent: AnyView,
+        currentTime: Binding<Date>,
+        capturedCompositeImage: Binding<UIImage?>,
+        showingCompositeCamera: Binding<Bool>,
+        showingShareSheet: Binding<Bool>,
+        shareItems: Binding<[Any]>,
+        showingDistanceGraph: Binding<Bool>,
+        graphLogs: Binding<[FlightLog]>,
+        lastMeasurement: Binding<DistanceMeasurement?>,
+        measurementLogURL: Binding<URL?>,
+        measurementGraphURL: Binding<URL?>,
+        measurementResultMessage: Binding<String?>,
+        showingMeasurementAlert: Binding<Bool>,
+        showSettings: Binding<Bool>,
+        showFlightAssist: Binding<Bool>,
+        windDirection: Binding<Double?>,
+        windSpeed: Binding<Double?>,
+        windSource: Binding<String?>,
+        windBaseAltitude: Binding<Double?>,
+        pressureAltitude: Binding<Double?>,
+        pressureInput: Binding<Int>,
+        uiUpdateTimer: Publishers.Autoconnect<Timer.TimerPublisher>
+    ) {
+        self._currentTime = currentTime
+        self._capturedCompositeImage = capturedCompositeImage
+        self._showingCompositeCamera = showingCompositeCamera
+        self._showingShareSheet = showingShareSheet
+        self._shareItems = shareItems
+        self._showingDistanceGraph = showingDistanceGraph
+        self._graphLogs = graphLogs
+        self._lastMeasurement = lastMeasurement
+        self._measurementLogURL = measurementLogURL
+        self._measurementGraphURL = measurementGraphURL
+        self._measurementResultMessage = measurementResultMessage
+        self._showingMeasurementAlert = showingMeasurementAlert
+        self._showSettings = showSettings
+        self._showFlightAssist = showFlightAssist
+        self._windDirection = windDirection
+        self._windSpeed = windSpeed
+        self._windSource = windSource
+        self._windBaseAltitude = windBaseAltitude
+        self._pressureAltitude = pressureAltitude
+        self._pressureInput = pressureInput
+        self.uiUpdateTimer = uiUpdateTimer
+        self.mainContent = mainContent
+    }
+
     var body: some View {
+        baseView
+            .fullScreenCover(isPresented: $showingCompositeCamera) { compositeCameraView }
+            .sheet(isPresented: $showingShareSheet) { ActivityView(activityItems: shareItems) }
+            .sheet(isPresented: $showingDistanceGraph) { distanceGraphSheet }
+            .alert(measurementResultMessage ?? "", isPresented: $showingMeasurementAlert) {
+                Button("OK", role: .cancel) {}
+            }
+            .navigationDestination(isPresented: $showSettings) {
+                SettingsView(settings: settings)
+                    .environmentObject(locationManager)
+            }
+            .navigationDestination(isPresented: $showFlightAssist) {
+                FlightAssistView()
+                    .environmentObject(locationManager)
+                    .environmentObject(settings)
+            }
+    }
+
+    private var baseView: some View {
         ZStack { mainContent }
             .navigationTitle("GPS Logger")
             .navigationBarTitleDisplayMode(.inline)
@@ -474,51 +541,40 @@ private struct NavigationContentView: View {
                     pressureInput = Int(val)
                 }
             }
-            .fullScreenCover(isPresented: $showingCompositeCamera) {
-                CompositeCameraView(capturedCompositeImage: $capturedCompositeImage,
-                                    settings: settings)
-                    .environmentObject(locationManager)
-            }
-            .sheet(isPresented: $showingShareSheet) {
-                ActivityView(activityItems: shareItems)
-            }
-            .sheet(isPresented: $showingDistanceGraph) {
-                if let measurement = lastMeasurement {
-                    NavigationStack {
-                        DistanceGraphView(logs: graphLogs, measurement: measurement)
-                            .toolbar(role: .automatic) {
-                                ToolbarItem(placement: .navigationBarTrailing) {
-                                    if measurementLogURL != nil || measurementGraphURL != nil {
-                                        Button {
-                                            shareItems.removeAll()
-                                            if let logURL = measurementLogURL {
-                                                shareItems.append(logURL)
-                                            }
-                                            if let graphURL = measurementGraphURL {
-                                                shareItems.append(graphURL)
-                                            }
-                                            showingShareSheet = true
-                                        } label: {
-                                            Image(systemName: "square.and.arrow.up")
-                                        }
+    }
+
+    @ViewBuilder
+    private var compositeCameraView: some View {
+        CompositeCameraView(capturedCompositeImage: $capturedCompositeImage,
+                            settings: settings)
+            .environmentObject(locationManager)
+    }
+
+    @ViewBuilder
+    private var distanceGraphSheet: some View {
+        if let measurement = lastMeasurement {
+            NavigationStack {
+                DistanceGraphView(logs: graphLogs, measurement: measurement)
+                    .toolbar(role: .automatic) {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            if measurementLogURL != nil || measurementGraphURL != nil {
+                                Button {
+                                    shareItems.removeAll()
+                                    if let logURL = measurementLogURL {
+                                        shareItems.append(logURL)
                                     }
+                                    if let graphURL = measurementGraphURL {
+                                        shareItems.append(graphURL)
+                                    }
+                                    showingShareSheet = true
+                                } label: {
+                                    Image(systemName: "square.and.arrow.up")
                                 }
                             }
+                        }
                     }
-                }
             }
-            .alert(measurementResultMessage ?? "", isPresented: $showingMeasurementAlert) {
-                Button("OK", role: .cancel) {}
-            }
-            .navigationDestination(isPresented: $showSettings) {
-                SettingsView(settings: settings)
-                    .environmentObject(locationManager)
-            }
-            .navigationDestination(isPresented: $showFlightAssist) {
-                FlightAssistView()
-                    .environmentObject(locationManager)
-                    .environmentObject(settings)
-            }
+        }
     }
 
     @ToolbarContentBuilder
