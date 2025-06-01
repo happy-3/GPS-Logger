@@ -47,6 +47,7 @@ struct ContentView: View {
     @State private var windSource: String?
     @State private var manualWindDirection = ""
     @State private var manualWindSpeed = ""
+    @State private var windBaseAltitude: Double?
 
     // 垂直誤差に基づく色分けの関数
     func verticalErrorColor(for error: Double) -> Color {
@@ -132,7 +133,8 @@ struct ContentView: View {
                             Text(String(format: "高度変化率 (Kalman): %.1f ft/min", altitudeFusionManager.altitudeChangeRate))
 
                             if let wd = windDirection, let ws = windSpeed {
-                                let tas = computeTAS(from: loc)
+                                let within = windBaseAltitude.map { abs(locationManager.rawGpsAltitude - $0) <= 500 } ?? false
+                                let tas = within ? computeTAS(from: loc) : nil
                                 let oat = tas.map { computeOAT(tasKt: $0, altitudeFt: locationManager.rawGpsAltitude) }
                                 Text(String(format: "風向 %.0f° 風速 %.1f kt (%@)", wd, ws, windSource ?? ""))
                                 if let tas = tas {
@@ -164,6 +166,7 @@ struct ContentView: View {
                                             windDirection = d
                                             windSpeed = s
                                             windSource = "manual"
+                                            windBaseAltitude = locationManager.rawGpsAltitude
                                             locationManager.windDirection = d
                                             locationManager.windSpeed = s
                                             locationManager.windSource = "manual"
@@ -320,6 +323,18 @@ struct ContentView: View {
             }
             .onReceive(uiUpdateTimer) { _ in
                 currentTime = Date()
+            }
+            .onReceive(locationManager.$windDirection) { new in
+                windDirection = new
+                if new != nil {
+                    windBaseAltitude = locationManager.rawGpsAltitude
+                }
+            }
+            .onReceive(locationManager.$windSpeed) { new in
+                windSpeed = new
+            }
+            .onReceive(locationManager.$windSource) { new in
+                windSource = new
             }
             .fullScreenCover(isPresented: $showingCompositeCamera) {
                 CompositeCameraView(capturedCompositeImage: $capturedCompositeImage,

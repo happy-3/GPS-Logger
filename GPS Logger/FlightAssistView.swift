@@ -3,37 +3,48 @@ import SwiftUI
 /// Flight Assist の表示とレグ管理を行うビュー。
 struct FlightAssistView: View {
     @EnvironmentObject var locationManager: LocationManager
+    @Environment(\.dismiss) private var dismiss
 
     /// 各レグで収集したサンプルから統計を算出するヘルパ
     struct LegRecorder {
         let heading: Int
-        var samples: [(track: Double, speed: Double, time: Date)] = []
+        private(set) var samples: [(track: Double, speed: Double, time: Date)] = []
+        private let window: TimeInterval = 5
 
-        mutating func add(track: Double, speed: Double) {
-            samples.append((track, speed, Date()))
+        mutating func add(track: Double, speed: Double, at time: Date = Date()) {
+            samples.append((track, speed, time))
+            prune(olderThan: time)
         }
 
-        var duration: TimeInterval {
+        private mutating func prune(olderThan time: Date) {
+            let limit = time.addingTimeInterval(-window)
+            while let first = samples.first, first.time < limit { samples.removeFirst() }
+        }
+
+        func duration(at time: Date = Date()) -> TimeInterval {
             guard let first = samples.first?.time else { return 0 }
-            return Date().timeIntervalSince(first)
+            return time.timeIntervalSince(first)
         }
 
-        func summary() -> LegSummary? {
-            guard !samples.isEmpty else { return nil }
-            let tracks = samples.map { $0.track }
-            let speeds = samples.map { $0.speed }
+        func summary(at time: Date = Date()) -> LegSummary? {
+            let limit = time.addingTimeInterval(-window)
+            let windowSamples = samples.filter { $0.time >= limit }
+            guard !windowSamples.isEmpty else { return nil }
+            let tracks = windowSamples.map { $0.track }
+            let speeds = windowSamples.map { $0.speed }
             let avgTrack = tracks.reduce(0, +) / Double(tracks.count)
             let avgSpeed = speeds.reduce(0, +) / Double(speeds.count)
             let sdTrack = sqrt(tracks.map { pow($0 - avgTrack, 2) }.reduce(0, +) / Double(tracks.count))
             let sdSpeed = sqrt(speeds.map { pow($0 - avgSpeed, 2) }.reduce(0, +) / Double(speeds.count))
             let ciTrack = 1.96 * sdTrack / sqrt(Double(tracks.count))
             let ciSpeed = 1.96 * sdSpeed / sqrt(Double(speeds.count))
+            let dur = time.timeIntervalSince(windowSamples.first!.time)
             return LegSummary(heading: heading,
                               avgTrack: avgTrack,
                               ciTrack: ciTrack,
                               avgSpeed: avgSpeed,
                               ciSpeed: ciSpeed,
-                              duration: duration)
+                              duration: dur)
         }
     }
 
@@ -47,7 +58,7 @@ struct FlightAssistView: View {
         let ciSpeed: Double
         let duration: TimeInterval
 
-        var isStable: Bool { duration >= 3 && ciTrack <= 3 && ciSpeed <= 3 }
+        var isStable: Bool { duration >= 5 && ciTrack <= 3 && ciSpeed <= 3 }
     }
 
     // MARK: 状態
@@ -254,7 +265,20 @@ struct FlightAssistView: View {
         .onReceive(locationManager.$lastLocation.compactMap { $0 }) { loc in
             guard isRunning, var leg = currentLeg, loc.course >= 0, loc.speed >= 0 else { return }
             leg.add(track: loc.course, speed: loc.speed * 1.94384)
-            currentLeg = leg
+            if let sum = leg.summary(), sum.isStable {
+                currentLeg = leg
+                finalizeCurrentLeg()
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                if summaries.count >= 3 {
+                    isRunning = false
+                    computeResults()
+                    locationManager.recordLog()
+                    showRestart = true
+                    dismiss()
+                }
+            } else {
+                currentLeg = leg
+            }
         }
     }
 }
