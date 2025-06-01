@@ -4,7 +4,7 @@ import UIKit
 import Combine
 
 /// Handles location updates and recording of log entries and photos.
-final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, PressureAltitudeSource {
     private let locationManager = CLLocationManager()
 
     let flightLogManager: FlightLogManager
@@ -30,6 +30,9 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var windSource: String?
     @Published var windDirectionCI: Double?
     @Published var windSpeedCI: Double?
+
+    /// 手動入力による気圧高度(ft)
+    @Published var pressureAltitudeFt: Double?
 
     /// 推算結果
     @Published var estimatedOAT: Double?
@@ -99,6 +102,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         rawGpsAltitude = 0.0
         rawGpsAltitudeChangeRate = 0.0
         previousRawAltitudeTimestamp = nil
+        pressureAltitudeFt = nil
 
         logTimer = Timer.scheduledTimer(withTimeInterval: settings.logInterval, repeats: true) { [weak self] _ in
             self?.recordLog()
