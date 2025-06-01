@@ -127,14 +127,21 @@ struct ContentView: View {
                             Text(String(format: "TAS: %.1f kt", tas))
                         }
                         if let tas = tas, let oat = oat {
-                            Text(String(format: "外気温: %.1f ℃", oat))
-                            let cas = FlightAssistUtils.cas(tasKt: tas, altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
-                            let hp = FlightAssistUtils.pressureAltitude(altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
-                            Text(String(format: "CAS: %.1f kt", cas))
-                            Text(String(format: "気圧高度: %.0f ft", hp))
-                            locationManager.estimatedOAT = oat
-                            locationManager.theoreticalCAS = cas
-                            locationManager.theoreticalHP = hp
+                            let cas = FlightAssistUtils.cas(tasKt: tas,
+                                                           altitudeFt: locationManager.rawGpsAltitude,
+                                                           oatC: oat)
+                            let hp = FlightAssistUtils.pressureAltitude(altitudeFt: locationManager.rawGpsAltitude,
+                                                                          oatC: oat)
+                            Group {
+                                Text(String(format: "外気温: %.1f ℃", oat))
+                                Text(String(format: "CAS: %.1f kt", cas))
+                                Text(String(format: "気圧高度: %.0f ft", hp))
+                            }
+                            .onAppear {
+                                locationManager.estimatedOAT = oat
+                                locationManager.theoreticalCAS = cas
+                                locationManager.theoreticalHP = hp
+                            }
                         }
                     } else {
                         VStack(alignment: .leading, spacing: 8) {
