@@ -92,8 +92,12 @@ struct ContentView: View {
                     Text(String(format: "速度: %.1f kt", loc.speed * 1.94384)).font(.title)
                     Text(String(format: "GPS 高度: %.1f ft", locationManager.rawGpsAltitude)).font(.title).padding(.top, 40)
 
-                    if let fusedAlt = altitudeFusionManager.fusedAltitude {
-                        Text(String(format: "高度 (Kalman): %.1f ft", fusedAlt))
+                    if settings.useKalmanFilter {
+                        if let fusedAlt = altitudeFusionManager.fusedAltitude {
+                            Text(String(format: "高度 (Kalman): %.1f ft", fusedAlt))
+                        } else {
+                            Text(String(format: "高度: %.1f ft", loc.altitude * 3.28084))
+                        }
                     } else {
                         Text(String(format: "高度: %.1f ft", loc.altitude * 3.28084))
                     }
@@ -103,7 +107,9 @@ struct ContentView: View {
                         .foregroundColor(verticalErrorColor(for: loc.verticalAccuracy * 3.28084))
                     Text(String(format: "GPS 高度変化率: %.1f ft/min", locationManager.rawGpsAltitudeChangeRate))
 
-                    Text(String(format: "高度変化率 (Kalman): %.1f ft/min", altitudeFusionManager.altitudeChangeRate))
+                    if settings.useKalmanFilter {
+                        Text(String(format: "高度変化率 (Kalman): %.1f ft/min", altitudeFusionManager.altitudeChangeRate))
+                    }
 
                     if let wd = windDirection, let ws = windSpeed {
                         let within = windBaseAltitude.map { abs(locationManager.rawGpsAltitude - $0) <= 500 } ?? false

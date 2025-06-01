@@ -4,6 +4,10 @@ This project records flight log data using Core Location and sensor fusion.
 Each recording session saves logs in a uniquely timestamped folder inside the
 app's document directory.
 
+The Kalman filter used for altitude fusion can be enabled or disabled from the
+Settings screen. When disabled, the app shows raw GPS altitude and vertical rate
+without Kalman processing.
+
 ## Measurement Logs
 
 When you perform a distance measurement, the logs used to generate the altitude

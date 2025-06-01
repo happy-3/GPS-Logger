@@ -17,18 +17,22 @@ struct SettingsView: View {
             }
 
             Section(header: Text("Kalman Filter")) {
-                HStack {
-                    Text("Process Noise")
-                    Slider(value: $settings.processNoise, in: 0...1, step: 0.05)
-                    Text(String(format: "%.2f", settings.processNoise))
-                        .frame(width: 50, alignment: .trailing)
-                }
+                Toggle("Use Kalman Filter", isOn: $settings.useKalmanFilter)
 
-                HStack {
-                    Text("Measurement Noise")
-                    Slider(value: $settings.measurementNoise, in: 1...50, step: 0.5)
-                    Text(String(format: "%.2f", settings.measurementNoise))
-                        .frame(width: 50, alignment: .trailing)
+                if settings.useKalmanFilter {
+                    HStack {
+                        Text("Process Noise")
+                        Slider(value: $settings.processNoise, in: 0...1, step: 0.05)
+                        Text(String(format: "%.2f", settings.processNoise))
+                            .frame(width: 50, alignment: .trailing)
+                    }
+
+                    HStack {
+                        Text("Measurement Noise")
+                        Slider(value: $settings.measurementNoise, in: 1...50, step: 0.5)
+                        Text(String(format: "%.2f", settings.measurementNoise))
+                            .frame(width: 50, alignment: .trailing)
+                    }
                 }
             }
 

@@ -34,6 +34,17 @@ final class AltitudeFusionManager: ObservableObject {
                 filter.updateParameters(processNoise: process, measurementNoise: measure)
             }
             .store(in: &cancellables)
+
+        settings.$useKalmanFilter
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                if !enabled {
+                    self.kalmanFilter = nil
+                    self.fusedAltitude = nil
+                    self.altitudeChangeRate = self.rawGpsVerticalSpeed ?? 0.0
+                }
+            }
+            .store(in: &cancellables)
     }
 
     /// Start sensor updates using initial GPS altitude if available.
@@ -117,6 +128,15 @@ final class AltitudeFusionManager: ObservableObject {
             measuredAltitude = settings.baroWeight * baroAltitude + (1 - settings.baroWeight) * weightedGps
         }
         self.measuredAltitude = measuredAltitude
+
+        guard settings.useKalmanFilter else {
+            kalmanFilter = nil
+            fusedAltitude = nil
+            altitudeChangeRate = rawGpsVerticalSpeed ?? 0.0
+            kalmanUpdateInterval = nil
+            lastKalmanUpdate = nil
+            return
+        }
 
         let now = Date()
         var dt = 0.1
