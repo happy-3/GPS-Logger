@@ -41,6 +41,13 @@ struct ContentView: View {
     @State var latitude: Double = 35.6895
     @State var longitude: Double = 139.6917
 
+    // 風情報
+    @State private var windDirection: Double?
+    @State private var windSpeed: Double?
+    @State private var windSource: String?
+    @State private var manualWindDirection = ""
+    @State private var manualWindSpeed = ""
+
     // 垂直誤差に基づく色分けの関数
     func verticalErrorColor(for error: Double) -> Color {
         switch error {
@@ -133,6 +140,35 @@ struct ContentView: View {
                             Text(String(format: "GPS 高度変化率: %.1f ft/min", locationManager.rawGpsAltitudeChangeRate))
 
                             Text(String(format: "高度変化率 (Kalman): %.1f ft/min", altitudeFusionManager.altitudeChangeRate))
+
+                            if let wd = windDirection, let ws = windSpeed {
+                                let tas = computeTAS(from: loc)
+                                let oat = tas.map { computeOAT(tasKt: $0, altitudeFt: locationManager.rawGpsAltitude) }
+                                Text(String(format: "風向 %.0f° 風速 %.1f kt (%@)", wd, ws, windSource ?? ""))
+                                if let tas = tas {
+                                    Text(String(format: "TAS: %.1f kt", tas))
+                                }
+                                if let tas = tas, let oat = oat {
+                                    Text(String(format: "外気温: %.1f ℃", oat))
+                                }
+                            } else {
+                                VStack(alignment: .leading) {
+                                    TextField("風向°", text: $manualWindDirection)
+                                        .keyboardType(.numberPad)
+                                    TextField("風速kt", text: $manualWindSpeed)
+                                        .keyboardType(.decimalPad)
+                                    Button("風入力保存") {
+                                        if let d = Double(manualWindDirection), let s = Double(manualWindSpeed) {
+                                            windDirection = d
+                                            windSpeed = s
+                                            windSource = "manual"
+                                            locationManager.windDirection = d
+                                            locationManager.windSpeed = s
+                                            locationManager.windSource = "manual"
+                                        }
+                                    }
+                                }
+                            }
 
 
                         }
@@ -324,6 +360,7 @@ struct ContentView: View {
             }
             .navigationDestination(isPresented: $showFlightAssist) {
                 FlightAssistView()
+                    .environmentObject(locationManager)
             }
         }
     }
@@ -334,6 +371,23 @@ struct ContentView: View {
         let minutes = (Int(elapsed) % 3600) / 60
         let seconds = Int(elapsed) % 60
         return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+    }
+
+    func computeTAS(from location: CLLocation) -> Double? {
+        guard let wd = windDirection, let ws = windSpeed, ws >= 0 else { return nil }
+        guard location.speed >= 0, location.course >= 0 else { return nil }
+        let gs = location.speed * 1.94384
+        let angle = (location.course - wd) * .pi / 180
+        let tas = sqrt(gs * gs + ws * ws - 2 * gs * ws * cos(angle))
+        return tas.isFinite ? tas : nil
+    }
+
+    func computeOAT(tasKt: Double, altitudeFt: Double) -> Double {
+        let tasMps = tasKt * 0.514444
+        let tIsa = ISAAtmosphere.temperature(altitudeFt: altitudeFt) + 273.15
+        let speedOfSound = sqrt(1.4 * 287.05 * tIsa)
+        let mach = tasMps / speedOfSound
+        return FlightAssistUtils.oat(tasMps: tasMps, mach: mach)
     }
 
 }

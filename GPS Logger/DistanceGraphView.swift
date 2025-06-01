@@ -90,7 +90,10 @@ struct DistanceGraphView_Previews: PreviewProvider {
                 theoreticalHP: nil,
                 deltaCAS: nil,
                 deltaHP: nil,
-                photoIndex: nil
+                photoIndex: nil,
+                windDirection: nil,
+                windSpeed: nil,
+                windSource: nil
             )
         }
         NavigationStack {

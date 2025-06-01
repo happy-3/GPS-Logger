@@ -24,6 +24,11 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     var pendingPhotoIndex: Int? = nil
     var logTimer: Timer?
 
+    /// 手動または計測による風向・風速
+    @Published var windDirection: Double?
+    @Published var windSpeed: Double?
+    @Published var windSource: String?
+
     private var cancellables = Set<AnyCancellable>()
 
     init(flightLogManager: FlightLogManager,
@@ -161,7 +166,10 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              theoreticalHP: nil,
                              deltaCAS: nil,
                              deltaHP: nil,
-                             photoIndex: pendingPhotoIndex)
+                             photoIndex: pendingPhotoIndex,
+                             windDirection: windDirection,
+                             windSpeed: windSpeed,
+                             windSource: windSource)
         pendingPhotoIndex = nil
         flightLogManager.addLog(log)
     }
