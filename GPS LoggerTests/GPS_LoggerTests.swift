@@ -38,10 +38,10 @@ struct GPS_LoggerTests {
             baselineAltitude: nil,
             measuredAltitude: nil,
             kalmanUpdateInterval: nil,
-            photoIndex: nil,
             windDirection: nil,
             windSpeed: nil,
-            windSource: nil)
+            windSource: nil,
+            photoIndex: nil)
         manager.addLog(log)
 
         #expect(manager.flightLogs.count == 1)
@@ -81,10 +81,10 @@ struct GPS_LoggerTests {
             baselineAltitude: nil,
             measuredAltitude: nil,
             kalmanUpdateInterval: nil,
-            photoIndex: nil,
             windDirection: nil,
             windSpeed: nil,
-            windSource: nil)
+            windSource: nil,
+            photoIndex: nil)
         let log2 = FlightLog(
             timestamp: end,
             latitude: 35.001,
@@ -104,10 +104,10 @@ struct GPS_LoggerTests {
             baselineAltitude: nil,
             measuredAltitude: nil,
             kalmanUpdateInterval: nil,
-            photoIndex: nil,
             windDirection: nil,
             windSpeed: nil,
-            windSource: nil)
+            windSource: nil,
+            photoIndex: nil)
         manager.addLog(log1)
         manager.addLog(log2)
 
