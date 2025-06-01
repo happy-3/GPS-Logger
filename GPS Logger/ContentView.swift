@@ -194,86 +194,6 @@ struct ContentView: View {
                             .font(.title2)
                     }
                     
-                    if locationManager.isRecording {
-                        HStack(spacing: 40) {
-                            Button("記録停止") {
-                                locationManager.stopRecording()
-                                if let csvURL = flightLogManager.exportCSV() {
-                                    shareItems = [csvURL]
-                                    showingShareSheet = true
-                                }
-                                flightLogManager.endSession()
-                            }
-                            .font(.title2)
-                            .frame(width: 150, height: 60)
-                            .background(Color.red)
-                            .foregroundColor(.white)
-                            .cornerRadius(15)
-
-                            Button(measuringDistance ? "距離計測終了" : "距離計測開始") {
-                                if measuringDistance {
-                                    let now = Date()
-                                    if let result = flightLogManager.finishMeasurement(at: now) {
-                                        graphLogs = flightLogManager.flightLogs.filter { log in
-                                            log.timestamp >= result.startTime && log.timestamp <= result.endTime
-                                        }
-                                        measurementLogURL = flightLogManager.exportMeasurementLogs(for: result,
-                                                                                                 logs: graphLogs)
-
-                                        let graphView = DistanceGraphView(logs: graphLogs, measurement: result)
-                                        if let image = graphView.chartImage() {
-                                            measurementGraphURL = flightLogManager.exportMeasurementGraphImage(for: result,
-                                                                                                             chartImage: image)
-                                        } else {
-                                            measurementGraphURL = nil
-                                        }
-
-                                        lastMeasurement = result
-                                        showingDistanceGraph = true
-                                        measurementResultMessage = nil
-                                    } else {
-                                        measurementResultMessage = "計測に失敗しました"
-                                        showingMeasurementAlert = true
-                                        measurementLogURL = nil
-                                        measurementGraphURL = nil
-                                    }
-                                    measuringDistance = false
-                                    measurementStart = nil
-                                } else {
-                                    let start = Date()
-                                    measurementStart = start
-                                    flightLogManager.startMeasurement(at: start)
-                                    measuringDistance = true
-                                    measurementResultMessage = nil
-                                    measurementLogURL = nil
-                                    measurementGraphURL = nil
-                                }
-                            }
-                            .font(.title2)
-                            .frame(width: 160, height: 60)
-                            .background(measuringDistance ? Color.blue : Color.green)
-                            .foregroundColor(.white)
-                            .cornerRadius(15)
-
-                            Button("静止画撮影") {
-                                showingCompositeCamera = true
-                            }
-                            .font(.title2)
-                            .frame(width: 160, height: 60)
-                            .background(Color.orange)
-                            .foregroundColor(.white)
-                            .cornerRadius(15)
-                        }
-                    } else {
-                        Button("記録開始") {
-                            locationManager.startRecording()
-                        }
-                        .font(.title2)
-                        .frame(width: 150, height: 60)
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(15)
-                    }
                     
                     
                     if !flightLogManager.distanceMeasurements.isEmpty {
@@ -297,6 +217,7 @@ struct ContentView: View {
                     }
 
                     Spacer()
+                    buttonRibbon
                 }
                 .padding()
 
@@ -410,6 +331,87 @@ struct ContentView: View {
         let speedOfSound = sqrt(1.4 * 287.05 * tIsa)
         let mach = tasMps / speedOfSound
         return FlightAssistUtils.oat(tasMps: tasMps, mach: mach)
+    }
+
+    // Bottom ribbon containing action buttons
+    @ViewBuilder
+    var buttonRibbon: some View {
+        if locationManager.isRecording {
+            HStack(spacing: 20) {
+                Button("記録停止") {
+                    locationManager.stopRecording()
+                    if let csvURL = flightLogManager.exportCSV() {
+                        shareItems = [csvURL]
+                        showingShareSheet = true
+                    }
+                    flightLogManager.endSession()
+                }
+                .frame(width: 120, height: 50)
+                .background(Color.red)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+
+                Button(measuringDistance ? "距離計測終了" : "距離計測開始") {
+                    if measuringDistance {
+                        let now = Date()
+                        if let result = flightLogManager.finishMeasurement(at: now) {
+                            graphLogs = flightLogManager.flightLogs.filter { log in
+                                log.timestamp >= result.startTime && log.timestamp <= result.endTime
+                            }
+                            measurementLogURL = flightLogManager.exportMeasurementLogs(for: result,
+                                                                               logs: graphLogs)
+                            let graphView = DistanceGraphView(logs: graphLogs, measurement: result)
+                            if let image = graphView.chartImage() {
+                                measurementGraphURL = flightLogManager.exportMeasurementGraphImage(for: result,
+                                                                                                chartImage: image)
+                            } else {
+                                measurementGraphURL = nil
+                            }
+                            lastMeasurement = result
+                            showingDistanceGraph = true
+                            measurementResultMessage = nil
+                        } else {
+                            measurementResultMessage = "計測に失敗しました"
+                            showingMeasurementAlert = true
+                            measurementLogURL = nil
+                            measurementGraphURL = nil
+                        }
+                        measuringDistance = false
+                        measurementStart = nil
+                    } else {
+                        let start = Date()
+                        measurementStart = start
+                        flightLogManager.startMeasurement(at: start)
+                        measuringDistance = true
+                        measurementResultMessage = nil
+                        measurementLogURL = nil
+                        measurementGraphURL = nil
+                    }
+                }
+                .frame(width: 140, height: 50)
+                .background(measuringDistance ? Color.blue : Color.green)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+
+                Button("静止画撮影") {
+                    showingCompositeCamera = true
+                }
+                .frame(width: 120, height: 50)
+                .background(Color.orange)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+            }
+        } else {
+            HStack {
+                Button("記録開始") {
+                    locationManager.startRecording()
+                }
+                .frame(width: 150, height: 50)
+                .background(Color.green)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+            }
+        }
     }
 
 }
