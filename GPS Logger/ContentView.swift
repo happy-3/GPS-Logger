@@ -245,7 +245,7 @@ struct ContentView: View {
             }
             .navigationTitle("GPS Logger")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+            .toolbar(content: {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
                         showFlightAssist = true
@@ -260,7 +260,7 @@ struct ContentView: View {
                         Label("設定", systemImage: "gearshape")
                     }
                 }
-            }
+            })
             .onAppear {
                 UIApplication.shared.isIdleTimerDisabled = true
                 locationManager.startUpdatingForDisplay()
@@ -299,7 +299,7 @@ struct ContentView: View {
                 if let measurement = lastMeasurement {
                     NavigationStack {
                         DistanceGraphView(logs: graphLogs, measurement: measurement)
-                            .toolbar {
+                            .toolbar(content: {
                                 ToolbarItem(placement: .navigationBarTrailing) {
                                     if measurementLogURL != nil || measurementGraphURL != nil {
                                         Button {
@@ -316,7 +316,7 @@ struct ContentView: View {
                                         }
                                     }
                                 }
-                            }
+                            })
                     }
                 }
             }
