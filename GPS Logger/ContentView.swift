@@ -248,6 +248,7 @@ struct ContentView: View {
     }
 
     /// ナビゲーションバーのツールバー
+    @ToolbarContentBuilder
     private var navigationToolbar: some ToolbarContent {
         ToolbarItem(placement: .navigationBarLeading) {
             Button {
