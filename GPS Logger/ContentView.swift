@@ -106,8 +106,10 @@ struct ContentView: View {
                         }()
                         
                         VStack(alignment: .leading, spacing: 5) {
-                            Text("GPS受信時刻 (JST): \(loc.timestamp, formatter: DateFormatter.jstFormatter)")
-                            Text("緯度: \(loc.coordinate.latitude.toDegMin())  経度: \(loc.coordinate.longitude.toDegMin())").padding(.top, 4)
+                            if timeDiff > 3 {
+                                Text(String(format: "未受信 %.0f 秒", timeDiff))
+                                    .foregroundColor(.red)
+                            }
                             Text(String(format: "水平誤差: ±%.1f m", loc.horizontalAccuracy))
                             Text("磁方位: \(magneticText)").font(.title)
                             Text(String(format: "速度: %.1f kt", loc.speed * 1.94384)).font(.title)
@@ -136,6 +138,13 @@ struct ContentView: View {
                                 }
                                 if let tas = tas, let oat = oat {
                                     Text(String(format: "外気温: %.1f ℃", oat))
+                                    let cas = FlightAssistUtils.cas(tasKt: tas, altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
+                                    let hp = FlightAssistUtils.pressureAltitude(altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
+                                    Text(String(format: "CAS: %.1f kt", cas))
+                                    Text(String(format: "気圧高度: %.0f ft", hp))
+                                    locationManager.estimatedOAT = oat
+                                    locationManager.theoreticalCAS = cas
+                                    locationManager.theoreticalHP = hp
                                 }
                             } else {
                                 VStack(alignment: .leading, spacing: 8) {
@@ -368,6 +377,7 @@ struct ContentView: View {
             }
             .navigationDestination(isPresented: $showSettings) {
                 SettingsView(settings: settings)
+                    .environmentObject(locationManager)
             }
             .navigationDestination(isPresented: $showFlightAssist) {
                 FlightAssistView()

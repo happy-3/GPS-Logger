@@ -35,4 +35,28 @@ enum FlightAssistUtils {
         if rad < 0 { rad += 2 * .pi }
         return rad * 180 / .pi
     }
+
+    /// TAS(kt)と高度(ft)から外気温度(℃)を求める
+    static func oat(tasKt: Double, altitudeFt: Double) -> Double {
+        let tasMps = tasKt * 0.514444
+        let tIsa = ISAAtmosphere.temperature(altitudeFt: altitudeFt) + 273.15
+        let speedOfSound = sqrt(1.4 * 287.05 * tIsa)
+        let mach = tasMps / speedOfSound
+        return oat(tasMps: tasMps, mach: mach)
+    }
+
+    /// TAS(kt)と高度(ft)、外気温度(℃)からCAS(kt)を概算する
+    static func cas(tasKt: Double, altitudeFt: Double, oatC: Double) -> Double {
+        let tasMps = tasKt * 0.514444
+        let pressure = ISAAtmosphere.pressure(altitudeFt: altitudeFt)
+        let density = pressure / (287.05 * (oatC + 273.15))
+        let eas = tasMps * sqrt(density / 1.225)
+        return eas / 0.514444
+    }
+
+    /// 外気温度に基づく気圧高度を概算する。ここでは簡易的に幾何高度を返す
+    static func pressureAltitude(altitudeFt: Double, oatC: Double) -> Double {
+        // 実際の圧力値が不明なため、暫定的にGPS高度をそのまま用いる
+        return altitudeFt
+    }
 }

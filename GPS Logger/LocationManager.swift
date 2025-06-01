@@ -31,6 +31,11 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var windDirectionCI: Double?
     @Published var windSpeedCI: Double?
 
+    /// 推算結果
+    @Published var estimatedOAT: Double?
+    @Published var theoreticalCAS: Double?
+    @Published var theoreticalHP: Double?
+
     private var cancellables = Set<AnyCancellable>()
 
     init(flightLogManager: FlightLogManager,
@@ -163,9 +168,9 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              baselineAltitude: settings.recordBaselineAltitude ? altitudeFusionManager.baselineAltitude : nil,
                              measuredAltitude: settings.recordMeasuredAltitude ? altitudeFusionManager.measuredAltitude : nil,
                              kalmanUpdateInterval: settings.recordKalmanInterval ? altitudeFusionManager.kalmanUpdateInterval : nil,
-                             estimatedOAT: nil,
-                             theoreticalCAS: nil,
-                             theoreticalHP: nil,
+                             estimatedOAT: estimatedOAT,
+                             theoreticalCAS: theoreticalCAS,
+                             theoreticalHP: theoreticalHP,
                              deltaCAS: nil,
                              deltaHP: nil,
                              windDirection: windDirection,

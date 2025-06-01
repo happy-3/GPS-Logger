@@ -3,9 +3,19 @@ import SwiftUI
 /// A screen to adjust parameters used by altitude filtering and logging.
 struct SettingsView: View {
     @ObservedObject var settings: Settings
+    @EnvironmentObject var locationManager: LocationManager
 
     var body: some View {
         Form {
+            Section(header: Text("Current Location")) {
+                if let loc = locationManager.lastLocation {
+                    Text(String(format: "緯度: %.5f", loc.coordinate.latitude))
+                    Text(String(format: "経度: %.5f", loc.coordinate.longitude))
+                } else {
+                    Text("GPSデータ未取得")
+                }
+            }
+
             Section(header: Text("Kalman Filter")) {
                 HStack {
                     Text("Process Noise")
@@ -97,5 +107,8 @@ struct SettingsView: View {
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView(settings: Settings())
+            .environmentObject(LocationManager(flightLogManager: FlightLogManager(settings: Settings()),
+                                             altitudeFusionManager: AltitudeFusionManager(settings: Settings()),
+                                             settings: Settings()))
     }
 }
