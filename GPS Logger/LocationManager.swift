@@ -166,10 +166,10 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              theoreticalHP: nil,
                              deltaCAS: nil,
                              deltaHP: nil,
-                             photoIndex: pendingPhotoIndex,
                              windDirection: windDirection,
                              windSpeed: windSpeed,
-                             windSource: windSource)
+                             windSource: windSource,
+                             photoIndex: pendingPhotoIndex)
         pendingPhotoIndex = nil
         flightLogManager.addLog(log)
     }
