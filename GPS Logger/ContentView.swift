@@ -29,6 +29,7 @@ struct ContentView: View {
     @State private var measurementLogURL: URL?
     @State private var measurementGraphURL: URL?
     @State private var showSettings = false
+    @State private var showFlightAssist = false
     
     // UI表示用のサンプルデータ
     @State var gpsTime: String = "12:34:56"
@@ -249,6 +250,13 @@ struct ContentView: View {
             .navigationTitle("GPS Logger")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showFlightAssist = true
+                    } label: {
+                        Label("Assist", systemImage: "airplane" )
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showSettings = true
@@ -303,6 +311,9 @@ struct ContentView: View {
             }
             .navigationDestination(isPresented: $showSettings) {
                 SettingsView(settings: settings)
+            }
+            .navigationDestination(isPresented: $showFlightAssist) {
+                FlightAssistView()
             }
         }
     }
