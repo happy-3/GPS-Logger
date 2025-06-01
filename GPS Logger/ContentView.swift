@@ -49,6 +49,10 @@ struct ContentView: View {
     @State private var manualWindSpeed = ""
     @State private var windBaseAltitude: Double?
 
+    // 気圧高度入力
+    @State private var pressureAltitude: Double?
+    @State private var pressureInput: Int = 0
+
     // 垂直誤差に基づく色分けの関数
     func verticalErrorColor(for error: Double) -> Color {
         switch error {
@@ -130,6 +134,10 @@ struct ContentView: View {
 
                             if let wd = windDirection, let ws = windSpeed {
                                 let within = windBaseAltitude.map { abs(locationManager.rawGpsAltitude - $0) <= 500 } ?? false
+                                if let base = windBaseAltitude, let hp = pressureAltitude, abs(locationManager.rawGpsAltitude - base) > 2000 {
+                                    Text("高度が2000ft以上変化しました。気圧高度を再入力してください")
+                                        .foregroundColor(.orange)
+                                }
                                 let tas = within ? computeTAS(from: loc) : nil
                                 let oat = tas.map { computeOAT(tasKt: $0, altitudeFt: locationManager.rawGpsAltitude) }
                                 Text(String(format: "風向 %.0f° 風速 %.1f kt (%@)", wd, ws, windSource ?? ""))
@@ -178,6 +186,19 @@ struct ContentView: View {
                                 }
                             }
 
+                            if pressureAltitude == nil {
+                                Stepper(value: $pressureInput, in: -10000...60000, step: 1000) {
+                                    Text("気圧高度: \(pressureInput) ft")
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                Button("HP保存") {
+                                    pressureAltitude = Double(pressureInput)
+                                    locationManager.pressureAltitudeFt = pressureAltitude
+                                }
+                            } else {
+                                Text(String(format: "気圧高度: %.0f ft", pressureAltitude!))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
 
                         }
                         .font(.body)
@@ -259,6 +280,12 @@ struct ContentView: View {
             }
             .onReceive(locationManager.$windSource) { new in
                 windSource = new
+            }
+            .onReceive(locationManager.$pressureAltitudeFt) { new in
+                pressureAltitude = new
+                if let val = new {
+                    pressureInput = Int(val)
+                }
             }
             .fullScreenCover(isPresented: $showingCompositeCamera) {
                 CompositeCameraView(capturedCompositeImage: $capturedCompositeImage,
