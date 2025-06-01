@@ -157,7 +157,10 @@ final class FlightLogManager: ObservableObject {
             Field(header: "theoreticalCAS(kt)", include: true) { "\($0.theoreticalCAS ?? 0)" },
             Field(header: "theoreticalHP(ft)", include: true) { "\($0.theoreticalHP ?? 0)" },
             Field(header: "deltaCAS(kt)", include: true) { "\($0.deltaCAS ?? 0)" },
-            Field(header: "deltaHP(ft)", include: true) { "\($0.deltaHP ?? 0)" }
+            Field(header: "deltaHP(ft)", include: true) { "\($0.deltaHP ?? 0)" },
+            Field(header: "windDirection", include: true) { "\($0.windDirection ?? 0)" },
+            Field(header: "windSpeed(kt)", include: true) { "\($0.windSpeed ?? 0)" },
+            Field(header: "windSource", include: true) { $0.windSource ?? "" }
         ]
 
         let activeFields = fields.filter { $0.include }

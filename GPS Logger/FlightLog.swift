@@ -35,6 +35,13 @@ struct FlightLog: Identifiable {
     let deltaCAS: Double?                  // kt
     let deltaHP: Double?                   // ft
 
+    /// 風向 (真方位) のログ。nil の場合は未記録。
+    let windDirection: Double?
+    /// 風速 (kt)。nil の場合は未記録。
+    let windSpeed: Double?
+    /// 風情報の入力ソース。"measured" または "manual" などを想定。
+    let windSource: String?
+
     // photo index (when capturing)
     let photoIndex: Int?
 }

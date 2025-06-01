@@ -1,75 +1,58 @@
 import SwiftUI
+import CoreHaptics
 
 /// Flight Assist の表示とレグ管理を行うビュー。
 struct FlightAssistView: View {
-    // 現状はダミーの数値を表示するのみ
-    @State private var tas: Double = 250.0
-    @State private var cas: Double = 245.0
-    @State private var hp: Double = 5000.0
-    @State private var deltaCas: Double = 0.0
+    @EnvironmentObject var locationManager: LocationManager
+
+    // 簡易ステート
+    @State private var headingMag: Int = 0
+    @State private var isRunning = false
 
     var body: some View {
         VStack(spacing: 30) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text("TAS")
-                    Spacer()
-                    Text(String(format: "%.1f kt", tas))
-                        .font(.system(size: 36, weight: .bold, design: .monospaced))
-                }
-                HStack {
-                    Text("CAS")
-                    Spacer()
-                    Text(String(format: "%.1f kt", cas))
-                        .font(.system(size: 36, weight: .bold, design: .monospaced))
-                }
-                HStack {
-                    Text("Hₚ")
-                    Spacer()
-                    Text(String(format: "%.0f ft", hp))
-                        .font(.system(size: 36, weight: .bold, design: .monospaced))
-                }
-                HStack {
-                    Text("ΔCAS")
-                    Spacer()
-                    Text(String(format: "%.1f kt", deltaCas))
-                        .font(.system(size: 36, weight: .bold, design: .monospaced))
-                }
+            Stepper(value: $headingMag, in: 0...330, step: 30) {
+                Text("機種方位: \(headingMag)°")
             }
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(Color(UIColor.secondarySystemBackground))
-            .cornerRadius(12)
 
-            HStack(spacing: 40) {
-                Button("Start") {
-                    // TODO: ログ区切り開始処理を実装
+            if isRunning {
+                HStack(spacing: 40) {
+                    Button("Left Turn") { headingMag = (headingMag + 270) % 360 }
+                        .frame(width: 100, height: 50)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                    Button("Right Turn") { headingMag = (headingMag + 90) % 360 }
+                        .frame(width: 100, height: 50)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                    Button("Restart") { isRunning = false }
+                        .frame(width: 100, height: 50)
+                        .background(Color.orange)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
                 }
-                .frame(width: 80, height: 50)
-                .background(Color.green)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-
-                Button("Turn") {
-                    // TODO: レグ変更処理を実装
-                }
-                .frame(width: 80, height: 50)
-                .background(Color.orange)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-
-                Button("Stop") {
-                    // TODO: ログ区切り終了処理を実装
-                }
-                .frame(width: 80, height: 50)
-                .background(Color.red)
-                .foregroundColor(.white)
-                .cornerRadius(10)
+            } else {
+                Button("Start") { isRunning = true }
+                    .frame(width: 120, height: 50)
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
             }
+
             Spacer()
         }
         .padding()
-        .navigationTitle("Flight Assist")
+        .navigationTitle("測風")
+        .onAppear {
+            if let track = locationManager.lastLocation?.course, track >= 0 {
+                var mag = track - locationManager.declination
+                mag = mag.truncatingRemainder(dividingBy: 360)
+                if mag < 0 { mag += 360 }
+                headingMag = Int((mag + 15) / 30) * 30 % 360
+            }
+        }
     }
 }
 
@@ -77,6 +60,9 @@ struct FlightAssistView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
             FlightAssistView()
+                .environmentObject(LocationManager(flightLogManager: FlightLogManager(settings: Settings()),
+                                                altitudeFusionManager: AltitudeFusionManager(settings: Settings()),
+                                                settings: Settings()))
         }
     }
 }
