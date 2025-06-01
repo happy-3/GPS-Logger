@@ -268,83 +268,34 @@ struct ContentView: View {
 
     /// ナビゲーション周りをまとめたビュー
     private var navigationContent: some View {
-        ZStack {
-            mainContent
-        }
-        .navigationTitle("GPS Logger")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(role: .automatic) { navigationToolbar }
-        .onAppear {
-            UIApplication.shared.isIdleTimerDisabled = true
-            locationManager.startUpdatingForDisplay()
-            altitudeFusionManager.startUpdates(gpsAltitude: nil)
-        }
-        .onReceive(uiUpdateTimer) { _ in
-            currentTime = Date()
-        }
-        .onReceive(locationManager.$windDirection) { new in
-            windDirection = new
-            if new != nil {
-                windBaseAltitude = locationManager.rawGpsAltitude
-            }
-        }
-        .onReceive(locationManager.$windSpeed) { new in
-            windSpeed = new
-        }
-        .onReceive(locationManager.$windSource) { new in
-            windSource = new
-        }
-        .onReceive(locationManager.$pressureAltitudeFt) { new in
-            pressureAltitude = new
-            if let val = new {
-                pressureInput = Int(val)
-            }
-        }
-        .fullScreenCover(isPresented: $showingCompositeCamera) {
-            CompositeCameraView(capturedCompositeImage: $capturedCompositeImage,
-                                settings: settings)
-                .environmentObject(locationManager)
-        }
-        .sheet(isPresented: $showingShareSheet) {
-            ActivityView(activityItems: shareItems)
-        }
-        .sheet(isPresented: $showingDistanceGraph) {
-            if let measurement = lastMeasurement {
-                NavigationStack {
-                    DistanceGraphView(logs: graphLogs, measurement: measurement)
-                        .toolbar(role: .automatic) {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                if measurementLogURL != nil || measurementGraphURL != nil {
-                                    Button {
-                                        shareItems.removeAll()
-                                        if let logURL = measurementLogURL {
-                                            shareItems.append(logURL)
-                                        }
-                                        if let graphURL = measurementGraphURL {
-                                            shareItems.append(graphURL)
-                                        }
-                                        showingShareSheet = true
-                                    } label: {
-                                        Image(systemName: "square.and.arrow.up")
-                                    }
-                                }
-                            }
-                        }
-                }
-            }
-        }
-        .alert(measurementResultMessage ?? "", isPresented: $showingMeasurementAlert) {
-            Button("OK", role: .cancel) {}
-        }
-        .navigationDestination(isPresented: $showSettings) {
-            SettingsView(settings: settings)
-                .environmentObject(locationManager)
-        }
-        .navigationDestination(isPresented: $showFlightAssist) {
-            FlightAssistView()
-                .environmentObject(locationManager)
-                .environmentObject(settings)
-        }
+        NavigationContentView(
+            mainContent: AnyView(mainContent),
+            currentTime: $currentTime,
+            capturedCompositeImage: $capturedCompositeImage,
+            showingCompositeCamera: $showingCompositeCamera,
+            showingShareSheet: $showingShareSheet,
+            shareItems: $shareItems,
+            showingDistanceGraph: $showingDistanceGraph,
+            graphLogs: $graphLogs,
+            lastMeasurement: $lastMeasurement,
+            measurementLogURL: $measurementLogURL,
+            measurementGraphURL: $measurementGraphURL,
+            measurementResultMessage: $measurementResultMessage,
+            showingMeasurementAlert: $showingMeasurementAlert,
+            showSettings: $showSettings,
+            showFlightAssist: $showFlightAssist,
+            windDirection: $windDirection,
+            windSpeed: $windSpeed,
+            windSource: $windSource,
+            windBaseAltitude: $windBaseAltitude,
+            pressureAltitude: $pressureAltitude,
+            pressureInput: $pressureInput,
+            uiUpdateTimer: uiUpdateTimer
+        )
+        .environmentObject(settings)
+        .environmentObject(flightLogManager)
+        .environmentObject(altitudeFusionManager)
+        .environmentObject(locationManager)
     }
 
     var body: some View {
@@ -459,6 +410,134 @@ struct ContentView: View {
         }
     }
 
+}
+
+// MARK: - NavigationContentView
+private struct NavigationContentView: View {
+    @EnvironmentObject var settings: Settings
+    @EnvironmentObject var flightLogManager: FlightLogManager
+    @EnvironmentObject var altitudeFusionManager: AltitudeFusionManager
+    @EnvironmentObject var locationManager: LocationManager
+
+    @Binding var currentTime: Date
+    @Binding var capturedCompositeImage: UIImage?
+    @Binding var showingCompositeCamera: Bool
+    @Binding var showingShareSheet: Bool
+    @Binding var shareItems: [Any]
+    @Binding var showingDistanceGraph: Bool
+    @Binding var graphLogs: [FlightLog]
+    @Binding var lastMeasurement: DistanceMeasurement?
+    @Binding var measurementLogURL: URL?
+    @Binding var measurementGraphURL: URL?
+    @Binding var measurementResultMessage: String?
+    @Binding var showingMeasurementAlert: Bool
+    @Binding var showSettings: Bool
+    @Binding var showFlightAssist: Bool
+    @Binding var windDirection: Double?
+    @Binding var windSpeed: Double?
+    @Binding var windSource: String?
+    @Binding var windBaseAltitude: Double?
+    @Binding var pressureAltitude: Double?
+    @Binding var pressureInput: Int
+
+    let uiUpdateTimer: Publishers.Autoconnect<Timer.TimerPublisher>
+    let mainContent: AnyView
+
+    var body: some View {
+        ZStack { mainContent }
+            .navigationTitle("GPS Logger")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(role: .automatic) { navigationToolbar }
+            .onAppear {
+                UIApplication.shared.isIdleTimerDisabled = true
+                locationManager.startUpdatingForDisplay()
+                altitudeFusionManager.startUpdates(gpsAltitude: nil)
+            }
+            .onReceive(uiUpdateTimer) { _ in
+                currentTime = Date()
+            }
+            .onReceive(locationManager.$windDirection) { new in
+                windDirection = new
+                if new != nil {
+                    windBaseAltitude = locationManager.rawGpsAltitude
+                }
+            }
+            .onReceive(locationManager.$windSpeed) { new in
+                windSpeed = new
+            }
+            .onReceive(locationManager.$windSource) { new in
+                windSource = new
+            }
+            .onReceive(locationManager.$pressureAltitudeFt) { new in
+                pressureAltitude = new
+                if let val = new {
+                    pressureInput = Int(val)
+                }
+            }
+            .fullScreenCover(isPresented: $showingCompositeCamera) {
+                CompositeCameraView(capturedCompositeImage: $capturedCompositeImage,
+                                    settings: settings)
+                    .environmentObject(locationManager)
+            }
+            .sheet(isPresented: $showingShareSheet) {
+                ActivityView(activityItems: shareItems)
+            }
+            .sheet(isPresented: $showingDistanceGraph) {
+                if let measurement = lastMeasurement {
+                    NavigationStack {
+                        DistanceGraphView(logs: graphLogs, measurement: measurement)
+                            .toolbar(role: .automatic) {
+                                ToolbarItem(placement: .navigationBarTrailing) {
+                                    if measurementLogURL != nil || measurementGraphURL != nil {
+                                        Button {
+                                            shareItems.removeAll()
+                                            if let logURL = measurementLogURL {
+                                                shareItems.append(logURL)
+                                            }
+                                            if let graphURL = measurementGraphURL {
+                                                shareItems.append(graphURL)
+                                            }
+                                            showingShareSheet = true
+                                        } label: {
+                                            Image(systemName: "square.and.arrow.up")
+                                        }
+                                    }
+                                }
+                            }
+                    }
+                }
+            }
+            .alert(measurementResultMessage ?? "", isPresented: $showingMeasurementAlert) {
+                Button("OK", role: .cancel) {}
+            }
+            .navigationDestination(isPresented: $showSettings) {
+                SettingsView(settings: settings)
+                    .environmentObject(locationManager)
+            }
+            .navigationDestination(isPresented: $showFlightAssist) {
+                FlightAssistView()
+                    .environmentObject(locationManager)
+                    .environmentObject(settings)
+            }
+    }
+
+    @ToolbarContentBuilder
+    private var navigationToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button {
+                showFlightAssist = true
+            } label: {
+                Label("Assist", systemImage: "airplane")
+            }
+        }
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button {
+                showSettings = true
+            } label: {
+                Label("設定", systemImage: "gearshape")
+            }
+        }
+    }
 }
 
 
