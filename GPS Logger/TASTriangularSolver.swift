@@ -53,7 +53,8 @@ struct TASTriangularSolver {
         let det = mtm[0][0]*(mtm[1][1]*mtm[2][2]-mtm[1][2]*mtm[2][1]) -
                   mtm[0][1]*(mtm[1][0]*mtm[2][2]-mtm[1][2]*mtm[2][0]) +
                   mtm[0][2]*(mtm[1][0]*mtm[2][1]-mtm[1][1]*mtm[2][0])
-        guard det != 0 else { return nil }
+        // 行列がほぼ特異な場合は計算を打ち切る
+        guard abs(det) > 1e-8 else { return nil }
         var inv = Array(repeating: Array(repeating: 0.0, count: 3), count: 3)
         inv[0][0] =  (mtm[1][1]*mtm[2][2]-mtm[1][2]*mtm[2][1])/det
         inv[0][1] = -(mtm[0][1]*mtm[2][2]-mtm[0][2]*mtm[2][1])/det
