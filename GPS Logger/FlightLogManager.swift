@@ -187,12 +187,12 @@ final class FlightLogManager: ObservableObject {
         let fileName = "Distance_\(Int(Date().timeIntervalSince1970)).csv"
         let fileURL = folderURL.appendingPathComponent(fileName)
 
-        var csvText = "startTime,endTime,horizontalDistance(m),totalDistance(m)\n"
+        var csvText = "startTime,endTime,horizontalDistance(m),horizontalDistance(nm),horizontalDistance(ft),totalDistance(m),totalDistance(nm),totalDistance(ft)\n"
         let isoFormatter = ISO8601DateFormatter.jst
         for m in distanceMeasurements {
             let start = isoFormatter.string(from: m.startTime)
             let end = isoFormatter.string(from: m.endTime)
-            csvText.append("\(start),\(end),\(m.horizontalDistance),\(m.totalDistance)\n")
+            csvText.append("\(start),\(end),\(m.horizontalDistance),\(m.horizontalDistanceNM),\(m.horizontalDistanceFT),\(m.totalDistance),\(m.totalDistanceNM),\(m.totalDistanceFT)\n")
         }
 
         if let bom = "\u{FEFF}".data(using: .utf8), let csvData = csvText.data(using: .utf8) {

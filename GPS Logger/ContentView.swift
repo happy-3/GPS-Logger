@@ -190,7 +190,15 @@ struct ContentView: View {
                     Text("距離計測ログ:")
                         .font(.headline)
                     ForEach(Array(flightLogManager.distanceMeasurements.enumerated()), id: \.offset) { index, m in
-                        Text(String(format: "#%d 水平: %.1f m 3D: %.1f m", index + 1, m.horizontalDistance, m.totalDistance))
+                        Text(String(
+                            format: "#%d 水平: %.1f m / %.3f nm / %.1f ft 3D: %.1f m / %.3f nm / %.1f ft",
+                            index + 1,
+                            m.horizontalDistance,
+                            m.horizontalDistanceNM,
+                            m.horizontalDistanceFT,
+                            m.totalDistance,
+                            m.totalDistanceNM,
+                            m.totalDistanceFT))
                             .font(.footnote)
                             .padding(.leading, 8)
                     }
@@ -486,7 +494,7 @@ private struct NavigationContentView: View {
         baseView
             .fullScreenCover(isPresented: $showingCompositeCamera) { compositeCameraView }
             .sheet(isPresented: $showingShareSheet) { ActivityView(activityItems: shareItems) }
-            .sheet(isPresented: $showingDistanceGraph) { distanceGraphSheet }
+            .fullScreenCover(isPresented: $showingDistanceGraph) { distanceGraphSheet }
             .alert(measurementResultMessage ?? "", isPresented: $showingMeasurementAlert) {
                 Button("OK", role: .cancel) {}
             }

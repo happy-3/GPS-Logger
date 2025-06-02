@@ -15,4 +15,16 @@ struct DistanceMeasurement {
     let horizontalDistance: Double
     /// Total 3D distance in meters.
     let totalDistance: Double
+
+    /// Horizontal distance in nautical miles.
+    var horizontalDistanceNM: Double { horizontalDistance / 1852.0 }
+
+    /// Horizontal distance in feet.
+    var horizontalDistanceFT: Double { horizontalDistance * 3.28084 }
+
+    /// Total 3D distance in nautical miles.
+    var totalDistanceNM: Double { totalDistance / 1852.0 }
+
+    /// Total 3D distance in feet.
+    var totalDistanceFT: Double { totalDistance * 3.28084 }
 }
