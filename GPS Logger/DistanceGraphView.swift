@@ -12,9 +12,17 @@ struct DistanceGraphView: View {
             altitudeChart
 
             HStack {
-                Text(String(format: "水平距離: %.1f m", measurement.horizontalDistance))
+                Text(String(
+                    format: "水平距離: %.1f m / %.3f nm / %.1f ft",
+                    measurement.horizontalDistance,
+                    measurement.horizontalDistanceNM,
+                    measurement.horizontalDistanceFT))
                 Spacer()
-                Text(String(format: "総距離: %.1f m", measurement.totalDistance))
+                Text(String(
+                    format: "総距離: %.1f m / %.3f nm / %.1f ft",
+                    measurement.totalDistance,
+                    measurement.totalDistanceNM,
+                    measurement.totalDistanceFT))
             }
             .font(.headline)
             .padding(.top, 8)
