@@ -18,3 +18,12 @@ Kalman‑fused altitude and corresponding change rates for that measurement.
 
 These measurement logs make it easy to review altitude changes for a specific
 distance measurement alongside the overall flight log.
+
+## Wind Calculation Notes
+
+Aircraft heading inputs on the Flight Assist screen should be entered in
+**magnetic** degrees. The app automatically converts them to true heading using
+the device's current magnetic declination when performing wind calculations.
+Wind direction values shown in the UI are also displayed in magnetic degrees so
+that pilots can reference them directly. The underlying log records keep the
+true wind direction for later analysis.

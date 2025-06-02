@@ -113,7 +113,11 @@ struct FlightAssistView: View {
         }
         if let result = TASTriangularSolver.solve(legs: legsForSolver) {
             tasResult = result.tasKt
-            windDirResult = result.windDirectionDeg
+            let windDirTrue = result.windDirectionDeg
+            var windDirMag = windDirTrue - locationManager.declination
+            windDirMag.formTruncatingRemainder(dividingBy: 360)
+            if windDirMag < 0 { windDirMag += 360 }
+            windDirResult = windDirMag
             windSpeedResult = result.windSpeedKt
             if let ci = windConfidenceIntervals(base: result) {
                 windDirCI = ci.0
@@ -122,7 +126,7 @@ struct FlightAssistView: View {
                 windDirCI = nil
                 windSpeedCI = nil
             }
-            locationManager.windDirection = windDirResult
+            locationManager.windDirection = windDirTrue
             locationManager.windSpeed = windSpeedResult
             locationManager.windSource = "triangle"
             locationManager.windDirectionCI = windDirCI
@@ -268,7 +272,10 @@ struct FlightAssistView: View {
                 }
                 Button("風入力保存") {
                     if let d = Double(manualWindDirection), let s = Double(manualWindSpeed) {
-                        locationManager.windDirection = d
+                        var dTrue = d + locationManager.declination
+                        dTrue.formTruncatingRemainder(dividingBy: 360)
+                        if dTrue < 0 { dTrue += 360 }
+                        locationManager.windDirection = dTrue
                         locationManager.windSpeed = s
                         locationManager.windSource = "manual"
                     }
