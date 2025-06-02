@@ -118,7 +118,13 @@ struct ContentView: View {
                         }
                         let tas = within ? computeTAS(from: loc) : nil
                         let oat = tas.map { computeOAT(tasKt: $0, altitudeFt: locationManager.rawGpsAltitude) }
-                        Text(String(format: "風向 %.0f° 風速 %.1f kt (%@)", wd, ws, windSource ?? ""))
+                        let windMag: Double = {
+                            var mag = wd - locationManager.declination
+                            mag.formTruncatingRemainder(dividingBy: 360)
+                            if mag < 0 { mag += 360 }
+                            return mag
+                        }()
+                        Text(String(format: "風向 %.0f° 風速 %.1f kt (%@)", windMag, ws, windSource ?? ""))
                         if let tas = tas {
                             Text(String(format: "TAS: %.1f kt", tas))
                         }
