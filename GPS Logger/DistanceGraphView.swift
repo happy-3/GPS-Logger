@@ -80,6 +80,7 @@ struct DistanceGraphView_Previews: PreviewProvider {
                 latitude: 0,
                 longitude: 0,
                 gpsAltitude: gpsAlt,
+                ellipsoidalAltitude: nil,
                 speedKt: nil,
                 trueCourse: 0,
                 magneticVariation: 0,

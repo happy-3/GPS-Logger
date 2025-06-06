@@ -135,6 +135,7 @@ final class FlightLogManager: ObservableObject {
             Field(header: "latitude", include: true) { "\($0.latitude)" },
             Field(header: "longitude", include: true) { "\($0.longitude)" },
             Field(header: "gpsAltitude(ft)", include: true) { "\($0.gpsAltitude)" },
+            Field(header: "ellipsoidalAltitude(ft)", include: settings.recordEllipsoidalAltitude) { "\($0.ellipsoidalAltitude ?? 0)" },
             Field(header: "speed(kt)", include: true) { "\($0.speedKt ?? 0)" },
             Field(header: "trueCourse", include: true) { "\($0.trueCourse)" },
             Field(header: "magneticVariation", include: true) { "\($0.magneticVariation)" },
