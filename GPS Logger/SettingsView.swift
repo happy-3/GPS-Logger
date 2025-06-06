@@ -91,6 +91,10 @@ struct SettingsView: View {
                 }
             }
 
+            Section(header: Text("Display Options")) {
+                Toggle("楕円体高を表示", isOn: $settings.showEllipsoidalAltitude)
+            }
+
             Section(header: Text("Recorded Fields")) {
                 Toggle("Record Acceleration", isOn: $settings.recordAcceleration)
                 Toggle("Record Altimeter Pressure", isOn: $settings.recordAltimeterPressure)
@@ -102,6 +106,7 @@ struct SettingsView: View {
                 Toggle("Record Baseline Altitude", isOn: $settings.recordBaselineAltitude)
                 Toggle("Record Measured Altitude", isOn: $settings.recordMeasuredAltitude)
                 Toggle("Record Kalman Interval", isOn: $settings.recordKalmanInterval)
+                Toggle("Record Ellipsoidal Altitude", isOn: $settings.recordEllipsoidalAltitude)
             }
         }
         .navigationTitle("Settings")

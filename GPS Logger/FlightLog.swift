@@ -11,6 +11,8 @@ struct FlightLog: Identifiable {
 
     // GPS related data
     let gpsAltitude: Double           // ft
+    /// WGS84 楕円体からの高さ
+    let ellipsoidalAltitude: Double?  // ft
     let speedKt: Double?              // knots
     /// 真方位のグランドトラック。-1 の場合は計測不可。
     let trueCourse: Double

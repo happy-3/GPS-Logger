@@ -18,6 +18,8 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var rawGpsAltitudeChangeRate: Double = 0.0
     private var previousRawAltitudeTimestamp: Date?
 
+    @Published var rawEllipsoidalAltitude: Double = 0.0
+
     @Published var declination: Double = 0.0
 
     var photoCounter: Int = 0
@@ -101,6 +103,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
 
         rawGpsAltitude = 0.0
         rawGpsAltitudeChangeRate = 0.0
+        rawEllipsoidalAltitude = 0.0
         previousRawAltitudeTimestamp = nil
         pressureAltitudeFt = nil
 
@@ -125,6 +128,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
 
     private func updateAltitude(with loc: CLLocation) {
         let altitudeFt = loc.altitude * 3.28084
+        let ellipsoidFt = loc.ellipsoidalAltitude * 3.28084
         let now = Date()
         var vspeed = rawGpsAltitudeChangeRate
         if let prevTimestamp = previousRawAltitudeTimestamp {
@@ -136,6 +140,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         }
         previousRawAltitudeTimestamp = now
         rawGpsAltitude = altitudeFt
+        rawEllipsoidalAltitude = ellipsoidFt
         rawGpsAltitudeChangeRate = vspeed
         altitudeFusionManager.latestGpsAltitude = altitudeFt
         altitudeFusionManager.rawGpsVerticalSpeed = vspeed
@@ -159,6 +164,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              latitude: loc.coordinate.latitude,
                              longitude: loc.coordinate.longitude,
                              gpsAltitude: altitudeFt,
+                             ellipsoidalAltitude: settings.recordEllipsoidalAltitude ? rawEllipsoidalAltitude : nil,
                              speedKt: speedKt,
                              trueCourse: loc.course,
                              magneticVariation: declination,

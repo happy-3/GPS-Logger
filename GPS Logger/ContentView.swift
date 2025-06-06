@@ -92,6 +92,10 @@ struct ContentView: View {
                         .foregroundColor(trackColor)
                     Text(String(format: "速度: %.1f kt", loc.speed * 1.94384)).font(.title)
                     Text(String(format: "GPS 高度: %.1f ft", locationManager.rawGpsAltitude)).font(.title).padding(.top, 40)
+                    if settings.showEllipsoidalAltitude {
+                        Text(String(format: "楕円体高: %.1f ft", locationManager.rawEllipsoidalAltitude))
+                            .font(.title)
+                    }
 
                     if settings.useKalmanFilter {
                         if let fusedAlt = altitudeFusionManager.fusedAltitude {

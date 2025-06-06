@@ -33,6 +33,10 @@ final class Settings: ObservableObject {
     @UserDefaultBacked(key: "recordMeasuredAltitude") var recordMeasuredAltitude: Bool = true
     @UserDefaultBacked(key: "recordKalmanInterval") var recordKalmanInterval: Bool = true
 
+    // Display / record options
+    @UserDefaultBacked(key: "showEllipsoidalAltitude") var showEllipsoidalAltitude: Bool = false
+    @UserDefaultBacked(key: "recordEllipsoidalAltitude") var recordEllipsoidalAltitude: Bool = false
+
     init() {
         $processNoise
             .sink { [weak self] _ in self?.objectWillChange.send() }
@@ -111,6 +115,14 @@ final class Settings: ObservableObject {
             .store(in: &cancellables)
 
         $faSpeedCILimit
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $showEllipsoidalAltitude
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $recordEllipsoidalAltitude
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
     }
