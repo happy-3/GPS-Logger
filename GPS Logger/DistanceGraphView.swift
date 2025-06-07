@@ -99,6 +99,7 @@ struct DistanceGraphView_Previews: PreviewProvider {
                 estimatedOAT: nil,
                 theoreticalCAS: nil,
                 theoreticalHP: nil,
+                estimatedMach: nil,
                 deltaCAS: nil,
                 deltaHP: nil,
                 windDirection: nil,

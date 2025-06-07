@@ -40,6 +40,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var estimatedOAT: Double?
     @Published var theoreticalCAS: Double?
     @Published var theoreticalHP: Double?
+    @Published var estimatedMach: Double?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -183,6 +184,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              estimatedOAT: estimatedOAT,
                              theoreticalCAS: theoreticalCAS,
                              theoreticalHP: theoreticalHP,
+                             estimatedMach: estimatedMach,
                              deltaCAS: nil,
                              deltaHP: nil,
                              windDirection: windDirection,

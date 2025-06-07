@@ -10,6 +10,14 @@ enum FlightAssistUtils {
         return tempK - 273.15
     }
 
+    /// TAS(kt)と外気温度(℃)からMach数を求める
+    static func mach(tasKt: Double, oatC: Double) -> Double {
+        let tasMps = tasKt * 0.514444
+        let tempK = oatC + 273.15
+        let speedOfSound = sqrt(1.4 * 287.05 * tempK)
+        return tasMps / speedOfSound
+    }
+
     /// 正規分布乱数を生成する。
     static func randomNormal(mean: Double, sd: Double) -> Double {
         let u1 = Double.random(in: 0..<1)

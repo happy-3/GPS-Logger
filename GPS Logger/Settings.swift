@@ -37,6 +37,9 @@ final class Settings: ObservableObject {
     @UserDefaultBacked(key: "showEllipsoidalAltitude") var showEllipsoidalAltitude: Bool = false
     @UserDefaultBacked(key: "recordEllipsoidalAltitude") var recordEllipsoidalAltitude: Bool = false
 
+    // Mach/CAS calculation option
+    @UserDefaultBacked(key: "enableMachCalculation") var enableMachCalculation: Bool = true
+
     init() {
         $processNoise
             .sink { [weak self] _ in self?.objectWillChange.send() }
@@ -123,6 +126,10 @@ final class Settings: ObservableObject {
             .store(in: &cancellables)
 
         $recordEllipsoidalAltitude
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $enableMachCalculation
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
     }

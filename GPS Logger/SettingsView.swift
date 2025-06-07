@@ -93,6 +93,7 @@ struct SettingsView: View {
 
             Section(header: Text("Display Options")) {
                 Toggle("楕円体高を表示", isOn: $settings.showEllipsoidalAltitude)
+                Toggle("Mach/CAS計算を有効化", isOn: $settings.enableMachCalculation)
             }
 
             Section(header: Text("Recorded Fields")) {
