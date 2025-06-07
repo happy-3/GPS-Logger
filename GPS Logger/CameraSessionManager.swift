@@ -34,13 +34,19 @@ class CameraSessionManager: NSObject {
     /// Configure the capture session with the default video device.
     private func configureSession() {
         session.beginConfiguration()
-        guard let device = AVCaptureDevice.default(for: .video),
-              let input = try? AVCaptureDeviceInput(device: device) else {
+        guard let device = AVCaptureDevice.default(for: .video) else {
             session.commitConfiguration()
             return
         }
-        if session.canAddInput(input) {
-            session.addInput(input)
+        do {
+            let input = try AVCaptureDeviceInput(device: device)
+            if session.canAddInput(input) {
+                session.addInput(input)
+            }
+        } catch {
+            print("Failed to create capture input: \(error)")
+            session.commitConfiguration()
+            return
         }
         if session.canAddOutput(videoOutput) {
             videoOutput.setSampleBufferDelegate(self, queue: queue)
@@ -90,7 +96,11 @@ class CameraSessionManager: NSObject {
     func saveBufferedFrames(to sessionURL: URL, index: Int, shutterTime: Date) {
         let frames = queue.sync { ringBuffer }
         let folder = sessionURL.appendingPathComponent("Photo_\(index)")
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        } catch {
+            print("Failed to create photo directory: \(error)")
+        }
 
         let baseName = DateFormatter.shortNameFormatter.string(from: shutterTime)
 
@@ -116,7 +126,11 @@ class CameraSessionManager: NSObject {
             }
             let url = folder.appendingPathComponent(fileName)
             if let data = frame.image.jpegData(compressionQuality: 0.8) {
-                try? data.write(to: url)
+                do {
+                    try data.write(to: url)
+                } catch {
+                    print("Failed to write image \(fileName): \(error)")
+                }
             }
         }
         // Clear any frames that were just saved so previous captures are not
