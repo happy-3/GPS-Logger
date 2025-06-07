@@ -11,7 +11,7 @@ import SwiftUI
 struct GPS_LoggerApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainMapView()
         }
     }
 }
