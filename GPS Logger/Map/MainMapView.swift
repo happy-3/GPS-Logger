@@ -21,11 +21,15 @@ struct MainMapView: View {
                     .ignoresSafeArea()
             }
             .navigationTitle("Map")
-            .toolbar {
+            .toolbar(content: {
                 NavigationLink("Detail") {
-                    ContentView(flightLogManager: flightLogManager, altitudeFusionManager: altitudeFusionManager, locationManager: locationManager)
+                    ContentView(
+                        flightLogManager: flightLogManager,
+                        altitudeFusionManager: altitudeFusionManager,
+                        locationManager: locationManager
+                    )
                 }
-            }
+            })
             .onAppear {
                 locationManager.startUpdatingForDisplay()
             }
