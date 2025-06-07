@@ -297,9 +297,12 @@ struct ContentView: View {
     }
 
     func computeOAT(tasKt: Double, altitudeFt: Double) -> Double {
+        if let hp = pressureAltitude, let cas = locationManager.theoreticalCAS {
+            return FlightAssistUtils.oat(tasKt: tasKt, casKt: cas, pressureAltitudeFt: hp)
+        }
+
         let tasMps = tasKt * 0.514444
 
-        // 手入力された気圧高度との差から外気温を推定する
         if let hp = pressureAltitude {
             // ISA 温度との差分 1℃ あたり約118.8 ft
             let tIsa = ISAAtmosphere.temperature(altitudeFt: altitudeFt)
@@ -308,10 +311,9 @@ struct ContentView: View {
 
             let speedOfSound = sqrt(1.4 * 287.05 * (oat + 273.15))
             let mach = tasMps / speedOfSound
-            _ = mach  // Mach は現在表示等に未使用だが計算しておく
+            _ = mach
             return oat
         } else {
-            // 気圧高度未入力時は従来手法で計算
             let tIsa = ISAAtmosphere.temperature(altitudeFt: altitudeFt) + 273.15
             let speedOfSound = sqrt(1.4 * 287.05 * tIsa)
             let mach = tasMps / speedOfSound

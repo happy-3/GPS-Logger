@@ -59,4 +59,30 @@ enum FlightAssistUtils {
         // 実際の圧力値が不明なため、暫定的にGPS高度をそのまま用いる
         return altitudeFt
     }
+
+    /// TAS, CAS, 気圧高度から外気温度(℃)を求める
+    static func oat(tasKt: Double, casKt: Double, pressureAltitudeFt: Double) -> Double {
+        let tas = tasKt * 0.514444
+        let cas = casKt * 0.514444
+        let hp  = pressureAltitudeFt * 0.3048
+
+        let gamma = 1.4
+        let R     = 287.053
+        let g0    = 9.80665
+        let T0    = 288.15
+        let P0    = 101_325.0
+        let L     = 0.0065
+        let a0    = sqrt(gamma * R * T0)
+
+        let tIsa  = T0 - L * hp
+        let p     = P0 * pow(tIsa / T0, g0 / (R * L))
+        let delta = p / P0
+
+        let a2    = pow(cas / a0, 2)
+        let term  = pow(1 + a2 / 5, 3.5) - 1
+        let mach  = sqrt(5 * (pow(1 + term / delta, 2.0 / 7.0) - 1))
+
+        let tempK = tas * tas / (gamma * R * mach * mach)
+        return tempK - 273.15
+    }
 }
