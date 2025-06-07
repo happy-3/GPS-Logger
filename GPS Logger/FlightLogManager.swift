@@ -28,7 +28,11 @@ final class FlightLogManager: ObservableObject {
         if let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
             let folderURL = docsURL.appendingPathComponent(folderName)
             if !FileManager.default.fileExists(atPath: folderURL.path) {
-                try? FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
+                do {
+                    try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
+                } catch {
+                    print("Failed to create session folder: \(error)")
+                }
             }
             sessionFolderURL = folderURL
         }
@@ -177,8 +181,12 @@ final class FlightLogManager: ObservableObject {
             var combined = Data()
             combined.append(bom)
             combined.append(csvData)
-            try? combined.write(to: fileURL, options: .atomic)
-            return fileURL
+            do {
+                try combined.write(to: fileURL, options: .atomic)
+                return fileURL
+            } catch {
+                print("Failed to write CSV: \(error)")
+            }
         }
         return nil
     }
@@ -201,8 +209,12 @@ final class FlightLogManager: ObservableObject {
             var combined = Data()
             combined.append(bom)
             combined.append(csvData)
-            try? combined.write(to: fileURL, options: .atomic)
-            return fileURL
+            do {
+                try combined.write(to: fileURL, options: .atomic)
+                return fileURL
+            } catch {
+                print("Failed to write distance CSV: \(error)")
+            }
         }
         return nil
     }
@@ -239,8 +251,12 @@ final class FlightLogManager: ObservableObject {
             var combined = Data()
             combined.append(bom)
             combined.append(csvData)
-            try? combined.write(to: fileURL, options: .atomic)
-            return fileURL
+            do {
+                try combined.write(to: fileURL, options: .atomic)
+                return fileURL
+            } catch {
+                print("Failed to write measurement logs: \(error)")
+            }
         }
 
         return nil
@@ -260,8 +276,12 @@ final class FlightLogManager: ObservableObject {
         let fileURL = folderURL.appendingPathComponent(fileName)
 
         if let data = chartImage.pngData() {
-            try? data.write(to: fileURL, options: .atomic)
-            return fileURL
+            do {
+                try data.write(to: fileURL, options: .atomic)
+                return fileURL
+            } catch {
+                print("Failed to write measurement image: \(error)")
+            }
         }
 
         return nil
