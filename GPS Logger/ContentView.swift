@@ -255,6 +255,15 @@ struct ContentView: View {
         _locationManager = StateObject(wrappedValue: locationManager)
     }
 
+    init(flightLogManager: FlightLogManager,
+         altitudeFusionManager: AltitudeFusionManager,
+         locationManager: LocationManager) {
+        _settings = StateObject(wrappedValue: flightLogManager.settings)
+        _flightLogManager = StateObject(wrappedValue: flightLogManager)
+        _altitudeFusionManager = StateObject(wrappedValue: altitudeFusionManager)
+        _locationManager = StateObject(wrappedValue: locationManager)
+    }
+
 
     /// ナビゲーション周りをまとめたビュー
     private var navigationContent: some View {
