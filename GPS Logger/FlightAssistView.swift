@@ -11,10 +11,12 @@ struct FlightAssistView: View {
         let heading: Int
         private(set) var samples: [(track: Double, speed: Double, time: Date)] = []
         let window: TimeInterval
+        let startTime: Date
 
-        init(heading: Int, window: TimeInterval) {
+        init(heading: Int, window: TimeInterval, startTime: Date = Date()) {
             self.heading = heading
             self.window = window
+            self.startTime = startTime
         }
 
         mutating func add(track: Double, speed: Double, at time: Date = Date()) {
@@ -28,8 +30,7 @@ struct FlightAssistView: View {
         }
 
         func duration(at time: Date = Date()) -> TimeInterval {
-            guard let first = samples.first?.time else { return 0 }
-            return time.timeIntervalSince(first)
+            return time.timeIntervalSince(startTime)
         }
 
         func summary(at time: Date = Date()) -> LegSummary? {
@@ -89,10 +90,14 @@ struct FlightAssistView: View {
 
     @State private var manualWindDirection = ""
     @State private var manualWindSpeed = ""
+    @State private var currentLegStable = false
+    @State private var manualTrack = ""
+    @State private var manualGS = ""
 
     // MARK: 基本処理
     private func startNewLeg() {
         currentLeg = LegRecorder(heading: headingMag, window: settings.faStableDuration)
+        currentLegStable = false
     }
 
     private func finalizeCurrentLeg() {
@@ -100,6 +105,7 @@ struct FlightAssistView: View {
             summaries.append(sum)
         }
         currentLeg = nil
+        currentLegStable = false
     }
 
     private func computeResults() {
@@ -250,9 +256,9 @@ struct FlightAssistView: View {
                         Text(String(format: "GT %.0f° ±%.1f°", sum.avgTrack, sum.ciTrack))
                         Text(String(format: "GS %.1f ±%.1f kt", sum.avgSpeed, sum.ciSpeed))
                     }
-                    .foregroundColor(sum.isStable(using: settings) ? .green : .primary)
-                    if !sum.isStable(using: settings) {
-                        Text(String(format: "安定まで %.1f 秒", max(0, settings.faStableDuration - sum.duration)))
+                    .foregroundColor(currentLegStable ? .green : .primary)
+                    if !currentLegStable {
+                        Text(String(format: "安定まで %.1f 秒", max(0, settings.faStableDuration - running.duration())))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -284,6 +290,33 @@ struct FlightAssistView: View {
                         locationManager.windDirection = dTrue
                         locationManager.windSpeed = s
                         locationManager.windSource = "manual"
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("GT")
+                        .frame(width: 40, alignment: .leading)
+                    TextField("°", text: $manualTrack)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 70)
+                }
+                HStack {
+                    Text("GS")
+                        .frame(width: 40, alignment: .leading)
+                    TextField("kt", text: $manualGS)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 70)
+                }
+                Button("サンプル追加") {
+                    if let t = Double(manualTrack), let s = Double(manualGS) {
+                        if currentLeg == nil {
+                            startNewLeg()
+                        }
+                        currentLeg?.add(track: t, speed: s)
                     }
                 }
             }
@@ -387,16 +420,22 @@ struct FlightAssistView: View {
         .onReceive(locationManager.$lastLocation.compactMap { $0 }) { loc in
             guard isRunning, var leg = currentLeg, loc.course >= 0, loc.speed >= 0 else { return }
             leg.add(track: loc.course, speed: loc.speed * 1.94384)
-            if let sum = leg.summary(), sum.isStable(using: settings) {
-                currentLeg = leg
-                finalizeCurrentLeg()
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                if summaries.count >= 3 {
-                    isRunning = false
-                    computeResults()
-                    locationManager.recordLog()
-                    showRestart = true
-                    dismiss()
+            if let sum = leg.summary() {
+                let stableNow = sum.isStable(using: settings)
+                if stableNow { currentLegStable = true }
+                if stableNow {
+                    currentLeg = leg
+                    finalizeCurrentLeg()
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    if summaries.count >= 3 {
+                        isRunning = false
+                        computeResults()
+                        locationManager.recordLog()
+                        showRestart = true
+                        dismiss()
+                    }
+                } else {
+                    currentLeg = leg
                 }
             } else {
                 currentLeg = leg

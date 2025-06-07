@@ -27,3 +27,10 @@ the device's current magnetic declination when performing wind calculations.
 Wind direction values shown in the UI are also displayed in magnetic degrees so
 that pilots can reference them directly. The underlying log records keep the
 true wind direction for later analysis.
+
+### テスト用の手入力
+
+Flight Assist 画面では、計測値を検証するためにグランドトラック (GT) と
+グランドスピード (GS) を手動で入力してサンプルとして追加することができ
+ます。これにより、実際の GPS 信号がなくてもデータ収集ロジックを確認
+できます。
