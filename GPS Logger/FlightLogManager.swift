@@ -155,6 +155,7 @@ final class FlightLogManager: ObservableObject {
             Field(header: "estimatedOAT(C)", include: true) { "\($0.estimatedOAT ?? 0)" },
             Field(header: "theoreticalCAS(kt)", include: true) { "\($0.theoreticalCAS ?? 0)" },
             Field(header: "theoreticalHP(ft)", include: true) { "\($0.theoreticalHP ?? 0)" },
+            Field(header: "estimatedMach", include: true) { "\($0.estimatedMach ?? 0)" },
             Field(header: "deltaCAS(kt)", include: true) { "\($0.deltaCAS ?? 0)" },
             Field(header: "deltaHP(ft)", include: true) { "\($0.deltaHP ?? 0)" },
             Field(header: "windDirection", include: true) { "\($0.windDirection ?? 0)" },

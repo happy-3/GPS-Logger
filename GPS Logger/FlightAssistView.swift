@@ -135,9 +135,15 @@ struct FlightAssistView: View {
             let oat = FlightAssistUtils.oat(tasKt: result.tasKt, altitudeFt: locationManager.rawGpsAltitude)
             let cas = FlightAssistUtils.cas(tasKt: result.tasKt, altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
             let hp = FlightAssistUtils.pressureAltitude(altitudeFt: locationManager.rawGpsAltitude, oatC: oat)
+            let mach = FlightAssistUtils.mach(tasKt: result.tasKt, oatC: oat)
             locationManager.estimatedOAT = oat
             locationManager.theoreticalCAS = cas
             locationManager.theoreticalHP = hp
+            if settings.enableMachCalculation {
+                locationManager.estimatedMach = mach
+            } else {
+                locationManager.estimatedMach = nil
+            }
         }
     }
 

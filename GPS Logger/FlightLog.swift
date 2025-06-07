@@ -39,6 +39,7 @@ struct FlightLog: Identifiable {
     let estimatedOAT: Double?              // ℃
     let theoreticalCAS: Double?            // kt
     let theoreticalHP: Double?             // ft
+    let estimatedMach: Double?             // Mach number
     let deltaCAS: Double?                  // kt
     let deltaHP: Double?                   // ft
 
