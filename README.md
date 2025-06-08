@@ -43,3 +43,5 @@ The app displays a basemap from an MBTiles file and optional airspace overlays f
 When you open the map screen, tap the stack icon in the toolbar to show the layer settings. A list of categories appears and you can toggle each overlay on or off. The map refreshes immediately to reflect your choices.
 
 Only `LineString` and `Polygon` features are supported. Multi‑geometry types are ignored. To add new data, bundle additional GeoJSON or vector MBTiles files in the `Airspace` folder.
+
+**Note:** サンプルの空域データはリポジトリに含まれていません。`Airspace` フォルダへ GeoJSON または MBTiles ファイルを配置してからビルドしてください。ファイルが存在しない場合、マップ上にはベースマップのみが表示されます。

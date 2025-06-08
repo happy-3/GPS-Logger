@@ -48,6 +48,10 @@ final class AirspaceManager: ObservableObject {
                 files = jsons + mbts
             }
 
+            if files.isEmpty {
+                print("[AirspaceManager] No airspace data found in bundle")
+            }
+
             var map: [String: [MKOverlay]] = [:]
             var sources: [String: MBTilesVectorSource] = [:]
             for url in files {
