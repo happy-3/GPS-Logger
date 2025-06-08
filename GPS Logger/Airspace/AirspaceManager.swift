@@ -6,6 +6,10 @@ import MapKit
 final class AirspaceManager: ObservableObject {
     /// カテゴリごとに読み込んだオーバーレイを保持
     @Published private(set) var overlaysByCategory: [String: [MKOverlay]] = [:]
+    /// MBTiles ベクターデータのソース
+    private var vectorSources: [String: MBTilesVectorSource] = [:]
+    private var currentMapRect: MKMapRect = .world
+
     /// 設定で有効化されているカテゴリ
     private var enabledCategories: [String] { settings.enabledAirspaceCategories }
 
@@ -13,7 +17,10 @@ final class AirspaceManager: ObservableObject {
     @Published private(set) var displayOverlays: [MKOverlay] = []
 
     /// 利用可能なカテゴリ一覧
-    var categories: [String] { overlaysByCategory.keys.sorted() }
+    var categories: [String] {
+        let keys = Set(overlaysByCategory.keys).union(vectorSources.keys)
+        return Array(keys).sorted()
+    }
 
     private let settings: Settings
     private var cancellables = Set<AnyCancellable>()
@@ -35,19 +42,29 @@ final class AirspaceManager: ObservableObject {
             if let urls = urls {
                 files = urls
             } else {
-                guard let found = Bundle.module.urls(forResourcesWithExtension: "geojson", subdirectory: "Airspace") else { return }
-                files = found
+                let jsons = Bundle.module.urls(forResourcesWithExtension: "geojson", subdirectory: "Airspace") ?? []
+                let mbts = Bundle.module.urls(forResourcesWithExtension: "mbtiles", subdirectory: "Airspace") ?? []
+                files = jsons + mbts
             }
 
             var map: [String: [MKOverlay]] = [:]
+            var sources: [String: MBTilesVectorSource] = [:]
             for url in files {
                 let category = url.deletingPathExtension().lastPathComponent
-                map[category] = self.loadOverlays(from: url)
+                switch url.pathExtension.lowercased() {
+                case "geojson":
+                    map[category] = self.loadOverlays(from: url)
+                case "mbtiles":
+                    if let src = MBTilesVectorSource(url: url) { sources[category] = src }
+                default:
+                    continue
+                }
             }
 
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.overlaysByCategory = map
+                self.vectorSources = sources
                 if self.settings.enabledAirspaceCategories.isEmpty {
                     self.settings.enabledAirspaceCategories = self.categories
                 }
@@ -98,6 +115,21 @@ final class AirspaceManager: ObservableObject {
 
     /// 表示対象オーバーレイを計算
     private func updateDisplayOverlays() {
-        displayOverlays = enabledCategories.flatMap { overlaysByCategory[$0] ?? [] }
+        var result: [MKOverlay] = []
+        for cat in enabledCategories {
+            if let overlays = overlaysByCategory[cat] {
+                result.append(contentsOf: overlays)
+            }
+            if let src = vectorSources[cat] {
+                result.append(contentsOf: src.overlays(in: currentMapRect))
+            }
+        }
+        displayOverlays = result
+    }
+
+    /// MapView から現在の表示範囲を受け取る
+    func updateMapRect(_ rect: MKMapRect) {
+        currentMapRect = rect
+        updateDisplayOverlays()
     }
 }

@@ -81,14 +81,20 @@ struct MapViewRepresentable: UIViewRepresentable {
         let current = map.overlays.filter { !($0 is MBTilesOverlay) }
         map.removeOverlays(current)
         map.addOverlays(airspaceManager.displayOverlays)
+        airspaceManager.updateMapRect(map.visibleMapRect)
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(airspaceManager: airspaceManager)
     }
 
     class Coordinator: NSObject, MKMapViewDelegate {
         private var infoAnnotation: MKPointAnnotation?
+        private let airspaceManager: AirspaceManager
+
+        init(airspaceManager: AirspaceManager) {
+            self.airspaceManager = airspaceManager
+        }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let overlay = overlay as? MBTilesOverlay {
@@ -137,6 +143,10 @@ struct MapViewRepresentable: UIViewRepresentable {
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: id) ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
             view.canShowCallout = true
             return view
+        }
+
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            airspaceManager.updateMapRect(mapView.visibleMapRect)
         }
     }
 }
