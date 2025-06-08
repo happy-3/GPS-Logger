@@ -67,34 +67,69 @@ final class MBTilesVectorSource {
         if let bytes = sqlite3_column_blob(stmt, 0) {
             let size = sqlite3_column_bytes(stmt, 0)
             let data = Data(bytes: bytes, count: Int(size))
-            return parseTileData(data)
+            return parseTileData(data, x: x, y: y, z: z)
         }
         return nil
     }
 
-    /// tile_data は GeoJSON の FeatureCollection を想定
-    private func parseTileData(_ data: Data) -> [MKOverlay]? {
-        guard let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let features = obj["features"] as? [[String: Any]] else { return nil }
+    /// tile_data は GeoJSON または gzipped PBF(Vector Tile) を想定
+    private func parseTileData(_ data: Data, x: Int, y: Int, z: Int) -> [MKOverlay]? {
+        if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let features = obj["features"] as? [[String: Any]] {
+            var overlays: [MKOverlay] = []
+            for feat in features {
+                guard let geom = feat["geometry"] as? [String: Any],
+                      let type = geom["type"] as? String else { continue }
+                switch type {
+                case "LineString":
+                    if let coords = geom["coordinates"] as? [[Double]] {
+                        let points = coords.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
+                        overlays.append(MKPolyline(coordinates: points, count: points.count))
+                    }
+                case "Polygon":
+                    if let rings = geom["coordinates"] as? [[[Double]]], let first = rings.first {
+                        let points = first.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
+                        overlays.append(MKPolygon(coordinates: points, count: points.count))
+                    }
+                default:
+                    continue
+                }
+            }
+            return overlays
+        }
+
+        guard let tile = VectorTileParser.parse(data: data) else { return nil }
         var overlays: [MKOverlay] = []
-        for feat in features {
-            guard let geom = feat["geometry"] as? [String: Any],
-                  let type = geom["type"] as? String else { continue }
-            switch type {
-            case "LineString":
-                if let coords = geom["coordinates"] as? [[Double]] {
-                    let points = coords.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
-                    overlays.append(MKPolyline(coordinates: points, count: points.count))
+        for layer in tile.layers {
+            for feature in layer.features {
+                let coordsSets = feature.geometry.map { ring -> [CLLocationCoordinate2D] in
+                    ring.map { px, py in
+                        self.coordinate(px: Double(px), py: Double(py), x: x, y: y, z: z, extent: layer.extent)
+                    }
                 }
-            case "Polygon":
-                if let rings = geom["coordinates"] as? [[[Double]]], let first = rings.first {
-                    let points = first.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
-                    overlays.append(MKPolygon(coordinates: points, count: points.count))
+                switch feature.type {
+                case .lineString:
+                    for coords in coordsSets {
+                        overlays.append(MKPolyline(coordinates: coords, count: coords.count))
+                    }
+                case .polygon:
+                    for coords in coordsSets {
+                        overlays.append(MKPolygon(coordinates: coords, count: coords.count))
+                    }
+                default:
+                    continue
                 }
-            default:
-                continue
             }
         }
         return overlays
+    }
+
+    private func coordinate(px: Double, py: Double, x: Int, y: Int, z: Int, extent: Int) -> CLLocationCoordinate2D {
+        let n = pow(2.0, Double(z))
+        let tx = (Double(x) + px / Double(extent)) / n
+        let ty = (Double(y) + py / Double(extent)) / n
+        let lon = tx * 360.0 - 180.0
+        let latRad = atan(sinh(.pi * (1 - 2 * ty)))
+        return CLLocationCoordinate2D(latitude: latRad * 180.0 / .pi, longitude: lon)
     }
 }
