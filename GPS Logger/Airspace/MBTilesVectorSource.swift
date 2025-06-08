@@ -8,14 +8,20 @@ final class MBTilesVectorSource {
     private let zoomLevel: Int
     private struct TileIndex: Hashable { let x: Int; let y: Int; let z: Int }
     private var cache: [TileIndex: [MKOverlay]] = [:]
+    private var cacheOrder: [TileIndex] = []
+    private let cacheLimit: Int
 
-    init?(url: URL, zoomLevel: Int = 8) {
+    /// 現在キャッシュしているタイル数（テスト用）
+    var cacheCount: Int { cache.count }
+
+    init?(url: URL, zoomLevel: Int = 8, cacheLimit: Int = 100) {
         var handle: OpaquePointer? = nil
         if sqlite3_open_v2(url.path, &handle, SQLITE_OPEN_READONLY, nil) != SQLITE_OK {
             return nil
         }
         self.db = handle
         self.zoomLevel = zoomLevel
+        self.cacheLimit = max(0, cacheLimit)
     }
 
     deinit {
@@ -35,9 +41,24 @@ final class MBTilesVectorSource {
             for y in minY...maxY {
                 let idx = TileIndex(x: x, y: y, z: zoomLevel)
                 if let cached = cache[idx] {
+                    // 使用されたタイルを末尾に移動して LRU を更新
+                    if let index = cacheOrder.firstIndex(of: idx) {
+                        cacheOrder.remove(at: index)
+                        cacheOrder.append(idx)
+                    }
                     result.append(contentsOf: cached)
                 } else if let overlays = loadTile(x: x, y: y, z: zoomLevel) {
                     cache[idx] = overlays
+                    cacheOrder.append(idx)
+                    if cache.count > cacheLimit {
+                        let overflow = cache.count - cacheLimit
+                        for _ in 0..<overflow {
+                            if let oldest = cacheOrder.first {
+                                cacheOrder.removeFirst()
+                                cache.removeValue(forKey: oldest)
+                            }
+                        }
+                    }
                     result.append(contentsOf: overlays)
                 }
             }

@@ -38,6 +38,7 @@ Flight Assist 画面では、計測値を検証するためにグランドトラ
 ## Map Overlays
 
 The app displays a basemap from an MBTiles file and optional airspace overlays from GeoJSON or vector MBTiles files. Data placed in the `Airspace` directory is loaded when the map view is created. Each file is treated as a category identified by its filename without the extension. GeoJSON files are parsed on a background thread and converted to `MKPolyline` or `MKPolygon` objects. Vector MBTiles are read tile by tile so only features within the current map view are loaded.
+`MBTilesVectorSource` は読み込んだタイルを内部でキャッシュしており、`cacheLimit` プロパティで保持数を指定できます。上限を超えた場合は古いタイルから削除されます。
 
 When you open the map screen, tap the stack icon in the toolbar to show the layer settings. A list of categories appears and you can toggle each overlay on or off. The map refreshes immediately to reflect your choices.
 
