@@ -35,6 +35,7 @@ final class AirspaceManager: ObservableObject {
     /// バンドル内の Airspace フォルダからすべての GeoJSON を読み込む
     /// - Parameter urls: テスト用に指定するファイル URL 配列。省略時はバンドル内を検索する。
     func loadAll(urls: [URL]? = nil) {
+        print("AirspaceManager.loadAll called")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
@@ -51,6 +52,7 @@ final class AirspaceManager: ObservableObject {
             var sources: [String: MBTilesVectorSource] = [:]
             for url in files {
                 let category = url.deletingPathExtension().lastPathComponent
+                print("loading", url.lastPathComponent, "category =", category)
                 switch url.pathExtension.lowercased() {
                 case "geojson":
                     map[category] = self.loadOverlays(from: url)
@@ -68,6 +70,8 @@ final class AirspaceManager: ObservableObject {
                 if self.settings.enabledAirspaceCategories.isEmpty {
                     self.settings.enabledAirspaceCategories = self.categories
                 }
+                print("overlaysByCategory keys:", Array(self.overlaysByCategory.keys))
+                print("enabled categories:", self.settings.enabledAirspaceCategories)
                 self.updateDisplayOverlays()
             }
         }
