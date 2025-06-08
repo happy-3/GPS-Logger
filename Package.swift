@@ -18,7 +18,8 @@ let package = Package(
             path: "GPS Logger",
             resources: [
                 .process("Assets.xcassets"),
-                .process("Preview Content")
+                .process("Preview Content"),
+                .process("Airspace")
             ]
         ),
         .testTarget(
