@@ -26,22 +26,33 @@ final class AirspaceManager: ObservableObject {
     }
 
     /// バンドル内の Airspace フォルダからすべての GeoJSON を読み込む
-    func loadAll() {
-        guard let urls = Bundle.main.urls(forResourcesWithExtension: "geojson", subdirectory: "Airspace") else {
-            return
-        }
+    /// - Parameter urls: テスト用に指定するファイル URL 配列。省略時はバンドル内を検索する。
+    func loadAll(urls: [URL]? = nil) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
 
-        var map: [String: [MKOverlay]] = [:]
-        for url in urls {
-            let category = url.deletingPathExtension().lastPathComponent
-            map[category] = loadOverlays(from: url)
-        }
-        DispatchQueue.main.async { [self] in
-            overlaysByCategory = map
-            if settings.enabledAirspaceCategories.isEmpty {
-                settings.enabledAirspaceCategories = categories
+            let files: [URL]
+            if let urls = urls {
+                files = urls
+            } else {
+                guard let found = Bundle.main.urls(forResourcesWithExtension: "geojson", subdirectory: "Airspace") else { return }
+                files = found
             }
-            updateDisplayOverlays()
+
+            var map: [String: [MKOverlay]] = [:]
+            for url in files {
+                let category = url.deletingPathExtension().lastPathComponent
+                map[category] = self.loadOverlays(from: url)
+            }
+
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.overlaysByCategory = map
+                if self.settings.enabledAirspaceCategories.isEmpty {
+                    self.settings.enabledAirspaceCategories = self.categories
+                }
+                self.updateDisplayOverlays()
+            }
         }
     }
 
