@@ -28,7 +28,10 @@ let package = Package(
                 "GPS_Logger",
                 .product(name: "Testing", package: "swift-testing")
             ],
-            path: "GPS LoggerTests"
+            path: "GPS LoggerTests",
+            resources: [
+                .process("TestData")
+            ]
         )
         // UI tests are not included in SPM
     ]
