@@ -82,6 +82,16 @@ struct MapViewRepresentable: UIViewRepresentable {
         let current = map.overlays.filter { !($0 is MBTilesOverlay) }
         map.removeOverlays(current)
         map.addOverlays(airspaceManager.displayOverlays)
+
+        if !context.coordinator.regionSet,
+           let loc = locationManager.lastLocation {
+            let meters = 40.0 * 1852.0
+            let region = MKCoordinateRegion(center: loc.coordinate,
+                                            latitudinalMeters: meters,
+                                            longitudinalMeters: meters)
+            map.setRegion(region, animated: false)
+            context.coordinator.regionSet = true
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -91,6 +101,7 @@ struct MapViewRepresentable: UIViewRepresentable {
     class Coordinator: NSObject, MKMapViewDelegate {
         private var infoAnnotation: MKPointAnnotation?
         private let airspaceManager: AirspaceManager
+        var regionSet = false
 
         init(airspaceManager: AirspaceManager) {
             self.airspaceManager = airspaceManager
