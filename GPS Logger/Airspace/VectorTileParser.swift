@@ -48,21 +48,27 @@ struct VectorTileParser {
     }
 
     private static func gunzip(_ data: Data) -> Data? {
-        var dest = Data(count: 1_000_000)
-        let destCount = dest.count
-        let result = dest.withUnsafeMutableBytes { destPtr in
-            data.withUnsafeBytes { srcPtr in
-                compression_decode_buffer(destPtr.bindMemory(to: UInt8.self).baseAddress!,
-                                            destCount,
-                                            srcPtr.bindMemory(to: UInt8.self).baseAddress!,
-                                            data.count,
-                                            nil,
-                                            COMPRESSION_ZLIB)
+        var destSize = 1_000_000
+        let maxSize = 20_000_000
+        while destSize <= maxSize {
+            var dest = Data(count: destSize)
+            let result = dest.withUnsafeMutableBytes { destPtr in
+                data.withUnsafeBytes { srcPtr in
+                    compression_decode_buffer(destPtr.bindMemory(to: UInt8.self).baseAddress!,
+                                              destSize,
+                                              srcPtr.bindMemory(to: UInt8.self).baseAddress!,
+                                              data.count,
+                                              nil,
+                                              COMPRESSION_ZLIB)
+                }
             }
+            if result > 0 {
+                dest.removeSubrange(result..<dest.count)
+                return dest
+            }
+            destSize *= 2
         }
-        guard result > 0 else { return nil }
-        dest.removeSubrange(result..<dest.count)
-        return dest
+        return nil
     }
 
     private static func parseLayer(data: Data) -> Layer? {
