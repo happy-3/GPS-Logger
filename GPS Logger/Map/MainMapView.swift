@@ -3,21 +3,27 @@ import MapKit
 
 /// Map 表示を行うメインビュー
 struct MainMapView: View {
-    @StateObject var settings = Settings()
-    @StateObject var flightLogManager = FlightLogManager(settings: Settings())
-    @StateObject var altitudeFusionManager = AltitudeFusionManager(settings: Settings())
+    @StateObject var settings: Settings
+    @StateObject var flightLogManager: FlightLogManager
+    @StateObject var altitudeFusionManager: AltitudeFusionManager
     @StateObject var locationManager: LocationManager
-    @StateObject var airspaceManager = AirspaceManager()
+    @StateObject var airspaceManager: AirspaceManager
 
     init() {
         let settings = Settings()
-        _locationManager = StateObject(wrappedValue: LocationManager(flightLogManager: FlightLogManager(settings: settings), altitudeFusionManager: AltitudeFusionManager(settings: settings), settings: settings))
+        _settings = StateObject(wrappedValue: settings)
+        let flightLog = FlightLogManager(settings: settings)
+        let altitudeFusion = AltitudeFusionManager(settings: settings)
+        _flightLogManager = StateObject(wrappedValue: flightLog)
+        _altitudeFusionManager = StateObject(wrappedValue: altitudeFusion)
+        _airspaceManager = StateObject(wrappedValue: AirspaceManager(settings: settings))
+        _locationManager = StateObject(wrappedValue: LocationManager(flightLogManager: flightLog, altitudeFusionManager: altitudeFusion, settings: settings))
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                MapViewRepresentable(locationManager: locationManager, airspaceManager: airspaceManager)
+                MapViewRepresentable(locationManager: locationManager, airspaceManager: airspaceManager, settings: settings)
                     .ignoresSafeArea()
             }
             .navigationTitle("Map")
@@ -28,6 +34,7 @@ struct MainMapView: View {
                         altitudeFusionManager: altitudeFusionManager,
                         locationManager: locationManager
                     )
+                    .environmentObject(airspaceManager)
                 }
             })
             .onAppear {
@@ -40,6 +47,7 @@ struct MainMapView: View {
 struct MapViewRepresentable: UIViewRepresentable {
     let locationManager: LocationManager
     let airspaceManager: AirspaceManager
+    let settings: Settings
 
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView(frame: .zero)
@@ -49,23 +57,14 @@ struct MapViewRepresentable: UIViewRepresentable {
            let overlay = MBTilesOverlay(mbtilesURL: mbURL) {
             map.addOverlay(overlay, level: .aboveLabels)
         }
-        if let airURL = Bundle.main.url(forResource: "airspace", withExtension: "geojson") {
-            airspaceManager.load(from: airURL)
-        }
+        airspaceManager.loadAll()
         return map
     }
 
     func updateUIView(_ map: MKMapView, context: Context) {
-        let current = Set(map.overlays.compactMap { $0 as? MKPolyline })
-        let newSet = Set(airspaceManager.overlays)
-        if current != newSet {
-            map.removeOverlays(map.overlays)
-            if let mbURL = Bundle.main.url(forResource: "basemap", withExtension: "mbtiles"),
-               let overlay = MBTilesOverlay(mbtilesURL: mbURL) {
-                map.addOverlay(overlay, level: .aboveLabels)
-            }
-            map.addOverlays(Array(newSet))
-        }
+        let current = map.overlays.filter { !($0 is MBTilesOverlay) }
+        map.removeOverlays(current)
+        map.addOverlays(airspaceManager.displayOverlays)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -80,6 +79,12 @@ struct MapViewRepresentable: UIViewRepresentable {
                 let renderer = MKPolylineRenderer(polyline: poly)
                 renderer.strokeColor = .red
                 renderer.lineWidth = 2
+                return renderer
+            } else if let polygon = overlay as? MKPolygon {
+                let renderer = MKPolygonRenderer(polygon: polygon)
+                renderer.strokeColor = UIColor.blue.withAlphaComponent(0.7)
+                renderer.fillColor = UIColor.blue.withAlphaComponent(0.2)
+                renderer.lineWidth = 1
                 return renderer
             }
             return MKOverlayRenderer(overlay: overlay)

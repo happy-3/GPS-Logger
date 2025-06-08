@@ -12,6 +12,7 @@ struct ContentView: View {
     @StateObject var flightLogManager: FlightLogManager
     @StateObject var altitudeFusionManager: AltitudeFusionManager
     @StateObject var locationManager: LocationManager
+    @EnvironmentObject var airspaceManager: AirspaceManager
     
     @State private var currentTime = Date()
     @State private var capturedCompositeImage: UIImage?
@@ -535,6 +536,7 @@ private struct NavigationContentView: View {
             .navigationDestination(isPresented: $showSettings) {
                 SettingsView(settings: settings)
                     .environmentObject(locationManager)
+                    .environmentObject(airspaceManager)
             }
             .navigationDestination(isPresented: $showFlightAssist) {
                 FlightAssistView()
