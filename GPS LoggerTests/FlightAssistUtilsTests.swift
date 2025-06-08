@@ -13,4 +13,10 @@ struct FlightAssistUtilsTests {
         let oat = FlightAssistUtils.oat(tasKt: 194.4, casKt: 194.4, pressureAltitudeFt: 0)
         #expect(abs(oat - 15.0) < 0.5)
     }
+
+    @Test
+    func testOATZeroMach() {
+        let oat = FlightAssistUtils.oat(tasMps: 100.0, mach: 0.0)
+        #expect(oat == 0)
+    }
 }
