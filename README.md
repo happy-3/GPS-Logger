@@ -34,3 +34,11 @@ Flight Assist 画面では、計測値を検証するためにグランドトラ
 グランドスピード (GS) を手動で入力してサンプルとして追加することができ
 ます。これにより、実際の GPS 信号がなくてもデータ収集ロジックを確認
 できます。
+
+## Map Overlays
+
+The app displays a basemap from an MBTiles file and optional airspace overlays from GeoJSON files. GeoJSON files placed in the `Airspace` directory are loaded when the map view is created. Each file is treated as a category identified by its filename without the extension. The contents of every file are parsed on a background thread and converted to `MKPolyline` or `MKPolygon` objects depending on the geometry type.
+
+When you open the map screen, tap the stack icon in the toolbar to show the layer settings. A list of categories appears and you can toggle each overlay on or off. The map refreshes immediately to reflect your choices.
+
+Only `LineString` and `Polygon` features are supported. Multi‑geometry types are ignored. To add new data, bundle additional GeoJSON files in the `Airspace` folder.
