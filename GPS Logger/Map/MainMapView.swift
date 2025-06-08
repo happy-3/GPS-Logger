@@ -63,8 +63,8 @@ struct MainMapView: View {
 
 struct MapViewRepresentable: UIViewRepresentable {
     let locationManager: LocationManager
-    let airspaceManager: AirspaceManager
-    let settings: Settings
+    @ObservedObject var airspaceManager: AirspaceManager
+    @ObservedObject var settings: Settings
 
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView(frame: .zero)
