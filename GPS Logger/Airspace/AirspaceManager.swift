@@ -39,17 +39,23 @@ final class AirspaceManager: ObservableObject {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
-            let files: [URL]
+            var files: [URL]
             if let urls = urls {
                 files = urls
             } else {
                 let jsons = Bundle.module.urls(forResourcesWithExtension: "geojson", subdirectory: "Airspace") ?? []
                 let mbts = Bundle.module.urls(forResourcesWithExtension: "mbtiles", subdirectory: "Airspace") ?? []
                 files = jsons + mbts
-            }
 
-            if files.isEmpty {
-                print("[AirspaceManager] No airspace data found in bundle")
+                if files.isEmpty {
+                    print("[AirspaceManager] No airspace data found in bundle")
+                    if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                        let dir = docs.appendingPathComponent("Airspace")
+                        if let all = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
+                            files = all.filter { ["geojson", "mbtiles"].contains($0.pathExtension.lowercased()) }
+                        }
+                    }
+                }
             }
 
             var map: [String: [MKOverlay]] = [:]
