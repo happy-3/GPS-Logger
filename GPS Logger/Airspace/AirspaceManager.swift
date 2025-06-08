@@ -124,7 +124,9 @@ final class AirspaceManager: ObservableObject {
                 result.append(contentsOf: src.overlays(in: currentMapRect))
             }
         }
-        displayOverlays = result
+        DispatchQueue.main.async {
+            self.displayOverlays = result
+        }
     }
 
     /// MapView から現在の表示範囲を受け取る
