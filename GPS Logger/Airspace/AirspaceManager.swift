@@ -35,7 +35,7 @@ final class AirspaceManager: ObservableObject {
             if let urls = urls {
                 files = urls
             } else {
-                guard let found = Bundle.main.urls(forResourcesWithExtension: "geojson", subdirectory: "Airspace") else { return }
+                guard let found = Bundle.module.urls(forResourcesWithExtension: "geojson", subdirectory: "Airspace") else { return }
                 files = found
             }
 
@@ -67,17 +67,26 @@ final class AirspaceManager: ObservableObject {
             guard let geometry = feature["geometry"] as? [String: Any],
                   let type = geometry["type"] as? String else { continue }
 
+            let name: String? = {
+                if let props = feature["properties"] as? [String: Any] {
+                    return props["name"] as? String
+                }
+                return nil
+            }()
+
             switch type {
             case "LineString":
                 if let coords = geometry["coordinates"] as? [[Double]] {
                     let points = coords.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
                     let polyline = MKPolyline(coordinates: points, count: points.count)
+                    polyline.title = name
                     loaded.append(polyline)
                 }
             case "Polygon":
                 if let rings = geometry["coordinates"] as? [[[Double]]], let first = rings.first {
                     let points = first.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
                     let polygon = MKPolygon(coordinates: points, count: points.count)
+                    polygon.title = name
                     loaded.append(polygon)
                 }
             default:
