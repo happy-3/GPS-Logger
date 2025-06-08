@@ -296,6 +296,7 @@ struct ContentView: View {
         .environmentObject(flightLogManager)
         .environmentObject(altitudeFusionManager)
         .environmentObject(locationManager)
+        .environmentObject(airspaceManager)
     }
 
     var body: some View {
@@ -452,6 +453,7 @@ private struct NavigationContentView: View {
     @EnvironmentObject var flightLogManager: FlightLogManager
     @EnvironmentObject var altitudeFusionManager: AltitudeFusionManager
     @EnvironmentObject var locationManager: LocationManager
+    @EnvironmentObject var airspaceManager: AirspaceManager
 
     @Binding var currentTime: Date
     @Binding var capturedCompositeImage: UIImage?
