@@ -17,7 +17,11 @@ struct MainMapView: View {
         let altitudeFusion = AltitudeFusionManager(settings: settings)
         _flightLogManager = StateObject(wrappedValue: flightLog)
         _altitudeFusionManager = StateObject(wrappedValue: altitudeFusion)
-        _airspaceManager = StateObject(wrappedValue: AirspaceManager(settings: settings))
+
+        let aspManager = AirspaceManager(settings: settings)
+        aspManager.loadAll()
+        _airspaceManager = StateObject(wrappedValue: aspManager)
+
         _locationManager = StateObject(wrappedValue: LocationManager(flightLogManager: flightLog, altitudeFusionManager: altitudeFusion, settings: settings))
     }
 
@@ -70,7 +74,6 @@ struct MapViewRepresentable: UIViewRepresentable {
            let overlay = MBTilesOverlay(mbtilesURL: mbURL) {
             map.addOverlay(overlay, level: .aboveLabels)
         }
-        airspaceManager.loadAll()
         return map
     }
 
@@ -125,6 +128,11 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            if annotation is MKUserLocation {
+                // Use default user location annotation (blue dot)
+                return nil
+            }
+
             let id = "info"
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: id) ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
             view.canShowCallout = true
