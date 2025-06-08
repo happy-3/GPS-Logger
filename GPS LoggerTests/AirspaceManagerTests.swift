@@ -36,4 +36,24 @@ final class AirspaceManagerTests: XCTestCase {
         settings.enabledAirspaceCategories = ["catB"]
         XCTAssertEqual(manager.displayOverlays.count, 1)
     }
+
+    func testPointFeatures() throws {
+        guard let url = Bundle.module.url(forResource: "catC", withExtension: "geojson") else {
+            throw XCTSkip("Test file not found")
+        }
+        let settings = Settings()
+        let manager = AirspaceManager(settings: settings)
+
+        let exp = expectation(description: "load")
+        manager.loadAll(urls: [url])
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            if manager.displayOverlays.count == 1 {
+                exp.fulfill()
+            }
+        }
+        wait(for: [exp], timeout: 2.0)
+
+        XCTAssertEqual(manager.displayOverlays.count, 1)
+        XCTAssertTrue(manager.displayOverlays.first is MKCircle)
+    }
 }

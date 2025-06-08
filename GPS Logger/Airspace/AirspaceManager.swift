@@ -43,6 +43,8 @@ final class AirspaceManager: ObservableObject {
             if let urls = urls {
                 files = urls
             } else {
+                let bundleDir = Bundle.module.resourceURL?.appendingPathComponent("Airspace")
+                print("[AirspaceManager] Searching bundle at", bundleDir?.path ?? "nil")
                 let jsons = Bundle.module.urls(forResourcesWithExtension: "geojson", subdirectory: "Airspace") ?? []
                 let mbts = Bundle.module.urls(forResourcesWithExtension: "mbtiles", subdirectory: "Airspace") ?? []
                 files = jsons + mbts
@@ -51,6 +53,7 @@ final class AirspaceManager: ObservableObject {
                     print("[AirspaceManager] No airspace data found in bundle")
                     if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
                         let dir = docs.appendingPathComponent("Airspace")
+                        print("[AirspaceManager] Searching documents at", dir.path)
                         if let all = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
                             files = all.filter { ["geojson", "mbtiles"].contains($0.pathExtension.lowercased()) }
                         }
@@ -62,12 +65,18 @@ final class AirspaceManager: ObservableObject {
             var sources: [String: MBTilesVectorSource] = [:]
             for url in files {
                 let category = url.deletingPathExtension().lastPathComponent
-                print("loading", url.lastPathComponent, "category =", category)
+                print("[AirspaceManager] loading", url.lastPathComponent, "category =", category)
                 switch url.pathExtension.lowercased() {
                 case "geojson":
-                    map[category] = self.loadOverlays(from: url)
+                    let overlays = self.loadOverlays(from: url)
+                    print("[AirspaceManager] loaded", overlays.count, "overlays from", url.lastPathComponent)
+                    map[category] = overlays
                 case "mbtiles":
-                    if let src = MBTilesVectorSource(url: url) { sources[category] = src }
+                    if let src = MBTilesVectorSource(url: url) {
+                        sources[category] = src
+                    } else {
+                        print("[AirspaceManager] failed to open MBTiles:", url.path)
+                    }
                 default:
                     continue
                 }
@@ -89,9 +98,15 @@ final class AirspaceManager: ObservableObject {
 
     /// 単一ファイルからオーバーレイを読み込む
     private func loadOverlays(from url: URL) -> [MKOverlay] {
-        guard let data = try? Data(contentsOf: url),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let features = obj["features"] as? [[String: Any]] else { return [] }
+        guard let data = try? Data(contentsOf: url) else {
+            print("[AirspaceManager] Could not read data from", url.path)
+            return []
+        }
+        guard let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let features = obj["features"] as? [[String: Any]] else {
+            print("[AirspaceManager] Invalid GeoJSON:", url.lastPathComponent)
+            return []
+        }
 
         var loaded: [MKOverlay] = []
         for feature in features {
@@ -105,7 +120,7 @@ final class AirspaceManager: ObservableObject {
                 return nil
             }()
 
-           switch type {
+            switch type {
             case "LineString":
                 if let coords = geometry["coordinates"] as? [[Double]] {
                     let points = coords.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
@@ -128,8 +143,12 @@ final class AirspaceManager: ObservableObject {
                     loaded.append(circle)
                 }
             default:
+                print("[AirspaceManager] Unsupported geometry type:", type)
                 continue
             }
+        }
+        if loaded.isEmpty {
+            print("[AirspaceManager] No overlays parsed from", url.lastPathComponent)
         }
         return loaded
     }
