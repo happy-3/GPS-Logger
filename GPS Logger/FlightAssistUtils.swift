@@ -4,6 +4,8 @@ import Foundation
 enum FlightAssistUtils {
     /// TAS とマッハ数から外気温度 (℃) を求める。
     static func oat(tasMps: Double, mach: Double) -> Double {
+        guard mach > 0 else { return 0 }
+
         let gamma = 1.4
         let R = 287.0
         let tempK = (tasMps / mach) * (tasMps / mach) / (gamma * R)
