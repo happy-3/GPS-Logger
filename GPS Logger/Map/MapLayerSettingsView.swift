@@ -30,7 +30,7 @@ struct MapLayerSettingsView: View {
     }
 }
 
-# Preview
+// MARK: - Preview
 struct MapLayerSettingsView_Previews: PreviewProvider {
     static var previews: some View {
         MapLayerSettingsView()
