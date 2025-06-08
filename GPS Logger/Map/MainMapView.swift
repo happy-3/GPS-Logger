@@ -115,10 +115,16 @@ struct MapViewRepresentable: UIViewRepresentable {
                 renderer.strokeColor = .red
                 renderer.lineWidth = 2
                 return renderer
-            } else if let polygon = overlay as? MKPolygon {
+           } else if let polygon = overlay as? MKPolygon {
                 let renderer = MKPolygonRenderer(polygon: polygon)
                 renderer.strokeColor = UIColor.blue.withAlphaComponent(0.7)
                 renderer.fillColor = UIColor.blue.withAlphaComponent(0.2)
+                renderer.lineWidth = 1
+                return renderer
+            } else if let circle = overlay as? MKCircle {
+                let renderer = MKCircleRenderer(circle: circle)
+                renderer.strokeColor = UIColor.purple.withAlphaComponent(0.7)
+                renderer.fillColor = UIColor.purple.withAlphaComponent(0.3)
                 renderer.lineWidth = 1
                 return renderer
             }

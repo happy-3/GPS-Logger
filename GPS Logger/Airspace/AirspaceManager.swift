@@ -105,7 +105,7 @@ final class AirspaceManager: ObservableObject {
                 return nil
             }()
 
-            switch type {
+           switch type {
             case "LineString":
                 if let coords = geometry["coordinates"] as? [[Double]] {
                     let points = coords.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
@@ -119,6 +119,13 @@ final class AirspaceManager: ObservableObject {
                     let polygon = MKPolygon(coordinates: points, count: points.count)
                     polygon.title = name
                     loaded.append(polygon)
+                }
+            case "Point":
+                if let coord = geometry["coordinates"] as? [Double], coord.count == 2 {
+                    let center = CLLocationCoordinate2D(latitude: coord[1], longitude: coord[0])
+                    let circle = MKCircle(center: center, radius: 300)
+                    circle.title = name
+                    loaded.append(circle)
                 }
             default:
                 continue
