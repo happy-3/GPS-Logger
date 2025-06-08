@@ -163,13 +163,24 @@ struct ContentView: View {
                         Text("風情報なし")
                     }
 
-                    Stepper(value: $pressureInput, in: -10000...60000, step: 500) {
-                        Text("気圧高度: \(pressureInput) ft")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .onChange(of: pressureInput) { newValue in
-                        pressureAltitude = Double(newValue)
-                        locationManager.pressureAltitudeFt = pressureAltitude
+                    if #available(iOS 17.0, *) {
+                        Stepper(value: $pressureInput, in: -10000...60000, step: 500) {
+                            Text("気圧高度: \(pressureInput) ft")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .onChange(of: pressureInput, initial: false) { _, newValue in
+                            pressureAltitude = Double(newValue)
+                            locationManager.pressureAltitudeFt = pressureAltitude
+                        }
+                    } else {
+                        Stepper(value: $pressureInput, in: -10000...60000, step: 500) {
+                            Text("気圧高度: \(pressureInput) ft")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .onChange(of: pressureInput) { newValue in
+                            pressureAltitude = Double(newValue)
+                            locationManager.pressureAltitudeFt = pressureAltitude
+                        }
                     }
 
                     // 推算CAS/TAS/OAT/Mach 表示

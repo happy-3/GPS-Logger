@@ -49,10 +49,11 @@ struct VectorTileParser {
 
     private static func gunzip(_ data: Data) -> Data? {
         var dest = Data(count: 1_000_000)
+        let destCount = dest.count
         let result = dest.withUnsafeMutableBytes { destPtr in
             data.withUnsafeBytes { srcPtr in
                 compression_decode_buffer(destPtr.bindMemory(to: UInt8.self).baseAddress!,
-                                            dest.count,
+                                            destCount,
                                             srcPtr.bindMemory(to: UInt8.self).baseAddress!,
                                             data.count,
                                             nil,
@@ -125,7 +126,7 @@ struct VectorTileParser {
         var i = 0
         while i < ints.count {
             let cmd = ints[i] & 0x7
-            var count = Int(ints[i] >> 3)
+            let count = Int(ints[i] >> 3)
             i += 1
             switch cmd {
             case 1: // MoveTo

@@ -125,6 +125,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             return MKOverlayRenderer(overlay: overlay)
         }
 
+        @available(iOS 17.0, *)
         func mapView(_ mapView: MKMapView, didSelect overlay: MKOverlay) {
             guard let shape = overlay as? MKShape,
                   let title = shape.title else { return }
@@ -137,6 +138,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             mapView.addAnnotation(ann)
         }
 
+        @available(iOS 17.0, *)
         func mapView(_ mapView: MKMapView, didDeselect overlay: MKOverlay) {
             if let ann = infoAnnotation {
                 mapView.removeAnnotation(ann)
