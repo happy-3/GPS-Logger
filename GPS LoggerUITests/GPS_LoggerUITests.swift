@@ -46,6 +46,20 @@ final class GPS_LoggerUITests: XCTestCase {
         stopButton.tap()
     }
 
+    /// 地図画面からレイヤ設定画面へ遷移できることを検証
+    @MainActor
+    func testOpenLayerSettings() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let layersButton = app.buttons["レイヤ"]
+        XCTAssertTrue(layersButton.waitForExistence(timeout: 2))
+        layersButton.tap()
+
+        let navBar = app.navigationBars["レイヤ設定"]
+        XCTAssertTrue(navBar.waitForExistence(timeout: 2))
+    }
+
     @MainActor
     func testLaunchPerformance() throws {
         if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *) {

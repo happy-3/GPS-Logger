@@ -97,24 +97,6 @@ struct SettingsView: View {
                 Toggle("Mach/CAS計算を有効化", isOn: $settings.enableMachCalculation)
             }
 
-            if !airspaceManager.categories.isEmpty {
-                Section(header: Text("Airspace Layers")) {
-                    ForEach(airspaceManager.categories, id: \.self) { category in
-                        Toggle(category, isOn: Binding(
-                            get: { settings.enabledAirspaceCategories.contains(category) },
-                            set: { newValue in
-                                if newValue {
-                                    if !settings.enabledAirspaceCategories.contains(category) {
-                                        settings.enabledAirspaceCategories.append(category)
-                                    }
-                                } else {
-                                    settings.enabledAirspaceCategories.removeAll { $0 == category }
-                                }
-                            }
-                        ))
-                    }
-                }
-            }
 
             Section(header: Text("Recorded Fields")) {
                 Toggle("Record Acceleration", isOn: $settings.recordAcceleration)

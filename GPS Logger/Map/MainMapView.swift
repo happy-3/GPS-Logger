@@ -8,6 +8,7 @@ struct MainMapView: View {
     @StateObject var altitudeFusionManager: AltitudeFusionManager
     @StateObject var locationManager: LocationManager
     @StateObject var airspaceManager: AirspaceManager
+    @State private var showLayerSettings = false
 
     init() {
         let settings = Settings()
@@ -36,7 +37,19 @@ struct MainMapView: View {
                     )
                     .environmentObject(airspaceManager)
                 }
+                Button {
+                    showLayerSettings = true
+                } label: {
+                    Label("レイヤ", systemImage: "square.3.stack.3d")
+                }
             })
+            .sheet(isPresented: $showLayerSettings) {
+                NavigationStack {
+                    MapLayerSettingsView()
+                        .environmentObject(settings)
+                        .environmentObject(airspaceManager)
+                }
+            }
             .onAppear {
                 locationManager.startUpdatingForDisplay()
             }
