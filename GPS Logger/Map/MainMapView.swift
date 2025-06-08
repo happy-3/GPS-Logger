@@ -74,6 +74,7 @@ struct MapViewRepresentable: UIViewRepresentable {
            let overlay = MBTilesOverlay(mbtilesURL: mbURL) {
             map.addOverlay(overlay, level: .aboveLabels)
         }
+        airspaceManager.updateMapRect(map.visibleMapRect)
         return map
     }
 
@@ -81,7 +82,6 @@ struct MapViewRepresentable: UIViewRepresentable {
         let current = map.overlays.filter { !($0 is MBTilesOverlay) }
         map.removeOverlays(current)
         map.addOverlays(airspaceManager.displayOverlays)
-        airspaceManager.updateMapRect(map.visibleMapRect)
     }
 
     func makeCoordinator() -> Coordinator {
