@@ -16,10 +16,27 @@ final class AirspaceManager: ObservableObject {
     /// 表示対象のオーバーレイ
     @Published private(set) var displayOverlays: [MKOverlay] = []
 
+    /// グループごとのカテゴリ一覧
+    @Published private(set) var categoriesByGroup: [String: [String]] = [:]
+    private var categoryToGroup: [String: String] = [:]
+
     /// 利用可能なカテゴリ一覧
     var categories: [String] {
         let keys = Set(overlaysByCategory.keys).union(vectorSources.keys)
         return Array(keys).sorted()
+    }
+
+    /// 利用可能なグループ一覧
+    var groups: [String] { Array(categoriesByGroup.keys).sorted() }
+
+    /// 指定グループに属するカテゴリ
+    func categories(inGroup group: String) -> [String] {
+        categoriesByGroup[group] ?? []
+    }
+
+    /// 指定カテゴリが属するグループ名を取得
+    func group(for category: String) -> String {
+        categoryToGroup[category] ?? category
     }
 
     /// 指定カテゴリの全フィーチャオーバーレイを取得
@@ -71,8 +88,13 @@ final class AirspaceManager: ObservableObject {
 
             var map: [String: [MKOverlay]] = [:]
             var sources: [String: MBTilesVectorSource] = [:]
+            var groupMap: [String: [String]] = [:]
+            var catToGroup: [String: String] = [:]
             for url in files {
                 let category = url.deletingPathExtension().lastPathComponent
+                let group = Self.parseGroupName(category)
+                groupMap[group, default: []].append(category)
+                catToGroup[category] = group
                 print("[AirspaceManager] loading", url.lastPathComponent, "category =", category)
                 switch url.pathExtension.lowercased() {
                 case "geojson":
@@ -94,6 +116,8 @@ final class AirspaceManager: ObservableObject {
                 guard let self = self else { return }
                 self.overlaysByCategory = map
                 self.vectorSources = sources
+                self.categoriesByGroup = groupMap
+                self.categoryToGroup = catToGroup
                 if self.settings.enabledAirspaceCategories.isEmpty {
                     self.settings.enabledAirspaceCategories = self.categories
                 }
@@ -201,5 +225,13 @@ final class AirspaceManager: ObservableObject {
     func updateMapRect(_ rect: MKMapRect) {
         currentMapRect = rect
         updateDisplayOverlays()
+    }
+
+    /// カテゴリ名からグループ名を抽出
+    private static func parseGroupName(_ category: String) -> String {
+        if let idx = category.firstIndex(where: { $0 == " " || $0 == "-" || $0 == "_" }) {
+            return String(category[..<idx])
+        }
+        return category
     }
 }
