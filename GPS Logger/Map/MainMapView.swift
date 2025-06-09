@@ -95,16 +95,18 @@ struct MapViewRepresentable: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(airspaceManager: airspaceManager)
+        Coordinator(airspaceManager: airspaceManager, settings: settings)
     }
 
     class Coordinator: NSObject, MKMapViewDelegate {
         private var infoAnnotation: MKPointAnnotation?
         private let airspaceManager: AirspaceManager
+        private let settings: Settings
         var regionSet = false
 
-        init(airspaceManager: AirspaceManager) {
+        init(airspaceManager: AirspaceManager, settings: Settings) {
             self.airspaceManager = airspaceManager
+            self.settings = settings
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
