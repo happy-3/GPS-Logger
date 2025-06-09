@@ -22,12 +22,20 @@ final class AirspaceManager: ObservableObject {
         return Array(keys).sorted()
     }
 
+    /// 指定カテゴリの全フィーチャオーバーレイを取得
+    func features(in category: String) -> [MKOverlay] {
+        return overlaysByCategory[category] ?? []
+    }
+
     private let settings: Settings
     private var cancellables = Set<AnyCancellable>()
 
     init(settings: Settings) {
         self.settings = settings
         settings.$enabledAirspaceCategories
+            .sink { [weak self] _ in self?.updateDisplayOverlays() }
+            .store(in: &cancellables)
+        settings.$hiddenFeatureIDs
             .sink { [weak self] _ in self?.updateDisplayOverlays() }
             .store(in: &cancellables)
     }
@@ -68,7 +76,7 @@ final class AirspaceManager: ObservableObject {
                 print("[AirspaceManager] loading", url.lastPathComponent, "category =", category)
                 switch url.pathExtension.lowercased() {
                 case "geojson":
-                    let overlays = self.loadOverlays(from: url)
+                    let overlays = self.loadOverlays(from: url, category: category)
                     print("[AirspaceManager] loaded", overlays.count, "overlays from", url.lastPathComponent)
                     map[category] = overlays
                 case "mbtiles":
@@ -97,7 +105,7 @@ final class AirspaceManager: ObservableObject {
     }
 
     /// 単一ファイルからオーバーレイを読み込む
-    private func loadOverlays(from url: URL) -> [MKOverlay] {
+    private func loadOverlays(from url: URL, category: String) -> [MKOverlay] {
         guard let data = try? Data(contentsOf: url) else {
             print("[AirspaceManager] Could not read data from", url.path)
             return []
@@ -109,7 +117,7 @@ final class AirspaceManager: ObservableObject {
         }
 
         var loaded: [MKOverlay] = []
-        for feature in features {
+        for (index, feature) in features.enumerated() {
             guard let geometry = feature["geometry"] as? [String: Any],
                   let type = geometry["type"] as? String else { continue }
 
@@ -120,26 +128,38 @@ final class AirspaceManager: ObservableObject {
                 return nil
             }()
 
+            let props = feature["properties"] as? [String: Any] ?? [:]
+            let fid = feature["id"] as? String ?? "\(index)"
+
             switch type {
             case "LineString":
                 if let coords = geometry["coordinates"] as? [[Double]] {
                     let points = coords.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
-                    let polyline = MKPolyline(coordinates: points, count: points.count)
+                    let polyline = FeaturePolyline(coordinates: points, count: points.count)
                     polyline.title = name
+                    polyline.subtitle = category
+                    polyline.featureID = fid
+                    polyline.properties = props
                     loaded.append(polyline)
                 }
             case "Polygon":
                 if let rings = geometry["coordinates"] as? [[[Double]]], let first = rings.first {
                     let points = first.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
-                    let polygon = MKPolygon(coordinates: points, count: points.count)
+                    let polygon = FeaturePolygon(coordinates: points, count: points.count)
                     polygon.title = name
+                    polygon.subtitle = category
+                    polygon.featureID = fid
+                    polygon.properties = props
                     loaded.append(polygon)
                 }
             case "Point":
                 if let coord = geometry["coordinates"] as? [Double], coord.count == 2 {
                     let center = CLLocationCoordinate2D(latitude: coord[1], longitude: coord[0])
-                    let circle = MKCircle(center: center, radius: 300)
+                    let circle = FeatureCircle(center: center, radius: 300)
                     circle.title = name
+                    circle.subtitle = category
+                    circle.featureID = fid
+                    circle.properties = props
                     loaded.append(circle)
                 }
             default:
@@ -157,8 +177,16 @@ final class AirspaceManager: ObservableObject {
     private func updateDisplayOverlays() {
         var result: [MKOverlay] = []
         for cat in enabledCategories {
+            let hidden = Set(settings.hiddenFeatureIDs[cat] ?? [])
             if let overlays = overlaysByCategory[cat] {
-                result.append(contentsOf: overlays)
+                for ov in overlays {
+                    var fid: String? = nil
+                    if let p = ov as? FeaturePolyline { fid = p.featureID }
+                    if let p = ov as? FeaturePolygon { fid = p.featureID }
+                    if let c = ov as? FeatureCircle { fid = c.featureID }
+                    if let id = fid, hidden.contains(id) { continue }
+                    result.append(ov)
+                }
             }
             if let src = vectorSources[cat] {
                 result.append(contentsOf: src.overlays(in: currentMapRect))

@@ -56,4 +56,27 @@ final class AirspaceManagerTests: XCTestCase {
         XCTAssertEqual(manager.displayOverlays.count, 1)
         XCTAssertTrue(manager.displayOverlays.first is MKCircle)
     }
+
+    func testFeatureVisibilityToggle() throws {
+        let urls = try testFileURLs()
+        let settings = Settings()
+        let manager = AirspaceManager(settings: settings)
+
+        let exp = expectation(description: "load")
+        manager.loadAll(urls: urls)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            if manager.displayOverlays.count == 2 {
+                exp.fulfill()
+            }
+        }
+        wait(for: [exp], timeout: 2.0)
+
+        let features = manager.features(in: "catA")
+        guard let first = features.first as? FeaturePolyline else {
+            XCTFail("feature missing")
+            return
+        }
+        settings.hiddenFeatureIDs = ["catA": [first.featureID]]
+        XCTAssertEqual(manager.displayOverlays.count, 1)
+    }
 }

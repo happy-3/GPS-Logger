@@ -112,19 +112,27 @@ struct MapViewRepresentable: UIViewRepresentable {
                 return MKTileOverlayRenderer(tileOverlay: overlay)
             } else if let poly = overlay as? MKPolyline {
                 let renderer = MKPolylineRenderer(polyline: poly)
-                renderer.strokeColor = .red
+                let cat = (poly.subtitle ?? "")
+                let hex = settings.airspaceStrokeColors[cat] ?? "FF0000FF"
+                renderer.strokeColor = UIColor(hex: hex) ?? .red
                 renderer.lineWidth = 2
                 return renderer
-           } else if let polygon = overlay as? MKPolygon {
+            } else if let polygon = overlay as? MKPolygon {
                 let renderer = MKPolygonRenderer(polygon: polygon)
-                renderer.strokeColor = UIColor.blue.withAlphaComponent(0.7)
-                renderer.fillColor = UIColor.blue.withAlphaComponent(0.2)
+                let cat = (polygon.subtitle ?? "")
+                let strokeHex = settings.airspaceStrokeColors[cat] ?? "0000FFFF"
+                let fillHex = settings.airspaceFillColors[cat] ?? "0000FF33"
+                renderer.strokeColor = UIColor(hex: strokeHex) ?? .blue
+                renderer.fillColor = UIColor(hex: fillHex) ?? UIColor.blue.withAlphaComponent(0.2)
                 renderer.lineWidth = 1
                 return renderer
             } else if let circle = overlay as? MKCircle {
                 let renderer = MKCircleRenderer(circle: circle)
-                renderer.strokeColor = UIColor.purple.withAlphaComponent(0.7)
-                renderer.fillColor = UIColor.purple.withAlphaComponent(0.3)
+                let cat = (circle.subtitle ?? "")
+                let strokeHex = settings.airspaceStrokeColors[cat] ?? "800080FF"
+                let fillHex = settings.airspaceFillColors[cat] ?? "80008055"
+                renderer.strokeColor = UIColor(hex: strokeHex) ?? .purple
+                renderer.fillColor = UIColor(hex: fillHex) ?? UIColor.purple.withAlphaComponent(0.3)
                 renderer.lineWidth = 1
                 return renderer
             }
@@ -140,6 +148,13 @@ struct MapViewRepresentable: UIViewRepresentable {
             let ann = MKPointAnnotation()
             ann.coordinate = coord
             ann.title = title
+            if let f = overlay as? FeaturePolyline {
+                ann.subtitle = formattedProps(f.properties)
+            } else if let f = overlay as? FeaturePolygon {
+                ann.subtitle = formattedProps(f.properties)
+            } else if let f = overlay as? FeatureCircle {
+                ann.subtitle = formattedProps(f.properties)
+            }
             infoAnnotation = ann
             mapView.addAnnotation(ann)
         }
@@ -166,6 +181,13 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
             airspaceManager.updateMapRect(mapView.visibleMapRect)
+        }
+
+        private func formattedProps(_ props: [String: Any]) -> String {
+            guard !props.isEmpty else { return "" }
+            let filtered = props.filter { $0.key != "name" }
+            let items = filtered.prefix(3).map { "\($0.key): \($0.value)" }
+            return items.joined(separator: "\n")
         }
     }
 }
