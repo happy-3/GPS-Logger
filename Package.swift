@@ -19,7 +19,7 @@ let package = Package(
             resources: [
                 .process("Assets.xcassets"),
                 .process("Preview Content"),
-                .copy("Airspace")
+                .process("Airspace")
             ]
         ),
         .testTarget(
