@@ -6,6 +6,8 @@ import MapKit
 final class AirspaceManager: ObservableObject {
     /// カテゴリごとに読み込んだオーバーレイを保持
     @Published private(set) var overlaysByCategory: [String: [MKOverlay]] = [:]
+    /// カテゴリ内で名前からグループ化したオーバーレイ一覧
+    @Published private(set) var featureGroupsByCategory: [String: [String: [MKOverlay]]] = [:]
     /// MBTiles ベクターデータのソース
     private var vectorSources: [String: MBTilesVectorSource] = [:]
     private var currentMapRect: MKMapRect = .world
@@ -42,6 +44,16 @@ final class AirspaceManager: ObservableObject {
     /// 指定カテゴリの全フィーチャオーバーレイを取得
     func features(in category: String) -> [MKOverlay] {
         return overlaysByCategory[category] ?? []
+    }
+
+    /// 指定カテゴリで利用可能なフィーチャグループ名一覧
+    func featureGroups(in category: String) -> [String] {
+        Array(featureGroupsByCategory[category]?.keys ?? []).sorted()
+    }
+
+    /// 指定カテゴリとグループの全オーバーレイ
+    func features(in category: String, group: String) -> [MKOverlay] {
+        featureGroupsByCategory[category]?[group] ?? []
     }
 
     private let settings: Settings
@@ -90,6 +102,7 @@ final class AirspaceManager: ObservableObject {
             var sources: [String: MBTilesVectorSource] = [:]
             var groupMap: [String: [String]] = [:]
             var catToGroup: [String: String] = [:]
+            var featureGroups: [String: [String: [MKOverlay]]] = [:]
             for url in files {
                 let category = url.deletingPathExtension().lastPathComponent
                 let group = Self.parseGroupName(category)
@@ -98,9 +111,10 @@ final class AirspaceManager: ObservableObject {
                 print("[AirspaceManager] loading", url.lastPathComponent, "category =", category)
                 switch url.pathExtension.lowercased() {
                 case "geojson":
-                    let overlays = self.loadOverlays(from: url, category: category)
-                    print("[AirspaceManager] loaded", overlays.count, "overlays from", url.lastPathComponent)
-                    map[category] = overlays
+                    let result = self.loadOverlays(from: url, category: category)
+                    print("[AirspaceManager] loaded", result.overlays.count, "overlays from", url.lastPathComponent)
+                    map[category] = result.overlays
+                    featureGroups[category] = result.groups
                 case "mbtiles":
                     if let src = MBTilesVectorSource(url: url) {
                         sources[category] = src
@@ -118,6 +132,7 @@ final class AirspaceManager: ObservableObject {
                 self.vectorSources = sources
                 self.categoriesByGroup = groupMap
                 self.categoryToGroup = catToGroup
+                self.featureGroupsByCategory = featureGroups
                 if self.settings.enabledAirspaceCategories.isEmpty {
                     self.settings.enabledAirspaceCategories = self.categories
                 }
@@ -129,18 +144,19 @@ final class AirspaceManager: ObservableObject {
     }
 
     /// 単一ファイルからオーバーレイを読み込む
-    private func loadOverlays(from url: URL, category: String) -> [MKOverlay] {
+    private func loadOverlays(from url: URL, category: String) -> (overlays: [MKOverlay], groups: [String: [MKOverlay]]) {
         guard let data = try? Data(contentsOf: url) else {
             print("[AirspaceManager] Could not read data from", url.path)
-            return []
+            return ([], [:])
         }
         guard let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let features = obj["features"] as? [[String: Any]] else {
             print("[AirspaceManager] Invalid GeoJSON:", url.lastPathComponent)
-            return []
+            return ([], [:])
         }
 
         var loaded: [MKOverlay] = []
+        var grouped: [String: [MKOverlay]] = [:]
         for (index, feature) in features.enumerated() {
             guard let geometry = feature["geometry"] as? [String: Any],
                   let type = geometry["type"] as? String else { continue }
@@ -165,6 +181,8 @@ final class AirspaceManager: ObservableObject {
                     polyline.featureID = fid
                     polyline.properties = props
                     loaded.append(polyline)
+                    let g = Self.parseFeatureGroupName(name)
+                    grouped[g, default: []].append(polyline)
                 }
             case "Polygon":
                 if let rings = geometry["coordinates"] as? [[[Double]]], let first = rings.first {
@@ -175,6 +193,8 @@ final class AirspaceManager: ObservableObject {
                     polygon.featureID = fid
                     polygon.properties = props
                     loaded.append(polygon)
+                    let g = Self.parseFeatureGroupName(name)
+                    grouped[g, default: []].append(polygon)
                 }
             case "Point":
                 if let coord = geometry["coordinates"] as? [Double], coord.count == 2 {
@@ -185,6 +205,8 @@ final class AirspaceManager: ObservableObject {
                     circle.featureID = fid
                     circle.properties = props
                     loaded.append(circle)
+                    let g = Self.parseFeatureGroupName(name)
+                    grouped[g, default: []].append(circle)
                 }
             default:
                 print("[AirspaceManager] Unsupported geometry type:", type)
@@ -194,7 +216,7 @@ final class AirspaceManager: ObservableObject {
         if loaded.isEmpty {
             print("[AirspaceManager] No overlays parsed from", url.lastPathComponent)
         }
-        return loaded
+        return (loaded, grouped)
     }
 
     /// 表示対象オーバーレイを計算
@@ -233,5 +255,16 @@ final class AirspaceManager: ObservableObject {
             return String(category[..<idx])
         }
         return category
+    }
+
+    /// フィーチャ名からグループ名を抽出
+    private static func parseFeatureGroupName(_ name: String?) -> String {
+        guard var base = name else { return "" }
+        if let range = base.range(of: "-[0-9]+[A-Z]*$", options: .regularExpression) {
+            base.removeSubrange(range)
+        } else if let range = base.range(of: "-[A-Z]{1,3}$", options: .regularExpression) {
+            base.removeSubrange(range)
+        }
+        return base.trimmingCharacters(in: .whitespaces)
     }
 }
