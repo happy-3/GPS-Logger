@@ -43,10 +43,10 @@ final class AirspaceManager: ObservableObject {
             if let urls = urls {
                 files = urls
             } else {
-                let bundleDir = Bundle.module.resourceURL?.appendingPathComponent("Airspace")
+                let bundleDir = Bundle.module.resourceURL
                 print("[AirspaceManager] Searching bundle at", bundleDir?.path ?? "nil")
-                let jsons = Bundle.module.urls(forResourcesWithExtension: "geojson", subdirectory: "Airspace") ?? []
-                let mbts = Bundle.module.urls(forResourcesWithExtension: "mbtiles", subdirectory: "Airspace") ?? []
+                let jsons = Bundle.module.urls(forResourcesWithExtension: "geojson", subdirectory: nil) ?? []
+                let mbts = Bundle.module.urls(forResourcesWithExtension: "mbtiles", subdirectory: nil) ?? []
                 files = jsons + mbts
 
                 if files.isEmpty {
