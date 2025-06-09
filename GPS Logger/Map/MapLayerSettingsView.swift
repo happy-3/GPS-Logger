@@ -8,10 +8,14 @@ struct MapLayerSettingsView: View {
 
     var body: some View {
         Form {
-            if !airspaceManager.categories.isEmpty {
-                Section(header: Text("空域レイヤ")) {
-                    ForEach(airspaceManager.categories, id: \.self) { category in
-                        CategorySettingsView(category: category)
+            if !airspaceManager.groups.isEmpty {
+                ForEach(airspaceManager.groups, id: \.self) { group in
+                    Section {
+                        ForEach(airspaceManager.categories(inGroup: group), id: \.self) { category in
+                            CategorySettingsView(category: category)
+                        }
+                    } header: {
+                        GroupHeaderView(group: group)
                     }
                 }
             }
@@ -36,6 +40,17 @@ private struct CategorySettingsView: View {
                         }
                     } else {
                         settings.enabledAirspaceCategories.removeAll { $0 == category }
+                    }
+
+                    let group = airspaceManager.group(for: category)
+                    let cats = airspaceManager.categories(inGroup: group)
+                    let anyEnabled = cats.contains { settings.enabledAirspaceCategories.contains($0) }
+                    if anyEnabled {
+                        if !settings.enabledAirspaceGroups.contains(group) {
+                            settings.enabledAirspaceGroups.append(group)
+                        }
+                    } else {
+                        settings.enabledAirspaceGroups.removeAll { $0 == group }
                     }
                 }
             ))
@@ -73,6 +88,34 @@ private struct CategorySettingsView: View {
                 ))
             }
         }
+    }
+}
+
+private struct GroupHeaderView: View {
+    @EnvironmentObject var settings: Settings
+    @EnvironmentObject var airspaceManager: AirspaceManager
+    let group: String
+
+    var body: some View {
+        Toggle(group, isOn: Binding(
+            get: { settings.enabledAirspaceGroups.contains(group) },
+            set: { newValue in
+                let cats = airspaceManager.categories(inGroup: group)
+                if newValue {
+                    if !settings.enabledAirspaceGroups.contains(group) {
+                        settings.enabledAirspaceGroups.append(group)
+                    }
+                    for cat in cats {
+                        if !settings.enabledAirspaceCategories.contains(cat) {
+                            settings.enabledAirspaceCategories.append(cat)
+                        }
+                    }
+                } else {
+                    settings.enabledAirspaceGroups.removeAll { $0 == group }
+                    settings.enabledAirspaceCategories.removeAll { cats.contains($0) }
+                }
+            }
+        ))
     }
 }
 

@@ -40,6 +40,9 @@ final class Settings: ObservableObject {
     /// 表示する空域カテゴリ
     @UserDefaultBacked(key: "enabledAirspaceCategories") var enabledAirspaceCategories: [String] = []
 
+    /// 有効化された空域グループ
+    @UserDefaultBacked(key: "enabledAirspaceGroups") var enabledAirspaceGroups: [String] = []
+
     /// 非表示フィーチャ ID
     @UserDefaultBacked(key: "hiddenFeatureIDs") var hiddenFeatureIDs: [String: [String]] = [:]
     /// 線色設定
@@ -140,6 +143,10 @@ final class Settings: ObservableObject {
             .store(in: &cancellables)
 
         $enabledAirspaceCategories
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $enabledAirspaceGroups
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
 
