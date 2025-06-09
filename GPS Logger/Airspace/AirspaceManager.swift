@@ -12,6 +12,9 @@ final class AirspaceManager: ObservableObject {
     private var vectorSources: [String: MBTilesVectorSource] = [:]
     private var currentMapRect: MKMapRect = .world
 
+    /// HUD 用の簡易空域リスト
+    @Published private(set) var slimList: [AirspaceSlim] = []
+
     /// 設定で有効化されているカテゴリ
     private var enabledCategories: [String] { settings.enabledAirspaceCategories }
 
@@ -160,6 +163,7 @@ final class AirspaceManager: ObservableObject {
                 print("overlaysByCategory keys:", Array(self.overlaysByCategory.keys))
                 print("enabled categories:", self.settings.enabledAirspaceCategories)
                 self.updateDisplayOverlays()
+                self.slimList = self.buildSlimList(from: map)
             }
         }
     }
@@ -406,5 +410,59 @@ final class AirspaceManager: ObservableObject {
             base.removeSubrange(range)
         }
         return base.trimmingCharacters(in: .whitespaces)
+    }
+
+    // MARK: - HUD helper
+
+    private func buildSlimList(from map: [String: [MKOverlay]]) -> [AirspaceSlim] {
+        func altString(_ info: [String: Any]?) -> String {
+            guard let info = info,
+                  let value = info["value"] as? Int,
+                  let unit = info["unit"] as? Int else { return "0ft" }
+            if unit == 6 { return "FL\(value)" }
+            return "\(value)ft"
+        }
+
+        var result: [AirspaceSlim] = []
+        for (cat, overlays) in map {
+            for ov in overlays {
+                var props: [String: Any] = [:]
+                var fid: String = UUID().uuidString
+                var name: String = cat
+                var sub: String = cat
+                if let p = ov as? FeaturePolyline {
+                    props = p.properties
+                    fid = p.featureID
+                    name = p.title ?? cat
+                    sub = p.subtitle ?? cat
+                } else if let p = ov as? FeaturePolygon {
+                    props = p.properties
+                    fid = p.featureID
+                    name = p.title ?? cat
+                    sub = p.subtitle ?? cat
+                } else if let c = ov as? FeatureCircle {
+                    props = c.properties
+                    fid = c.featureID
+                    name = c.title ?? cat
+                    sub = c.subtitle ?? cat
+                } else { continue }
+
+                let upper = altString(props["upperLimit"] as? [String: Any])
+                let lower = altString(props["lowerLimit"] as? [String: Any])
+
+                let typ = props["type"] as? Int ?? 0
+                let icon = (typ == 2 || typ == 4) ? "M" : "C"
+
+                let rect = ov.boundingMapRect
+                let sw = MKCoordinateForMapPoint(MKMapPoint(x: rect.minX, y: rect.minY))
+                let ne = MKCoordinateForMapPoint(MKMapPoint(x: rect.maxX, y: rect.maxY))
+                let bbox = [sw.longitude, sw.latitude, ne.longitude, ne.latitude]
+
+                let asp = AirspaceSlim(id: fid, name: name, sub: sub, icon: icon,
+                                      upper: upper, lower: lower, bbox: bbox, active: true)
+                result.append(asp)
+            }
+        }
+        return result
     }
 }
