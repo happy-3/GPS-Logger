@@ -56,22 +56,29 @@ private struct CategorySettingsView: View {
             ))
 
             if settings.enabledAirspaceCategories.contains(category) {
-                let features = airspaceManager.features(in: category)
-                ForEach(features.indices, id: \.self) { idx in
-                    let overlay = features[idx]
-                    let fid = (overlay as? FeaturePolyline)?.featureID ??
-                              (overlay as? FeaturePolygon)?.featureID ??
-                              (overlay as? FeatureCircle)?.featureID ??
-                              "\(idx)"
-                    let title = (overlay as? MKShape)?.title ?? "Feature \(idx)"
-                    Toggle("  " + title, isOn: Binding(
-                        get: { !(settings.hiddenFeatureIDs[category] ?? []).contains(fid) },
+                ForEach(airspaceManager.featureGroups(in: category), id: \.self) { g in
+                    let overlays = airspaceManager.features(in: category, group: g)
+                    Toggle("  " + g, isOn: Binding(
+                        get: {
+                            let hidden = Set(settings.hiddenFeatureIDs[category] ?? [])
+                            return !overlays.allSatisfy { ov in
+                                let fid = (ov as? FeaturePolyline)?.featureID ??
+                                          (ov as? FeaturePolygon)?.featureID ??
+                                          (ov as? FeatureCircle)?.featureID ?? ""
+                                return hidden.contains(fid)
+                            }
+                        },
                         set: { val in
                             var list = settings.hiddenFeatureIDs[category] ?? []
-                            if val {
-                                list.removeAll { $0 == fid }
-                            } else {
-                                if !list.contains(fid) { list.append(fid) }
+                            for ov in overlays {
+                                let fid = (ov as? FeaturePolyline)?.featureID ??
+                                          (ov as? FeaturePolygon)?.featureID ??
+                                          (ov as? FeatureCircle)?.featureID ?? ""
+                                if val {
+                                    list.removeAll { $0 == fid }
+                                } else if !list.contains(fid) {
+                                    list.append(fid)
+                                }
                             }
                             settings.hiddenFeatureIDs[category] = list
                         }
