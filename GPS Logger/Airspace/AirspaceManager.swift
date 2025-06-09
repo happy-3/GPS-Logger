@@ -107,20 +107,38 @@ final class AirspaceManager: ObservableObject {
             var catToGroup: [String: String] = [:]
             var featureGroups: [String: [String: [MKOverlay]]] = [:]
             for url in files {
-                let category = url.deletingPathExtension().lastPathComponent
-                let group = Self.parseGroupName(category)
-                groupMap[group, default: []].append(category)
-                catToGroup[category] = group
-                print("[AirspaceManager] loading", url.lastPathComponent, "category =", category)
+                let base = url.deletingPathExtension().lastPathComponent
+                print("[AirspaceManager] loading", url.lastPathComponent, "category =", base)
                 switch url.pathExtension.lowercased() {
                 case "geojson":
-                    let result = self.loadOverlays(from: url, category: category)
-                    print("[AirspaceManager] loaded", result.overlays.count, "overlays from", url.lastPathComponent)
-                    map[category] = result.overlays
-                    featureGroups[category] = result.groups
+                    if base == "jp_asp" {
+                        let result = self.loadAspOverlays(from: url)
+                        for (cat, list) in result.map {
+                            map[cat] = list
+                        }
+                        for (cat, groupsDict) in result.featureGroups {
+                            featureGroups[cat] = groupsDict
+                        }
+                        for (grp, cats) in result.groups {
+                            groupMap[grp, default: []].append(contentsOf: cats)
+                            for c in cats { catToGroup[c] = grp }
+                        }
+                        print("[AirspaceManager] loaded jp_asp as", Array(result.map.keys))
+                    } else {
+                        let result = self.loadOverlays(from: url, category: base)
+                        map[base] = result.overlays
+                        featureGroups[base] = result.groups
+                        let grp = Self.parseGroupName(base)
+                        groupMap[grp, default: []].append(base)
+                        catToGroup[base] = grp
+                        print("[AirspaceManager] loaded", result.overlays.count, "overlays from", url.lastPathComponent)
+                    }
                 case "mbtiles":
                     if let src = MBTilesVectorSource(url: url) {
-                        sources[category] = src
+                        sources[base] = src
+                        let grp = Self.parseGroupName(base)
+                        groupMap[grp, default: []].append(base)
+                        catToGroup[base] = grp
                     } else {
                         print("[AirspaceManager] failed to open MBTiles:", url.path)
                     }
@@ -220,6 +238,125 @@ final class AirspaceManager: ObservableObject {
             print("[AirspaceManager] No overlays parsed from", url.lastPathComponent)
         }
         return (loaded, grouped)
+    }
+
+    /// jp_asp.geojson をカテゴリ分割して読み込む
+    private func loadAspOverlays(from url: URL) -> (map: [String: [MKOverlay]], featureGroups: [String: [String: [MKOverlay]]], groups: [String: [String]]) {
+        guard let data = try? Data(contentsOf: url),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let features = obj["features"] as? [[String: Any]] else {
+            print("[AirspaceManager] Invalid jp_asp file")
+            return ([:], [:], [:])
+        }
+
+        var map: [String: [MKOverlay]] = [:]
+        var groupMap: [String: Set<String>] = [:]
+        var featureGroups: [String: [String: [MKOverlay]]] = [:]
+
+        for (index, feature) in features.enumerated() {
+            guard let geometry = feature["geometry"] as? [String: Any],
+                  let gtype = geometry["type"] as? String,
+                  let props = feature["properties"] as? [String: Any],
+                  let name = props["name"] as? String else { continue }
+            let fid = feature["id"] as? String ?? "\(index)"
+            let typ = props["type"] as? Int ?? 0
+
+            let sub = Self.aspSubCategory(name: name, type: typ)
+            let major = Self.aspMajorCategory(sub: sub)
+            let featureGroup = Self.parseFeatureGroupName(name)
+
+            var overlay: MKOverlay?
+            switch gtype {
+            case "LineString":
+                if let coords = geometry["coordinates"] as? [[Double]] {
+                    let points = coords.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
+                    let poly = FeaturePolyline(coordinates: points, count: points.count)
+                    poly.title = name
+                    poly.subtitle = sub
+                    poly.featureID = fid
+                    poly.properties = props
+                    overlay = poly
+                }
+            case "Polygon":
+                if let rings = geometry["coordinates"] as? [[[Double]]], let first = rings.first {
+                    let points = first.map { CLLocationCoordinate2D(latitude: $0[1], longitude: $0[0]) }
+                    let poly = FeaturePolygon(coordinates: points, count: points.count)
+                    poly.title = name
+                    poly.subtitle = sub
+                    poly.featureID = fid
+                    poly.properties = props
+                    overlay = poly
+                }
+            case "Point":
+                if let coord = geometry["coordinates"] as? [Double], coord.count == 2 {
+                    let center = CLLocationCoordinate2D(latitude: coord[1], longitude: coord[0])
+                    let circle = FeatureCircle(center: center, radius: 300)
+                    circle.title = name
+                    circle.subtitle = sub
+                    circle.featureID = fid
+                    circle.properties = props
+                    overlay = circle
+                }
+            default:
+                continue
+            }
+
+            if let ov = overlay {
+                map[sub, default: []].append(ov)
+                featureGroups[sub, default: [:]][featureGroup, default: []].append(ov)
+                groupMap[major, default: []].insert(sub)
+            }
+        }
+
+        let groups = groupMap.mapValues { Array($0) }
+        return (map, featureGroups, groups)
+    }
+
+    // MARK: - jp_asp category helpers
+
+    private static let aspSubPatterns: [(String, NSRegularExpression)] = [
+        ("CTR", try! NSRegularExpression(pattern: "\\bCTR\\b", options: [.caseInsensitive])),
+        ("INFO ZONE", try! NSRegularExpression(pattern: "\\bINFO\\s*ZONE\\b", options: [.caseInsensitive])),
+        ("TCA", try! NSRegularExpression(pattern: "\\bTCA\\b", options: [.caseInsensitive])),
+        ("ACA", try! NSRegularExpression(pattern: "\\bACA\\b", options: [.caseInsensitive])),
+        ("PCA", try! NSRegularExpression(pattern: "\\bPCA\\b", options: [.caseInsensitive])),
+        ("HELI", try! NSRegularExpression(pattern: "\\bHELI\\b", options: [.caseInsensitive])),
+        ("AP", try! NSRegularExpression(pattern: "\\bAP\\b", options: [.caseInsensitive])),
+        ("GP", try! NSRegularExpression(pattern: "\\bGP\\b", options: [.caseInsensitive])),
+        ("SURFACE", try! NSRegularExpression(pattern: "\\b(APPROACH|HORIZONTAL|CONICAL)\\s+SURFACE\\b", options: [.caseInsensitive])),
+        ("JSDF", try! NSRegularExpression(pattern: "\\b(JS?DF|JASDF)\\b", options: [.caseInsensitive])),
+        ("TRAINING AREA", try! NSRegularExpression(pattern: "\\bTRAINING\\s+AREA\\b", options: [.caseInsensitive])),
+        ("CAMP", try! NSRegularExpression(pattern: "\\bCAMP\\b", options: [.caseInsensitive]))
+    ]
+
+    private static let aspMajorMap: [String: String] = [
+        "CTR": "Control & Information Zones",
+        "INFO ZONE": "Control & Information Zones",
+        "TCA": "Terminal Control Airspace",
+        "ACA": "Terminal Control Airspace",
+        "PCA": "Positive Control Areas",
+        "HELI": "Aerodrome & Heliport Airspaces",
+        "AP": "Aerodrome & Heliport Airspaces",
+        "GP": "Aerodrome & Heliport Airspaces",
+        "SURFACE": "Obstacle Limitation Surfaces",
+        "JSDF": "Special Use & Military Airspace",
+        "TRAINING AREA": "Special Use & Military Airspace",
+        "CAMP": "Special Use & Military Airspace"
+    ]
+
+    private static func aspSubCategory(name: String, type: Int) -> String {
+        if type == 2 { return "JSDF" }
+        let up = name.uppercased()
+        for (sub, reg) in aspSubPatterns {
+            if reg.firstMatch(in: up, range: NSRange(up.startIndex..., in: up)) != nil {
+                return sub
+            }
+        }
+        return "OTHER"
+    }
+
+    private static func aspMajorCategory(sub: String) -> String {
+        aspMajorMap[sub] ?? "Other"
     }
 
     /// 表示対象オーバーレイを計算

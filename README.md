@@ -42,6 +42,8 @@ The app displays a basemap from an MBTiles file and optional airspace overlays f
 
 When you open the map screen, tap the stack icon in the toolbar to show the layer settings. A list of categories appears and you can toggle each overlay on or off. The map refreshes immediately to reflect your choices.
 
+The bundled `jp_asp.geojson` file contains many different airspace types. When loaded, these features are automatically classified into sub‑categories such as `TCA`, `CTR` or `JSDF`. Each sub‑category appears as its own item in the layer settings under a major group like "Terminal Control Airspace". Stroke and fill colors can be adjusted per sub‑category using the color pickers in the settings screen.
+
 `LineString` と `Polygon` に加え `Point` 形式のフィーチャもサポートしています。`Point` は半径 300 m の円として表示されます。Multi‑geometry types are ignored. To add new data, bundle additional GeoJSON or vector MBTiles files in the `Airspace` folder.
 
 **Note:** サンプルの空域データはリポジトリに含まれていません。`Airspace` フォルダへ GeoJSON または MBTiles ファイルを配置してからビルドしてください。ファイルが存在しない場合、マップ上にはベースマップのみが表示されます。
