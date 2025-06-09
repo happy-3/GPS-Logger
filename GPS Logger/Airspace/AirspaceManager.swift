@@ -48,7 +48,10 @@ final class AirspaceManager: ObservableObject {
 
     /// 指定カテゴリで利用可能なフィーチャグループ名一覧
     func featureGroups(in category: String) -> [String] {
-        Array(featureGroupsByCategory[category]?.keys ?? []).sorted()
+        guard let keys = featureGroupsByCategory[category]?.keys else {
+            return []
+        }
+        return Array(keys).sorted()
     }
 
     /// 指定カテゴリとグループの全オーバーレイ
