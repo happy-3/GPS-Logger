@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import Combine
 
 /// Map 表示を行うメインビュー
 struct MainMapView: View {
@@ -9,6 +10,7 @@ struct MainMapView: View {
     @StateObject var locationManager: LocationManager
     @StateObject var airspaceManager: AirspaceManager
     @State private var showLayerSettings = false
+    @StateObject private var hudViewModel: HUDViewModel
 
     init() {
         let settings = Settings()
@@ -22,14 +24,46 @@ struct MainMapView: View {
         aspManager.loadAll()
         _airspaceManager = StateObject(wrappedValue: aspManager)
 
+        let hudVM = HUDViewModel(airspaceManager: aspManager)
+        _hudViewModel = StateObject(wrappedValue: hudVM)
+
         _locationManager = StateObject(wrappedValue: LocationManager(flightLogManager: flightLog, altitudeFusionManager: altitudeFusion, settings: settings))
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                MapViewRepresentable(locationManager: locationManager, airspaceManager: airspaceManager, settings: settings)
+                MapViewRepresentable(locationManager: locationManager, airspaceManager: airspaceManager, settings: settings, hudViewModel: hudViewModel)
                     .ignoresSafeArea()
+
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            Button(action: {
+                                hudViewModel.zoneQueryOn.toggle()
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }) {
+                                Image(systemName: "z.circle.fill")
+                                    .resizable()
+                                    .frame(width: 44, height: 44)
+                                    .opacity(hudViewModel.zoneQueryOn ? 1.0 : 0.3)
+                                    .foregroundStyle(hudViewModel.zoneQueryOn ? Color.accentColor : Color.primary)
+                            }
+
+                            HUDView(viewModel: hudViewModel)
+                        }
+                    }
+                }
+
+                if hudViewModel.showStack {
+                    VStack {
+                        Spacer()
+                        StackChipView(list: hudViewModel.stackList)
+                            .padding(.bottom, 100)
+                    }
+                }
             }
             .navigationTitle("Map")
             .toolbar(content: {
@@ -57,6 +91,9 @@ struct MainMapView: View {
             .onAppear {
                 locationManager.startUpdatingForDisplay()
             }
+            .onReceive(locationManager.$lastLocation.compactMap { $0 }) { loc in
+                hudViewModel.onNewGPSSample(loc)
+            }
         }
     }
 }
@@ -65,11 +102,14 @@ struct MapViewRepresentable: UIViewRepresentable {
     let locationManager: LocationManager
     @ObservedObject var airspaceManager: AirspaceManager
     @ObservedObject var settings: Settings
+    @ObservedObject var hudViewModel: HUDViewModel
 
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView(frame: .zero)
         map.showsUserLocation = true
         map.delegate = context.coordinator
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
+        map.addGestureRecognizer(tap)
         if let mbURL = Bundle.module.url(forResource: "basemap", withExtension: "mbtiles"),
            let overlay = MBTilesOverlay(mbtilesURL: mbURL) {
             map.addOverlay(overlay, level: .aboveLabels)
@@ -95,18 +135,27 @@ struct MapViewRepresentable: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(airspaceManager: airspaceManager, settings: settings)
+        Coordinator(airspaceManager: airspaceManager, settings: settings, viewModel: hudViewModel)
     }
 
     class Coordinator: NSObject, MKMapViewDelegate {
         private var infoAnnotation: MKPointAnnotation?
         private let airspaceManager: AirspaceManager
         private let settings: Settings
+        private let viewModel: HUDViewModel
         var regionSet = false
 
-        init(airspaceManager: AirspaceManager, settings: Settings) {
+        init(airspaceManager: AirspaceManager, settings: Settings, viewModel: HUDViewModel) {
             self.airspaceManager = airspaceManager
             self.settings = settings
+            self.viewModel = viewModel
+        }
+
+        @objc func handleTap(_ sender: UITapGestureRecognizer) {
+            let mapView = sender.view as! MKMapView
+            let point = sender.location(in: mapView)
+            let coord = mapView.convert(point, toCoordinateFrom: mapView)
+            viewModel.onMapTap(coord)
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {

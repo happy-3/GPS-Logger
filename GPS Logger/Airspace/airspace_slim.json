@@ -1,0 +1,32 @@
+[
+  {
+    "id": "A1",
+    "name": "Area Alpha",
+    "sub": "CTR",
+    "icon": "M1",
+    "upper": "FL200",
+    "lower": "0ft",
+    "bbox": [139.5, 35.5, 140.5, 36.0],
+    "active": true
+  },
+  {
+    "id": "B1",
+    "name": "Area Bravo",
+    "sub": "TCA",
+    "icon": "C",
+    "upper": "FL150",
+    "lower": "1000ft",
+    "bbox": [139.0, 35.0, 139.7, 35.7],
+    "active": true
+  },
+  {
+    "id": "C1",
+    "name": "Area Charlie",
+    "sub": "R",
+    "icon": "M2",
+    "upper": "FL300",
+    "lower": "5000ft",
+    "bbox": [140.0, 36.0, 140.8, 36.5],
+    "active": false
+  }
+]
