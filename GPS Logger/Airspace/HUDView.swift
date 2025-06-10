@@ -8,13 +8,16 @@ struct HUDView: View {
         VStack(spacing: 4) {
             ForEach(viewModel.hudRows, id: \.self) { row in
                 Text(row)
-                    .font(.caption2.monospaced())
+                    .font(.title3.monospaced())
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .padding(8)
         .background(Color.black.opacity(0.5))
         .cornerRadius(8)
+        .onTapGesture {
+            viewModel.showActiveZones()
+        }
     }
 }
 

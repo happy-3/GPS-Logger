@@ -69,7 +69,7 @@ final class HUDViewModel: ObservableObject {
             }
             return a.name < b.name
         }.prefix(3).map { asp in
-            String(format: "%@-%@ %-4@ %@", asp.upper, asp.lower, asp.sub, asp.icon)
+            String(format: "%@ %@-%@ %-4@ %@", asp.name, asp.upper, asp.lower, asp.sub, asp.icon)
         }
         self.hudRows = Array(rows)
     }
@@ -120,6 +120,16 @@ final class HUDViewModel: ObservableObject {
         self.stackList = Array(hit.prefix(4))
         self.showStack = !stackList.isEmpty
         print("[HUDViewModel] tap hits:", hit.count)
+        if showStack {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+    }
+
+    /// 現在位置に基づく空域一覧を表示
+    func showActiveZones() {
+        let asps = airspaces.filter { hudIDs.contains($0.id) }
+        self.stackList = Array(asps.prefix(4))
+        self.showStack = !stackList.isEmpty
         if showStack {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
