@@ -47,3 +47,16 @@ The bundled `jp_asp.geojson` file contains many different airspace types. When l
 `LineString` と `Polygon` に加え `Point` 形式のフィーチャもサポートしています。`Point` は半径 300 m の円として表示されます。Multi‑geometry types are ignored. To add new data, bundle additional GeoJSON or vector MBTiles files in the `Airspace` folder.
 
 **Note:** サンプルの空域データはリポジトリに含まれていません。`Airspace` フォルダへ GeoJSON または MBTiles ファイルを配置してからビルドしてください。ファイルが存在しない場合、マップ上にはベースマップのみが表示されます。
+
+## ナビゲーション機能
+
+マップ画面でウェイポイントを設定すると、目標地点への方位・距離・ETE/ETA を計算して表示する簡易ナビゲーションを利用できます。この処理は `MainMapView` 内の `updateNav()` で行われ、結果は中央の `TargetBannerView` に反映されます。
+
+### 操作手順
+1. 地図上をタップするとその地点がウェイポイントとして登録されます。
+2. 中央のバナーに方位、距離、ETE、ETA が表示されます。
+3. 長押しするとウェイポイントとバナーが消去されます。
+4. ピンチ操作でレンジリングの半径を調整できます。
+
+### Day/Night 切替
+設定画面の「Display Options」にある `Night テーマ` スイッチでモードを切り替えられます。`useNightTheme` が有効なときは `RangeRingNight` や `TrackNight` の色が使用され、無効時は Day 用カラーが使われます。
