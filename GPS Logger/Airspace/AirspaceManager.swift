@@ -164,6 +164,7 @@ final class AirspaceManager: ObservableObject {
                 print("enabled categories:", self.settings.enabledAirspaceCategories)
                 self.updateDisplayOverlays()
                 self.slimList = self.buildSlimList(from: map)
+                print("[AirspaceManager] slimList count:", self.slimList.count)
             }
         }
     }

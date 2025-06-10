@@ -21,11 +21,12 @@ final class HUDViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     init(airspaceManager: AirspaceManager) {
-        self.airspaces = Self.buildSlimList(from: airspaceManager.overlaysByCategory)
-        airspaceManager.$overlaysByCategory
+        self.airspaces = airspaceManager.slimList
+        airspaceManager.$slimList
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] map in
-                self?.airspaces = Self.buildSlimList(from: map)
+            .sink { [weak self] list in
+                self?.airspaces = list
+                print("[HUDViewModel] loaded airspaces: \(list.count)")
             }
             .store(in: &cancellables)
     }
@@ -35,6 +36,7 @@ final class HUDViewModel: ObservableObject {
         let pos = loc.coordinate
         let alt = loc.altitude
         let now = Date()
+        print(String(format: "[HUDViewModel] GPS sample lat=%.4f lon=%.4f alt=%.1f", pos.latitude, pos.longitude, alt))
         if let lp = lastPos, let la = lastAlt, let lt = lastTS {
             let dist = CLLocation(latitude: lp.latitude, longitude: lp.longitude)
                 .distance(from: CLLocation(latitude: pos.latitude, longitude: pos.longitude))
@@ -45,6 +47,7 @@ final class HUDViewModel: ObservableObject {
             }
         }
         let newIDs = queryActive(pos: pos, alt: alt, now: now)
+        print("[HUDViewModel] active IDs:", newIDs)
         if newIDs != hudIDs {
             hudStripUpdate(ids: newIDs)
             hudIDs = newIDs
@@ -97,6 +100,7 @@ final class HUDViewModel: ObservableObject {
 
     /// Map 画面でタップされた位置を処理
     func onMapTap(_ coord: CLLocationCoordinate2D) {
+        print(String(format: "[HUDViewModel] map tap lat=%.4f lon=%.4f", coord.latitude, coord.longitude))
         guard zoneQueryOn else { return }
         var hit: [AirspaceSlim] = []
         for asp in airspaces {
@@ -115,6 +119,7 @@ final class HUDViewModel: ObservableObject {
         }
         self.stackList = Array(hit.prefix(4))
         self.showStack = !stackList.isEmpty
+        print("[HUDViewModel] tap hits:", hit.count)
         if showStack {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
