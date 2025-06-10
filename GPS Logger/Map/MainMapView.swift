@@ -222,6 +222,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         private var waypoint: Binding<Waypoint?>
         private var navInfo: Binding<NavComputed?>
         private var freeScroll: Binding<Bool>
+        private var lastVisibleRect = MKMapRect.null
 
         init(airspaceManager: AirspaceManager,
              settings: Settings,
@@ -421,7 +422,16 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
-            airspaceManager.updateMapRect(mapView.visibleMapRect)
+            let rect = mapView.visibleMapRect
+            let dx = abs(rect.midX - lastVisibleRect.midX)
+            let dy = abs(rect.midY - lastVisibleRect.midY)
+            let dw = abs(rect.size.width - lastVisibleRect.size.width)
+            let dh = abs(rect.size.height - lastVisibleRect.size.height)
+            let threshold = max(rect.size.width, rect.size.height) * 0.1
+            if lastVisibleRect.isNull || dx > threshold || dy > threshold || dw > threshold || dh > threshold {
+                airspaceManager.updateMapRect(rect)
+                lastVisibleRect = rect
+            }
             updateLayers()
         }
 
@@ -434,9 +444,12 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         private func updateLayers() {
             guard let mapView else { return }
-            mapView.layer.sublayers?.removeAll { $0 === rangeLayer || $0 === trackLayer }
-            mapView.layer.addSublayer(rangeLayer)
-            mapView.layer.addSublayer(trackLayer)
+            if rangeLayer.superlayer == nil {
+                mapView.layer.addSublayer(rangeLayer)
+            }
+            if trackLayer.superlayer == nil {
+                mapView.layer.addSublayer(trackLayer)
+            }
 
             guard let loc = locationManager.lastLocation else { return }
             let center = mapView.convert(loc.coordinate, toPointTo: mapView)
@@ -475,7 +488,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             if !freeScroll.wrappedValue {
                 cam.centerCoordinate = loc.coordinate
             }
-            mapView.setCamera(cam, animated: true)
+            mapView.setCamera(cam, animated: false)
         }
 
         private func updateAircraftLocation(_ loc: CLLocation) {
