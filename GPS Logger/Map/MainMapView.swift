@@ -158,6 +158,8 @@ struct MapViewRepresentable: UIViewRepresentable {
         let map = MKMapView(frame: .zero)
         map.showsUserLocation = true
         map.delegate = context.coordinator
+        map.isZoomEnabled = false
+        map.isScrollEnabled = freeScroll
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
         map.addGestureRecognizer(tap)
         let long = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
@@ -179,6 +181,8 @@ struct MapViewRepresentable: UIViewRepresentable {
         let current = map.overlays.filter { !($0 is MBTilesOverlay) }
         map.removeOverlays(current)
         map.addOverlays(airspaceManager.displayOverlays)
+
+        map.isScrollEnabled = freeScroll
 
         context.coordinator.mapView = map
         context.coordinator.updateForCurrentState()
