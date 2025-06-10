@@ -465,8 +465,6 @@ struct MapViewRepresentable: UIViewRepresentable {
             trackLayer.strokeColor = UIColor(hex: trackHex)?.cgColor ?? UIColor.yellow.cgColor
             trackLayer.lineWidth = 2
             trackLayer.path = vecPath.cgPath
-
-            updateCamera()
         }
 
         private func updateCamera() {
@@ -496,6 +494,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             }
             updateLayers()
             updateNav()
+            updateCamera()
         }
 
         private func updateNav() {
