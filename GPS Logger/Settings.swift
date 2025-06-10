@@ -53,6 +53,12 @@ final class Settings: ObservableObject {
     // Mach/CAS calculation option
     @UserDefaultBacked(key: "enableMachCalculation") var enableMachCalculation: Bool = true
 
+    /// レンジリングの半径 (NM)
+    @UserDefaultBacked(key: "rangeRingRadiusNm") var rangeRingRadiusNm: Double = 10.0
+
+    /// Night テーマを使用するかどうか
+    @UserDefaultBacked(key: "useNightTheme") var useNightTheme: Bool = false
+
     init() {
         $processNoise
             .sink { [weak self] _ in self?.objectWillChange.send() }
@@ -163,6 +169,14 @@ final class Settings: ObservableObject {
             .store(in: &cancellables)
 
         $enableMachCalculation
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $rangeRingRadiusNm
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $useNightTheme
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
     }
