@@ -53,6 +53,9 @@ final class Settings: ObservableObject {
     // Mach/CAS calculation option
     @UserDefaultBacked(key: "enableMachCalculation") var enableMachCalculation: Bool = true
 
+    /// 使用可能なレンジ段階 (レンジリング半径)
+    static let rangeLevelsNm: [Double] = [2.5, 5, 10, 20, 40, 80, 160]
+
     /// レンジリングの半径 (NM)
     @UserDefaultBacked(key: "rangeRingRadiusNm") var rangeRingRadiusNm: Double = 10.0
 

@@ -13,6 +13,7 @@ struct MainMapView: View {
     @StateObject private var hudViewModel: HUDViewModel
     @State private var waypoint: Waypoint? = nil
     @State private var navInfo: NavComputed? = nil
+    @State private var freeScroll: Bool = false
 
     init() {
         let settings = Settings()
@@ -40,12 +41,25 @@ struct MainMapView: View {
                                     settings: settings,
                                     hudViewModel: hudViewModel,
                                     waypoint: $waypoint,
-                                    navInfo: $navInfo)
+                                    navInfo: $navInfo,
+                                    freeScroll: $freeScroll)
                     .ignoresSafeArea()
 
                 if let nav = navInfo {
                     TargetBannerView(nav: nav)
                         .position(x: UIScreen.main.bounds.midX, y: UIScreen.main.bounds.midY)
+                }
+
+                HStack {
+                    Spacer()
+                    Text(String(format: "RNG %.0f NM", settings.rangeRingRadiusNm * 2))
+                        .font(.caption.monospacedDigit())
+                        .padding(4)
+                        .background(Color.black.opacity(0.6))
+                        .foregroundColor(.white)
+                        .cornerRadius(4)
+                        .padding(.trailing, 10)
+                        .padding(.top, 10)
                 }
 
                 StatusRibbonView(locationManager: locationManager)
@@ -58,14 +72,14 @@ struct MainMapView: View {
                         Spacer()
                         VStack(spacing: 8) {
                             Button(action: {
-                                hudViewModel.zoneQueryOn.toggle()
+                                freeScroll.toggle()
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             }) {
                                 Image(systemName: "z.circle.fill")
                                     .resizable()
                                     .frame(width: 44, height: 44)
-                                    .opacity(hudViewModel.zoneQueryOn ? 1.0 : 0.3)
-                                    .foregroundStyle(hudViewModel.zoneQueryOn ? Color.accentColor : Color.primary)
+                                    .opacity(freeScroll ? 1.0 : 0.3)
+                                    .foregroundStyle(freeScroll ? Color.accentColor : Color.primary)
                             }
 
                             HUDView(viewModel: hudViewModel)
@@ -78,6 +92,23 @@ struct MainMapView: View {
                         Spacer()
                         StackChipView(list: hudViewModel.stackList)
                             .padding(.bottom, 100)
+                    }
+                }
+
+                if freeScroll {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Text("FREE SCROLL")
+                                .font(.caption2.monospacedDigit())
+                                .padding(4)
+                                .background(Color.black.opacity(0.6))
+                                .foregroundColor(.green)
+                                .cornerRadius(4)
+                                .padding(.bottom, 50)
+                                .padding(.trailing, 10)
+                        }
                     }
                 }
             }
@@ -121,6 +152,7 @@ struct MapViewRepresentable: UIViewRepresentable {
     @ObservedObject var hudViewModel: HUDViewModel
     @Binding var waypoint: Waypoint?
     @Binding var navInfo: NavComputed?
+    @Binding var freeScroll: Bool
 
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView(frame: .zero)
@@ -153,7 +185,7 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         if !context.coordinator.regionSet,
            let loc = locationManager.lastLocation {
-            let meters = 40.0 * 1852.0
+            let meters = settings.rangeRingRadiusNm * 2 * 1852.0
             let region = MKCoordinateRegion(center: loc.coordinate,
                                             latitudinalMeters: meters,
                                             longitudinalMeters: meters)
@@ -168,7 +200,8 @@ struct MapViewRepresentable: UIViewRepresentable {
                     viewModel: hudViewModel,
                     locationManager: locationManager,
                     waypoint: $waypoint,
-                    navInfo: $navInfo)
+                    navInfo: $navInfo,
+                    freeScroll: $freeScroll)
     }
 
     class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
@@ -188,19 +221,22 @@ struct MapViewRepresentable: UIViewRepresentable {
         private var bannerAnnotation: MKPointAnnotation?
         private var waypoint: Binding<Waypoint?>
         private var navInfo: Binding<NavComputed?>
+        private var freeScroll: Binding<Bool>
 
         init(airspaceManager: AirspaceManager,
              settings: Settings,
              viewModel: HUDViewModel,
              locationManager: LocationManager,
              waypoint: Binding<Waypoint?>,
-             navInfo: Binding<NavComputed?>) {
+             navInfo: Binding<NavComputed?>,
+             freeScroll: Binding<Bool>) {
             self.airspaceManager = airspaceManager
             self.settings = settings
             self.viewModel = viewModel
             self.locationManager = locationManager
             self.waypoint = waypoint
             self.navInfo = navInfo
+            self.freeScroll = freeScroll
             super.init()
 
             cancellable = locationManager.$lastLocation
@@ -245,8 +281,18 @@ struct MapViewRepresentable: UIViewRepresentable {
         @objc func handlePinch(_ sender: UIPinchGestureRecognizer) {
             guard sender.state == .changed || sender.state == .ended else { return }
             let scale = Double(sender.scale)
-            let newRadius = max(1.0, min(40.0, settings.rangeRingRadiusNm / scale))
-            settings.rangeRingRadiusNm = newRadius
+            let current = settings.rangeRingRadiusNm / scale
+            let levels = Settings.rangeLevelsNm
+            let nearest = levels.min(by: { abs($0 - current) < abs($1 - current) }) ?? settings.rangeRingRadiusNm
+            settings.rangeRingRadiusNm = nearest
+            if let mapView = mapView,
+               let loc = locationManager.lastLocation {
+                let meters = settings.rangeRingRadiusNm * 2 * 1852.0
+                let region = MKCoordinateRegion(center: loc.coordinate,
+                                                latitudinalMeters: meters,
+                                                longitudinalMeters: meters)
+                mapView.setRegion(region, animated: true)
+            }
             sender.scale = 1.0
         }
 
@@ -328,6 +374,24 @@ struct MapViewRepresentable: UIViewRepresentable {
                 if let hdg = locationManager.lastLocation?.course {
                     view.transform = CGAffineTransform(rotationAngle: CGFloat(hdg * .pi / 180))
                 }
+                let tag = 1001
+                let label: UILabel
+                if let existing = view.viewWithTag(tag) as? UILabel {
+                    label = existing
+                } else {
+                    label = UILabel()
+                    label.tag = tag
+                    label.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+                    label.textColor = .white
+                    label.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+                    view.addSubview(label)
+                }
+                if let loc = locationManager.lastLocation {
+                    let gs = max(0, loc.speed * 1.94384)
+                    label.text = String(format: "TRK %03.0f° GS %.0f kt ALT %.0f ft", loc.course, gs, locationManager.rawGpsAltitude)
+                    label.sizeToFit()
+                    label.center = CGPoint(x: view.bounds.midX, y: view.bounds.maxY + label.bounds.height/2)
+                }
                 return view
             }
 
@@ -380,7 +444,10 @@ struct MapViewRepresentable: UIViewRepresentable {
             let edge = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: 90, distanceNm: rangeNm)
             let edgePt = mapView.convert(edge, toPointTo: mapView)
             let radius = hypot(edgePt.x - center.x, edgePt.y - center.y)
-            let ringPath = UIBezierPath(arcCenter: center, radius: radius, startAngle: 0, endAngle: .pi*2, clockwise: true)
+            let ringPath = UIBezierPath()
+            for frac in [0.25, 0.5, 0.75, 1.0] {
+                ringPath.append(UIBezierPath(arcCenter: center, radius: radius * frac, startAngle: 0, endAngle: .pi*2, clockwise: true))
+            }
             rangeLayer.fillColor = UIColor.clear.cgColor
             let ringHex = settings.useNightTheme ? Color("RangeRingNight", bundle: .module).hexString
                                                  : Color("RangeRingDay", bundle: .module).hexString
@@ -398,11 +465,35 @@ struct MapViewRepresentable: UIViewRepresentable {
             trackLayer.strokeColor = UIColor(hex: trackHex)?.cgColor ?? UIColor.yellow.cgColor
             trackLayer.lineWidth = 2
             trackLayer.path = vecPath.cgPath
+
+            updateCamera()
+        }
+
+        private func updateCamera() {
+            guard let mapView,
+                  let loc = locationManager.lastLocation else { return }
+            var cam = mapView.camera
+            cam.heading = loc.course
+            if !freeScroll.wrappedValue {
+                cam.centerCoordinate = loc.coordinate
+            }
+            mapView.setCamera(cam, animated: true)
         }
 
         private func updateAircraftLocation(_ loc: CLLocation) {
             aircraft.coordinate = loc.coordinate
-            mapView?.addAnnotation(aircraft)
+            if let mapView,
+               let view = mapView.view(for: aircraft) {
+                let tag = 1001
+                let label = view.viewWithTag(tag) as? UILabel
+                let gs = max(0, loc.speed * 1.94384)
+                label?.text = String(format: "TRK %03.0f° GS %.0f kt ALT %.0f ft", loc.course, gs, locationManager.rawGpsAltitude)
+                label?.sizeToFit()
+                label?.center = CGPoint(x: view.bounds.midX, y: view.bounds.maxY + (label?.bounds.height ?? 0)/2)
+                view.transform = CGAffineTransform(rotationAngle: CGFloat(loc.course * .pi / 180))
+            } else {
+                mapView?.addAnnotation(aircraft)
+            }
             updateLayers()
             updateNav()
         }
