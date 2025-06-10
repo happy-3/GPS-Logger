@@ -166,8 +166,8 @@ final class HUDViewModel: ObservableObject {
                 let icon = (typ == 2 || typ == 4) ? "M" : "C"
 
                 let rect = ov.boundingMapRect
-                let sw = MKMapPoint(x: rect.minX, y: rect.minY).coordinate
-                let ne = MKMapPoint(x: rect.maxX, y: rect.maxY).coordinate
+                let sw = MKMapPoint(x: rect.minX, y: rect.maxY).coordinate
+                let ne = MKMapPoint(x: rect.maxX, y: rect.minY).coordinate
                 let bbox = [sw.longitude, sw.latitude, ne.longitude, ne.latitude]
 
                 let asp = AirspaceSlim(id: fid, name: name, sub: sub, icon: icon,
