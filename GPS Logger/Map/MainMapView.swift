@@ -130,6 +130,9 @@ struct MapViewRepresentable: UIViewRepresentable {
         map.addGestureRecognizer(tap)
         let long = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
         map.addGestureRecognizer(long)
+        let pinch = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch(_:)))
+        pinch.delegate = context.coordinator
+        map.addGestureRecognizer(pinch)
         context.coordinator.mapView = map
         context.coordinator.updateForCurrentState()
         if let mbURL = Bundle.module.url(forResource: "basemap", withExtension: "mbtiles"),
@@ -168,13 +171,14 @@ struct MapViewRepresentable: UIViewRepresentable {
                     navInfo: $navInfo)
     }
 
-    class Coordinator: NSObject, MKMapViewDelegate {
+    class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
         private var infoAnnotation: MKPointAnnotation?
         private let airspaceManager: AirspaceManager
         private let settings: Settings
         private let viewModel: HUDViewModel
         private let locationManager: LocationManager
         private var cancellable: AnyCancellable?
+        private var settingsCancellables = Set<AnyCancellable>()
         var mapView: MKMapView?
         var regionSet = false
         private var aircraft = MKPointAnnotation()
@@ -205,6 +209,16 @@ struct MapViewRepresentable: UIViewRepresentable {
                 .sink { [weak self] loc in
                     self?.updateAircraftLocation(loc)
                 }
+
+            settings.$rangeRingRadiusNm
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.updateLayers() }
+                .store(in: &settingsCancellables)
+
+            settings.$useNightTheme
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.updateLayers() }
+                .store(in: &settingsCancellables)
         }
 
         @objc func handleTap(_ sender: UITapGestureRecognizer) {
@@ -226,6 +240,18 @@ struct MapViewRepresentable: UIViewRepresentable {
                 if let overlay = targetOverlay { mapView?.removeOverlay(overlay) }
                 if let ann = bannerAnnotation { mapView?.removeAnnotation(ann) }
             }
+        }
+
+        @objc func handlePinch(_ sender: UIPinchGestureRecognizer) {
+            guard sender.state == .changed || sender.state == .ended else { return }
+            let scale = Double(sender.scale)
+            let newRadius = max(1.0, min(40.0, settings.rangeRingRadiusNm / scale))
+            settings.rangeRingRadiusNm = newRadius
+            sender.scale = 1.0
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            true
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
@@ -350,13 +376,15 @@ struct MapViewRepresentable: UIViewRepresentable {
 
             guard let loc = locationManager.lastLocation else { return }
             let center = mapView.convert(loc.coordinate, toPointTo: mapView)
-            let rangeNm = 10.0
+            let rangeNm = settings.rangeRingRadiusNm
             let edge = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: 90, distanceNm: rangeNm)
             let edgePt = mapView.convert(edge, toPointTo: mapView)
             let radius = hypot(edgePt.x - center.x, edgePt.y - center.y)
             let ringPath = UIBezierPath(arcCenter: center, radius: radius, startAngle: 0, endAngle: .pi*2, clockwise: true)
             rangeLayer.fillColor = UIColor.clear.cgColor
-            rangeLayer.strokeColor = UIColor.orange.cgColor
+            let ringHex = settings.useNightTheme ? Color("RangeRingNight", bundle: .module).hexString
+                                                 : Color("RangeRingDay", bundle: .module).hexString
+            rangeLayer.strokeColor = UIColor(hex: ringHex)?.cgColor ?? UIColor.orange.cgColor
             rangeLayer.lineWidth = 1
             rangeLayer.path = ringPath.cgPath
 
@@ -365,7 +393,9 @@ struct MapViewRepresentable: UIViewRepresentable {
             let vecPath = UIBezierPath()
             vecPath.move(to: center)
             vecPath.addLine(to: vecPt)
-            trackLayer.strokeColor = UIColor.yellow.cgColor
+            let trackHex = settings.useNightTheme ? Color("TrackNight", bundle: .module).hexString
+                                                 : Color("TrackDay", bundle: .module).hexString
+            trackLayer.strokeColor = UIColor(hex: trackHex)?.cgColor ?? UIColor.yellow.cgColor
             trackLayer.lineWidth = 2
             trackLayer.path = vecPath.cgPath
         }
