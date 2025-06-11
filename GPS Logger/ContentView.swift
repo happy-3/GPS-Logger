@@ -566,7 +566,6 @@ private struct NavigationContentView: View {
             .onAppear {
                 UIApplication.shared.isIdleTimerDisabled = true
                 locationManager.startUpdatingForDisplay()
-                altitudeFusionManager.startUpdates(gpsAltitude: nil)
             }
             .onReceive(uiUpdateTimer) { _ in
                 currentTime = Date()

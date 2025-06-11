@@ -6,6 +6,14 @@ import Combine
 final class AltitudeFusionManager: ObservableObject {
     private let altimeter = CMAltimeter()
     private let motionManager = CMMotionManager()
+    private let updateQueue: OperationQueue = {
+        let q = OperationQueue()
+        q.name = "AltitudeFusionManagerQueue"
+        q.qualityOfService = .utility
+        return q
+    }()
+    private var lastAltimeterUpdate: Date?
+    private var isRunning = false
 
     @Published var fusedAltitude: Double? = nil       // ft
     @Published var altitudeChangeRate: Double = 0.0   // ft/min
@@ -53,6 +61,8 @@ final class AltitudeFusionManager: ObservableObject {
             baselineAltitude = gpsAlt
         }
         latestGpsAltitude = gpsAltitude
+        guard !isRunning else { return }
+        isRunning = true
         startAltimeterUpdates()
         startMotionUpdates()
     }
@@ -73,26 +83,34 @@ final class AltitudeFusionManager: ObservableObject {
             self.lastMotionTimestamp = nil
             self.altimeterPressure = nil
         }
+        isRunning = false
     }
 
     private func startAltimeterUpdates() {
         guard CMAltimeter.isRelativeAltitudeAvailable() else { return }
-        altimeter.startRelativeAltitudeUpdates(to: .main) { [weak self] data, error in
+        lastAltimeterUpdate = nil
+        altimeter.startRelativeAltitudeUpdates(to: updateQueue) { [weak self] data, error in
             guard let self, let data, error == nil else { return }
+            let now = Date()
+            if let last = self.lastAltimeterUpdate, now.timeIntervalSince(last) < 0.2 { return }
+            self.lastAltimeterUpdate = now
             let relAltFt = data.relativeAltitude.doubleValue * 3.28084
-            self.altimeterPressure = data.pressure.doubleValue
-            self.relativeAltitude = relAltFt
-            if let baseline = self.baselineAltitude {
-                let barometricAltitude = baseline + relAltFt
-                self.updateFusion(gpsAltitude: self.latestGpsAltitude, baroAltitude: barometricAltitude)
+            let pressure = data.pressure.doubleValue
+            DispatchQueue.main.async {
+                self.altimeterPressure = pressure
+                self.relativeAltitude = relAltFt
+                if let baseline = self.baselineAltitude {
+                    let barometricAltitude = baseline + relAltFt
+                    self.updateFusion(gpsAltitude: self.latestGpsAltitude, baroAltitude: barometricAltitude)
+                }
             }
         }
     }
 
     private func startMotionUpdates() {
         guard motionManager.isDeviceMotionAvailable else { return }
-        motionManager.deviceMotionUpdateInterval = 0.1
-        motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in
+        motionManager.deviceMotionUpdateInterval = 0.2
+        motionManager.startDeviceMotionUpdates(to: updateQueue) { [weak self] motion, error in
             guard let self, let motion, error == nil else { return }
             let currentTimestamp = motion.timestamp
             var dt = 0.1
@@ -102,13 +120,16 @@ final class AltitudeFusionManager: ObservableObject {
             let a = motion.userAcceleration
             let Rm = motion.attitude.rotationMatrix
             let az = -(Rm.m31 * a.x + Rm.m32 * a.y + Rm.m33 * a.z)
-            self.latestAcceleration = az * 3.28084
+            let accFt = az * 3.28084
+            DispatchQueue.main.async {
+                self.latestAcceleration = accFt
 
-            if let filter = self.kalmanFilter {
-                filter.updateTime(dt: dt)
-                filter.predict(u: self.latestAcceleration)
-                self.fusedAltitude = filter.x.0
-                self.altitudeChangeRate = filter.x.1 * 60.0
+                if let filter = self.kalmanFilter {
+                    filter.updateTime(dt: dt)
+                    filter.predict(u: self.latestAcceleration)
+                    self.fusedAltitude = filter.x.0
+                    self.altitudeChangeRate = filter.x.1 * 60.0
+                }
             }
         }
     }
