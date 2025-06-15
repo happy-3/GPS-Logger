@@ -109,7 +109,7 @@ final class HUDViewModel: ObservableObject, AirspaceSlimBuilder {
     func onMapTap(_ coord: CLLocationCoordinate2D) {
         Logger.airspace.debug("HUD map tap lat=\(String(format: "%.4f", coord.latitude)) lon=\(String(format: "%.4f", coord.longitude))")
         guard zoneQueryOn else { return }
-        let hit = tree.search(point: coord)
+        var hit = tree.search(point: coord)
         hit.sort { a, b in
             if alt_m(a.upper) != alt_m(b.upper) {
                 return alt_m(a.upper) > alt_m(b.upper)

@@ -339,33 +339,6 @@ struct MapViewRepresentable: UIViewRepresentable {
             return MKOverlayRenderer(overlay: overlay)
         }
 
-        @available(iOS 17.0, *)
-        func mapView(_ mapView: MKMapView, didSelect overlay: MKOverlay) {
-            guard let shape = overlay as? MKShape,
-                  let title = shape.title else { return }
-            let rect = overlay.boundingMapRect
-            let coord = CLLocationCoordinate2D(latitude: rect.midY, longitude: rect.midX)
-            let ann = MKPointAnnotation()
-            ann.coordinate = coord
-            ann.title = title
-            if let f = overlay as? FeaturePolyline {
-                ann.subtitle = formattedProps(f.properties)
-            } else if let f = overlay as? FeaturePolygon {
-                ann.subtitle = formattedProps(f.properties)
-            } else if let f = overlay as? FeatureCircle {
-                ann.subtitle = formattedProps(f.properties)
-            }
-            infoAnnotation = ann
-            mapView.addAnnotation(ann)
-        }
-
-        @available(iOS 17.0, *)
-        func mapView(_ mapView: MKMapView, didDeselect overlay: MKOverlay) {
-            if let ann = infoAnnotation {
-                mapView.removeAnnotation(ann)
-                infoAnnotation = nil
-            }
-        }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             if annotation is MKUserLocation {
@@ -551,6 +524,37 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
     }
 }
+
+#if swift(>=5.9)
+@available(iOS 17.0, *)
+extension MapViewRepresentable.Coordinator {
+    func mapView(_ mapView: MKMapView, didSelect overlay: MKOverlay) {
+        guard let shape = overlay as? MKShape,
+              let title = shape.title else { return }
+        let rect = overlay.boundingMapRect
+        let coord = CLLocationCoordinate2D(latitude: rect.midY, longitude: rect.midX)
+        let ann = MKPointAnnotation()
+        ann.coordinate = coord
+        ann.title = title
+        if let f = overlay as? FeaturePolyline {
+            ann.subtitle = formattedProps(f.properties)
+        } else if let f = overlay as? FeaturePolygon {
+            ann.subtitle = formattedProps(f.properties)
+        } else if let f = overlay as? FeatureCircle {
+            ann.subtitle = formattedProps(f.properties)
+        }
+        infoAnnotation = ann
+        mapView.addAnnotation(ann)
+    }
+
+    func mapView(_ mapView: MKMapView, didDeselect overlay: MKOverlay) {
+        if let ann = infoAnnotation {
+            mapView.removeAnnotation(ann)
+            infoAnnotation = nil
+        }
+    }
+}
+#endif
 
 struct TargetBannerView: View {
     let nav: NavComputed
