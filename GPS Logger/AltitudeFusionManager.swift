@@ -29,6 +29,7 @@ final class AltitudeFusionManager: ObservableObject {
     init(settings: Settings) {
         self.settings = settings
         settings.$processNoise.combineLatest(settings.$measurementNoise)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] process, measure in
                 guard let self, let filter = self.kalmanFilter else { return }
                 filter.updateParameters(processNoise: process, measurementNoise: measure)
@@ -36,6 +37,7 @@ final class AltitudeFusionManager: ObservableObject {
             .store(in: &cancellables)
 
         settings.$useKalmanFilter
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] enabled in
                 guard let self else { return }
                 if !enabled {

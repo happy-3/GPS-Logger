@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import CoreLocation
 import UIKit
+import os
 
 /// Handles storage and export of flight log entries.
 final class FlightLogManager: ObservableObject {
@@ -31,7 +32,7 @@ final class FlightLogManager: ObservableObject {
                 do {
                     try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
                 } catch {
-                    print("Failed to create session folder: \(error)")
+                    Logger.flightlog.debug("Failed to create session folder: \(error.localizedDescription)")
                 }
             }
             sessionFolderURL = folderURL
@@ -185,7 +186,7 @@ final class FlightLogManager: ObservableObject {
                 try combined.write(to: fileURL, options: .atomic)
                 return fileURL
             } catch {
-                print("Failed to write CSV: \(error)")
+                Logger.flightlog.debug("Failed to write CSV: \(error.localizedDescription)")
             }
         }
         return nil
@@ -213,7 +214,7 @@ final class FlightLogManager: ObservableObject {
                 try combined.write(to: fileURL, options: .atomic)
                 return fileURL
             } catch {
-                print("Failed to write distance CSV: \(error)")
+                Logger.flightlog.debug("Failed to write distance CSV: \(error.localizedDescription)")
             }
         }
         return nil
@@ -255,7 +256,7 @@ final class FlightLogManager: ObservableObject {
                 try combined.write(to: fileURL, options: .atomic)
                 return fileURL
             } catch {
-                print("Failed to write measurement logs: \(error)")
+                Logger.flightlog.debug("Failed to write measurement logs: \(error.localizedDescription)")
             }
         }
 
@@ -280,7 +281,7 @@ final class FlightLogManager: ObservableObject {
                 try data.write(to: fileURL, options: .atomic)
                 return fileURL
             } catch {
-                print("Failed to write measurement image: \(error)")
+                Logger.flightlog.debug("Failed to write measurement image: \(error.localizedDescription)")
             }
         }
 

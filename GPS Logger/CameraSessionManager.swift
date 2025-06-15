@@ -1,5 +1,6 @@
 import AVFoundation
 import UIKit
+import os
 
 /// Manages an AVCaptureSession and keeps a rolling buffer of still images
 /// captured at the application's log interval. The buffer length is
@@ -44,7 +45,7 @@ class CameraSessionManager: NSObject {
                 session.addInput(input)
             }
         } catch {
-            print("Failed to create capture input: \(error)")
+            Logger.camera.debug("Failed to create capture input: \(error.localizedDescription)")
             session.commitConfiguration()
             return
         }
@@ -99,7 +100,7 @@ class CameraSessionManager: NSObject {
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         } catch {
-            print("Failed to create photo directory: \(error)")
+            Logger.camera.debug("Failed to create photo directory: \(error.localizedDescription)")
         }
 
         let baseName = DateFormatter.shortNameFormatter.string(from: shutterTime)
@@ -129,7 +130,7 @@ class CameraSessionManager: NSObject {
                 do {
                     try data.write(to: url)
                 } catch {
-                    print("Failed to write image \(fileName): \(error)")
+                    Logger.camera.debug("Failed to write image \(fileName): \(error.localizedDescription)")
                 }
             }
         }

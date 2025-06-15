@@ -73,7 +73,9 @@ struct MainMapView: View {
                         VStack(spacing: 8) {
                             Button(action: {
                                 freeScroll.toggle()
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                DispatchQueue.main.async {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                }
                             }) {
                                 Image(systemName: "z.circle.fill")
                                     .resizable()

@@ -3,9 +3,10 @@ import CoreLocation
 import SwiftUI
 import Combine
 import MapKit
+import os
 
 /// HUD 更新ロジックを担当する ViewModel
-final class HUDViewModel: ObservableObject {
+final class HUDViewModel: ObservableObject, AirspaceSlimBuilder {
     @Published var hudRows: [String] = []
     @Published var stackList: [AirspaceSlim] = []
     @Published var showStack: Bool = false
@@ -18,15 +19,19 @@ final class HUDViewModel: ObservableObject {
     private let thresholdAlt: Double = 100.0   // m
     private let thresholdTime: TimeInterval = 60.0
     private var airspaces: [AirspaceSlim] = []
+    private var tree = RTree<AirspaceSlim>()
     private var cancellables = Set<AnyCancellable>()
 
     init(airspaceManager: AirspaceManager) {
         self.airspaces = airspaceManager.slimList
+        rebuildTree()
         airspaceManager.$slimList
             .receive(on: DispatchQueue.main)
             .sink { [weak self] list in
-                self?.airspaces = list
-                print("[HUDViewModel] loaded airspaces: \(list.count)")
+                guard let self else { return }
+                self.airspaces = list
+                self.rebuildTree()
+                Logger.airspace.debug("HUDViewModel loaded airspaces: \(list.count)")
             }
             .store(in: &cancellables)
     }
@@ -36,7 +41,7 @@ final class HUDViewModel: ObservableObject {
         let pos = loc.coordinate
         let alt = loc.altitude
         let now = Date()
-        print(String(format: "[HUDViewModel] GPS sample lat=%.4f lon=%.4f alt=%.1f", pos.latitude, pos.longitude, alt))
+        Logger.airspace.debug(String(format: "HUD GPS sample lat=%.4f lon=%.4f alt=%.1f", pos.latitude, pos.longitude, alt))
         if let lp = lastPos, let la = lastAlt, let lt = lastTS {
             let dist = CLLocation(latitude: lp.latitude, longitude: lp.longitude)
                 .distance(from: CLLocation(latitude: pos.latitude, longitude: pos.longitude))
@@ -47,11 +52,13 @@ final class HUDViewModel: ObservableObject {
             }
         }
         let newIDs = queryActive(pos: pos, alt: alt, now: now)
-        print("[HUDViewModel] active IDs:", newIDs)
+        Logger.airspace.debug("HUD active IDs: \(newIDs)")
         if newIDs != hudIDs {
             hudStripUpdate(ids: newIDs)
             hudIDs = newIDs
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            DispatchQueue.main.async {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
         }
         lastPos = pos
         lastAlt = alt
@@ -76,9 +83,9 @@ final class HUDViewModel: ObservableObject {
 
     /// 現在位置から有効空域 ID 一覧を返す
     private func queryActive(pos: CLLocationCoordinate2D, alt: Double, now: Date) -> [String] {
+        let candidates = tree.search(point: pos)
         var list: [AirspaceSlim] = []
-        for asp in airspaces {
-            guard contains(pos, bbox: asp.bbox) else { continue }
+        for asp in candidates {
             guard is_active(asp, now: now) else { continue }
             let upper = alt_m(asp.upper)
             let lower = alt_m(asp.lower)
@@ -100,14 +107,9 @@ final class HUDViewModel: ObservableObject {
 
     /// Map 画面でタップされた位置を処理
     func onMapTap(_ coord: CLLocationCoordinate2D) {
-        print(String(format: "[HUDViewModel] map tap lat=%.4f lon=%.4f", coord.latitude, coord.longitude))
+        Logger.airspace.debug(String(format: "HUD map tap lat=%.4f lon=%.4f", coord.latitude, coord.longitude))
         guard zoneQueryOn else { return }
-        var hit: [AirspaceSlim] = []
-        for asp in airspaces {
-            if contains(coord, bbox: asp.bbox) {
-                hit.append(asp)
-            }
-        }
+        let hit = tree.search(point: coord)
         hit.sort { a, b in
             if alt_m(a.upper) != alt_m(b.upper) {
                 return alt_m(a.upper) > alt_m(b.upper)
@@ -119,9 +121,11 @@ final class HUDViewModel: ObservableObject {
         }
         self.stackList = Array(hit.prefix(4))
         self.showStack = !stackList.isEmpty
-        print("[HUDViewModel] tap hits:", hit.count)
+        Logger.airspace.debug("HUD tap hits: \(hit.count)")
         if showStack {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            DispatchQueue.main.async {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
         }
     }
 
@@ -131,60 +135,19 @@ final class HUDViewModel: ObservableObject {
         self.stackList = Array(asps.prefix(4))
         self.showStack = !stackList.isEmpty
         if showStack {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
-    }
-
-    /// AirspaceManager のオーバーレイ情報から簡易リストを生成
-    private static func buildSlimList(from map: [String: [MKOverlay]]) -> [AirspaceSlim] {
-        func altString(_ info: [String: Any]?) -> String {
-            guard let info = info,
-                  let value = info["value"] as? Int,
-                  let unit = info["unit"] as? Int else { return "0ft" }
-            if unit == 6 { return "FL\(value)" }
-            return "\(value)ft"
-        }
-
-        var result: [AirspaceSlim] = []
-        for (cat, overlays) in map {
-            for ov in overlays {
-                var props: [String: Any] = [:]
-                var fid: String = UUID().uuidString
-                var name: String = cat
-                var sub: String = cat
-                if let p = ov as? FeaturePolyline {
-                    props = p.properties
-                    fid = p.featureID
-                    name = p.title ?? cat
-                    sub = p.subtitle ?? cat
-                } else if let p = ov as? FeaturePolygon {
-                    props = p.properties
-                    fid = p.featureID
-                    name = p.title ?? cat
-                    sub = p.subtitle ?? cat
-                } else if let c = ov as? FeatureCircle {
-                    props = c.properties
-                    fid = c.featureID
-                    name = c.title ?? cat
-                    sub = c.subtitle ?? cat
-                } else { continue }
-
-                let upper = altString(props["upperLimit"] as? [String: Any])
-                let lower = altString(props["lowerLimit"] as? [String: Any])
-
-                let typ = props["type"] as? Int ?? 0
-                let icon = (typ == 2 || typ == 4) ? "M" : "C"
-
-                let rect = ov.boundingMapRect
-                let sw = MKMapPoint(x: rect.minX, y: rect.maxY).coordinate
-                let ne = MKMapPoint(x: rect.maxX, y: rect.minY).coordinate
-                let bbox = [sw.longitude, sw.latitude, ne.longitude, ne.latitude]
-
-                let asp = AirspaceSlim(id: fid, name: name, sub: sub, icon: icon,
-                                      upper: upper, lower: lower, bbox: bbox, active: true)
-                result.append(asp)
+            DispatchQueue.main.async {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
         }
-        return result
     }
+
+    private func rebuildTree() {
+        tree = RTree<AirspaceSlim>()
+        for asp in airspaces {
+            guard asp.bbox.count == 4 else { continue }
+            let rect = RTreeRect(minX: asp.bbox[0], minY: asp.bbox[1], maxX: asp.bbox[2], maxY: asp.bbox[3])
+            tree.insert(rect: rect, value: asp)
+        }
+    }
+
 }

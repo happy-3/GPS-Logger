@@ -66,6 +66,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
 
         settings.$logInterval
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] newInterval in
                 guard let self else { return }
                 if self.isRecording {
