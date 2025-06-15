@@ -4,7 +4,6 @@ import UIKit
 import Combine
 
 /// Handles location updates and recording of log entries and photos.
-@MainActor
 final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, PressureAltitudeSource {
     private let locationManager = CLLocationManager()
 
@@ -212,7 +211,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let latest = locations.last else { return }
-        DispatchQueue.main.async {
+        Task { @MainActor in
             self.lastLocation = latest
             self.updateAltitude(with: latest)
         }
@@ -221,7 +220,9 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
-            startUpdatingForDisplay()
+            Task { @MainActor in
+                startUpdatingForDisplay()
+            }
         default:
             break
         }
@@ -232,7 +233,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-        DispatchQueue.main.async {
+        Task { @MainActor in
             self.lastHeading = newHeading
             if newHeading.headingAccuracy >= 0 {
                 self.declination = newHeading.trueHeading - newHeading.magneticHeading
