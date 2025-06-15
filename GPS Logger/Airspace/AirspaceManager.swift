@@ -17,6 +17,7 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
     @Published private(set) var slimList: [AirspaceSlim] = []
 
     /// 設定で有効化されているカテゴリ
+    @MainActor
     private var enabledCategories: [String] { settings.enabledAirspaceCategories }
 
     /// 表示対象のオーバーレイ
@@ -66,15 +67,22 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
     private let settings: Settings
     private var cancellables = Set<AnyCancellable>()
 
+    @MainActor
     init(settings: Settings) {
         self.settings = settings
         settings.$enabledAirspaceCategories
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.updateDisplayOverlays() }
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { @MainActor in self.updateDisplayOverlays() }
+            }
             .store(in: &cancellables)
         settings.$hiddenFeatureIDs
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.updateDisplayOverlays() }
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { @MainActor in self.updateDisplayOverlays() }
+            }
             .store(in: &cancellables)
     }
 
@@ -153,8 +161,8 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
                 }
             }
 
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
                 self.overlaysByCategory = map
                 self.vectorSources = sources
                 self.categoriesByGroup = groupMap
@@ -368,6 +376,7 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
     }
 
     /// 表示対象オーバーレイを計算
+    @MainActor
     private func updateDisplayOverlays() {
         var result: [MKOverlay] = []
         for cat in enabledCategories {
@@ -386,12 +395,11 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
                 result.append(contentsOf: src.overlays(in: currentMapRect))
             }
         }
-        DispatchQueue.main.async {
-            self.displayOverlays = result
-        }
+        self.displayOverlays = result
     }
 
     /// MapView から現在の表示範囲を受け取る
+    @MainActor
     func updateMapRect(_ rect: MKMapRect) {
         currentMapRect = rect
         updateDisplayOverlays()
