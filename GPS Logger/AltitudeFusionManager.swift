@@ -173,4 +173,9 @@ final class AltitudeFusionManager: ObservableObject {
             }
         }
     }
+
+    /// 現在の基準高度と相対高度から計算される気圧高度(ft)
+    nonisolated var pressureAltitudeFt: Double? {
+        baselineAltitude.map { $0 + (relativeAltitude ?? 0) }
+    }
 }

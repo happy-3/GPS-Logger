@@ -4,7 +4,7 @@ import Combine
 /// Stores adjustable parameters for altitude filtering.
 @MainActor
 final class Settings: ObservableObject {
-    let objectWillChange = ObservableObjectPublisher()
+    nonisolated(unsafe) let objectWillChange = ObservableObjectPublisher()
     private var cancellables = Set<AnyCancellable>()
 
     @UserDefaultBacked(key: "processNoise") var processNoise: Double = 0.2
