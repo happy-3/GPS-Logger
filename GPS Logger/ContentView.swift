@@ -117,7 +117,7 @@ struct ContentView: View {
 
                     if let wd = windDirection, let ws = windSpeed {
                         let within = windBaseAltitude.map { abs(locationManager.rawGpsAltitude - $0) <= 500 } ?? false
-                        if let base = windBaseAltitude, let hp = pressureAltitude, abs(locationManager.rawGpsAltitude - base) > 2000 {
+                        if let base = windBaseAltitude, let _ = pressureAltitude, abs(locationManager.rawGpsAltitude - base) > 2000 {
                             Text("高度が2000ft以上変化しました。気圧高度を再入力してください")
                                 .foregroundColor(.orange)
                         }

@@ -77,7 +77,7 @@ struct MainMapView: View {
                                 .opacity(freeScroll ? 1.0 : 0.3)
                                 .foregroundStyle(freeScroll ? Color.accentColor : Color.primary)
                                 .gesture(
-                                    PressGesture(minimumDuration: 0)
+                                    LongPressGesture(minimumDuration: 0)
                                         .onChanged { _ in freeScroll = true }
                                         .onEnded { _ in freeScroll = false }
                                 )
@@ -160,7 +160,6 @@ struct MapViewRepresentable: UIViewRepresentable {
         map.delegate = context.coordinator
         map.isZoomEnabled = false
         map.isScrollEnabled = freeScroll
-        map.preferredFramesPerSecond = 30
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
         map.addGestureRecognizer(tap)
         let long = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
@@ -496,7 +495,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         private func updateCamera() {
             guard let mapView,
                   let loc = locationManager.lastLocation else { return }
-            var cam = mapView.camera
+            let cam = mapView.camera
             cam.heading = loc.course
             if !freeScroll.wrappedValue {
                 cam.centerCoordinate = loc.coordinate
