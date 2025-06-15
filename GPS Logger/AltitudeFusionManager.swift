@@ -3,6 +3,7 @@ import CoreMotion
 import Combine
 
 /// Combines barometric data, GPS altitude and user acceleration using Kalman filtering.
+@MainActor
 final class AltitudeFusionManager: ObservableObject {
     private let altimeter = CMAltimeter()
     private let motionManager = CMMotionManager()
