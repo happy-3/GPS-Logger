@@ -21,6 +21,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var rawEllipsoidalAltitude: Double = 0.0
 
     @Published var declination: Double = 0.0
+    @Published var lastHeading: CLHeading?
 
     var photoCounter: Int = 0
     var pendingPhotoIndex: Int? = nil
@@ -222,8 +223,11 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-        if newHeading.headingAccuracy >= 0 {
-            declination = newHeading.trueHeading - newHeading.magneticHeading
+        DispatchQueue.main.async {
+            self.lastHeading = newHeading
+            if newHeading.headingAccuracy >= 0 {
+                self.declination = newHeading.trueHeading - newHeading.magneticHeading
+            }
         }
     }
 }

@@ -72,9 +72,11 @@ struct MainMapView: View {
                         .frame(width: 44, height: 44)
                         .opacity(freeScroll ? 1.0 : 0.3)
                         .foregroundStyle(freeScroll ? Color.accentColor : Color.primary)
-                        .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
-                            freeScroll = pressing
-                        }, perform: {})
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                freeScroll.toggle()
+                            }
+                        }
 
                     HUDView(viewModel: hudViewModel)
                 }
@@ -158,6 +160,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         map.delegate = context.coordinator
         map.isZoomEnabled = false
         map.isScrollEnabled = freeScroll
+        map.isRotateEnabled = (settings.orientationMode == .manual)
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
         map.addGestureRecognizer(tap)
         let long = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
@@ -187,11 +190,12 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         if !context.coordinator.regionSet,
            let loc = locationManager.lastLocation {
-            let meters = settings.rangeRingRadiusNm * 2 * 1852.0
-            let region = MKCoordinateRegion(center: loc.coordinate,
-                                            latitudinalMeters: meters,
-                                            longitudinalMeters: meters)
-            map.setRegion(region, animated: false)
+            let diameterNm = settings.rangeRingRadiusNm * 2
+            let meters = diameterNm * 1852.0
+            let camera = map.camera
+            camera.centerCoordinateDistance = meters * 0.65
+            camera.centerCoordinate = loc.coordinate
+            map.setCamera(camera, animated: false)
             context.coordinator.regionSet = true
         }
     }
@@ -262,6 +266,11 @@ struct MapViewRepresentable: UIViewRepresentable {
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in self?.scheduleUpdateLayers() }
                 .store(in: &settingsCancellables)
+
+            settings.$orientationMode
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.updateCamera() }
+                .store(in: &settingsCancellables)
         }
 
         @objc func handleTap(_ sender: UITapGestureRecognizer) {
@@ -314,19 +323,18 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
 
         private func applyZoom(_ mapView: MKMapView) {
-            let diameter = Settings.zoomDiametersNm[pinchLevelIndex]
-            settings.rangeRingRadiusNm = diameter / 2
-            let center: CLLocationCoordinate2D
-            if let loc = locationManager.lastLocation {
-                center = loc.coordinate
-            } else {
-                center = mapView.region.center
+            let diameterNm = Settings.zoomDiametersNm[pinchLevelIndex]
+            settings.rangeRingRadiusNm = diameterNm / 2
+
+            let meters = diameterNm * 1852.0
+            let camera = mapView.camera
+            camera.centerCoordinateDistance = meters * 0.65
+            if !freeScroll.wrappedValue,
+               let loc = locationManager.lastLocation {
+                camera.centerCoordinate = loc.coordinate
             }
-            let meters = diameter * 1852.0
-            let region = MKCoordinateRegion(center: center,
-                                            latitudinalMeters: meters,
-                                            longitudinalMeters: meters)
-            mapView.setRegion(region, animated: true)
+            mapView.setCamera(camera, animated: true)
+
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
 
@@ -498,11 +506,23 @@ struct MapViewRepresentable: UIViewRepresentable {
             guard let mapView,
                   let loc = locationManager.lastLocation else { return }
             let cam = mapView.camera
-            cam.heading = loc.course
+
+            switch settings.orientationMode {
+            case .northUp:
+                cam.heading = 0
+            case .trackUp:
+                cam.heading = loc.course
+            case .magneticUp:
+                cam.heading = locationManager.lastHeading?.magneticHeading ?? loc.course
+            case .manual:
+                break
+            }
+
             if !freeScroll.wrappedValue {
                 cam.centerCoordinate = loc.coordinate
             }
             mapView.setCamera(cam, animated: false)
+            mapView.isRotateEnabled = (settings.orientationMode == .manual)
         }
 
         private func updateAircraftLocation(_ loc: CLLocation) {

@@ -8,6 +8,12 @@ struct MapLayerSettingsView: View {
 
     var body: some View {
         Form {
+            Picker("Orientation", selection: $settings.orientationMode) {
+                ForEach(Settings.MapOrientationMode.allCases) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+
             if !airspaceManager.groups.isEmpty {
                 ForEach(airspaceManager.groups, id: \.self) { group in
                     Section {
