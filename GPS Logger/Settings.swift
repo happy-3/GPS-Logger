@@ -2,6 +2,7 @@ import Foundation
 import Combine
 
 /// Stores adjustable parameters for altitude filtering.
+@MainActor
 final class Settings: ObservableObject {
     let objectWillChange = ObservableObjectPublisher()
     private var cancellables = Set<AnyCancellable>()
