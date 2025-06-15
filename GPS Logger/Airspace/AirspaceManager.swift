@@ -1,9 +1,10 @@
 import Foundation
 import Combine
 import MapKit
+import os
 
 /// 空域データを管理し Map 上へ表示するためのマネージャ
-final class AirspaceManager: ObservableObject {
+final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
     /// カテゴリごとに読み込んだオーバーレイを保持
     @Published private(set) var overlaysByCategory: [String: [MKOverlay]] = [:]
     /// カテゴリ内で名前からグループ化したオーバーレイ一覧
@@ -68,9 +69,11 @@ final class AirspaceManager: ObservableObject {
     init(settings: Settings) {
         self.settings = settings
         settings.$enabledAirspaceCategories
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.updateDisplayOverlays() }
             .store(in: &cancellables)
         settings.$hiddenFeatureIDs
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.updateDisplayOverlays() }
             .store(in: &cancellables)
     }
@@ -78,7 +81,7 @@ final class AirspaceManager: ObservableObject {
     /// バンドル内の Airspace フォルダからすべての GeoJSON を読み込む
     /// - Parameter urls: テスト用に指定するファイル URL 配列。省略時はバンドル内を検索する。
     func loadAll(urls: [URL]? = nil) {
-        print("AirspaceManager.loadAll called")
+        Logger.airspace.debug("AirspaceManager.loadAll called")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
@@ -87,16 +90,16 @@ final class AirspaceManager: ObservableObject {
                 files = urls
             } else {
                 let bundleDir = Bundle.module.resourceURL
-                print("[AirspaceManager] Searching bundle at", bundleDir?.path ?? "nil")
+                Logger.airspace.debug("Searching bundle at \(bundleDir?.path ?? "nil")")
                 let jsons = Bundle.module.urls(forResourcesWithExtension: "geojson", subdirectory: nil) ?? []
                 let mbts = Bundle.module.urls(forResourcesWithExtension: "mbtiles", subdirectory: nil) ?? []
                 files = jsons + mbts
 
                 if files.isEmpty {
-                    print("[AirspaceManager] No airspace data found in bundle")
+                    Logger.airspace.debug("No airspace data found in bundle")
                     if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
                         let dir = docs.appendingPathComponent("Airspace")
-                        print("[AirspaceManager] Searching documents at", dir.path)
+                        Logger.airspace.debug("Searching documents at \(dir.path)")
                         if let all = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
                             files = all.filter { ["geojson", "mbtiles"].contains($0.pathExtension.lowercased()) }
                         }
@@ -111,7 +114,7 @@ final class AirspaceManager: ObservableObject {
             var featureGroups: [String: [String: [MKOverlay]]] = [:]
             for url in files {
                 let base = url.deletingPathExtension().lastPathComponent
-                print("[AirspaceManager] loading", url.lastPathComponent, "category =", base)
+                Logger.airspace.debug("loading \(url.lastPathComponent) category = \(base)")
                 switch url.pathExtension.lowercased() {
                 case "geojson":
                     if base == "jp_asp" {
@@ -126,7 +129,7 @@ final class AirspaceManager: ObservableObject {
                             groupMap[grp, default: []].append(contentsOf: cats)
                             for c in cats { catToGroup[c] = grp }
                         }
-                        print("[AirspaceManager] loaded jp_asp as", Array(result.map.keys))
+                        Logger.airspace.debug("loaded jp_asp as \(Array(result.map.keys))")
                     } else {
                         let result = self.loadOverlays(from: url, category: base)
                         map[base] = result.overlays
@@ -134,7 +137,7 @@ final class AirspaceManager: ObservableObject {
                         let grp = Self.parseGroupName(base)
                         groupMap[grp, default: []].append(base)
                         catToGroup[base] = grp
-                        print("[AirspaceManager] loaded", result.overlays.count, "overlays from", url.lastPathComponent)
+                        Logger.airspace.debug("loaded \(result.overlays.count) overlays from \(url.lastPathComponent)")
                     }
                 case "mbtiles":
                     if let src = MBTilesVectorSource(url: url) {
@@ -143,7 +146,7 @@ final class AirspaceManager: ObservableObject {
                         groupMap[grp, default: []].append(base)
                         catToGroup[base] = grp
                     } else {
-                        print("[AirspaceManager] failed to open MBTiles:", url.path)
+                        Logger.airspace.debug("failed to open MBTiles: \(url.path)")
                     }
                 default:
                     continue
@@ -160,11 +163,11 @@ final class AirspaceManager: ObservableObject {
                 if self.settings.enabledAirspaceCategories.isEmpty {
                     self.settings.enabledAirspaceCategories = self.categories
                 }
-                print("overlaysByCategory keys:", Array(self.overlaysByCategory.keys))
-                print("enabled categories:", self.settings.enabledAirspaceCategories)
+                Logger.airspace.debug("overlaysByCategory keys: \(Array(self.overlaysByCategory.keys))")
+                Logger.airspace.debug("enabled categories: \(self.settings.enabledAirspaceCategories)")
                 self.updateDisplayOverlays()
                 self.slimList = self.buildSlimList(from: map)
-                print("[AirspaceManager] slimList count:", self.slimList.count)
+                Logger.airspace.debug("slimList count: \(self.slimList.count)")
             }
         }
     }
@@ -172,12 +175,12 @@ final class AirspaceManager: ObservableObject {
     /// 単一ファイルからオーバーレイを読み込む
     private func loadOverlays(from url: URL, category: String) -> (overlays: [MKOverlay], groups: [String: [MKOverlay]]) {
         guard let data = try? Data(contentsOf: url) else {
-            print("[AirspaceManager] Could not read data from", url.path)
+            Logger.airspace.debug("Could not read data from \(url.path)")
             return ([], [:])
         }
         guard let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let features = obj["features"] as? [[String: Any]] else {
-            print("[AirspaceManager] Invalid GeoJSON:", url.lastPathComponent)
+            Logger.airspace.debug("Invalid GeoJSON: \(url.lastPathComponent)")
             return ([], [:])
         }
 
@@ -235,12 +238,12 @@ final class AirspaceManager: ObservableObject {
                     grouped[g, default: []].append(circle)
                 }
             default:
-                print("[AirspaceManager] Unsupported geometry type:", type)
+                Logger.airspace.debug("Unsupported geometry type: \(type)")
                 continue
             }
         }
         if loaded.isEmpty {
-            print("[AirspaceManager] No overlays parsed from", url.lastPathComponent)
+            Logger.airspace.debug("No overlays parsed from \(url.lastPathComponent)")
         }
         return (loaded, grouped)
     }
@@ -250,7 +253,7 @@ final class AirspaceManager: ObservableObject {
         guard let data = try? Data(contentsOf: url),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let features = obj["features"] as? [[String: Any]] else {
-            print("[AirspaceManager] Invalid jp_asp file")
+            Logger.airspace.debug("Invalid jp_asp file")
             return ([:], [:], [:])
         }
 
@@ -413,57 +416,4 @@ final class AirspaceManager: ObservableObject {
         return base.trimmingCharacters(in: .whitespaces)
     }
 
-    // MARK: - HUD helper
-
-    private func buildSlimList(from map: [String: [MKOverlay]]) -> [AirspaceSlim] {
-        func altString(_ info: [String: Any]?) -> String {
-            guard let info = info,
-                  let value = info["value"] as? Int,
-                  let unit = info["unit"] as? Int else { return "0ft" }
-            if unit == 6 { return "FL\(value)" }
-            return "\(value)ft"
-        }
-
-        var result: [AirspaceSlim] = []
-        for (cat, overlays) in map {
-            for ov in overlays {
-                var props: [String: Any] = [:]
-                var fid: String = UUID().uuidString
-                var name: String = cat
-                var sub: String = cat
-                if let p = ov as? FeaturePolyline {
-                    props = p.properties
-                    fid = p.featureID
-                    name = p.title ?? cat
-                    sub = p.subtitle ?? cat
-                } else if let p = ov as? FeaturePolygon {
-                    props = p.properties
-                    fid = p.featureID
-                    name = p.title ?? cat
-                    sub = p.subtitle ?? cat
-                } else if let c = ov as? FeatureCircle {
-                    props = c.properties
-                    fid = c.featureID
-                    name = c.title ?? cat
-                    sub = c.subtitle ?? cat
-                } else { continue }
-
-                let upper = altString(props["upperLimit"] as? [String: Any])
-                let lower = altString(props["lowerLimit"] as? [String: Any])
-
-                let typ = props["type"] as? Int ?? 0
-                let icon = (typ == 2 || typ == 4) ? "M" : "C"
-
-                let rect = ov.boundingMapRect
-                let sw = MKMapPoint(x: rect.minX, y: rect.maxY).coordinate
-                let ne = MKMapPoint(x: rect.maxX, y: rect.minY).coordinate
-                let bbox = [sw.longitude, sw.latitude, ne.longitude, ne.latitude]
-
-                let asp = AirspaceSlim(id: fid, name: name, sub: sub, icon: icon,
-                                      upper: upper, lower: lower, bbox: bbox, active: true)
-                result.append(asp)
-            }
-        }
-        return result
-    }
 }
