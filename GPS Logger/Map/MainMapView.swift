@@ -264,7 +264,9 @@ struct MapViewRepresentable: UIViewRepresentable {
 
             settings.$rangeRingRadiusNm
                 .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in self?.scheduleUpdateLayers() }
+                .sink { [weak self] _ in
+                    self?.scheduleUpdateLayers()
+                }
                 .store(in: &settingsCancellables)
 
             settings.$useNightTheme
@@ -273,6 +275,12 @@ struct MapViewRepresentable: UIViewRepresentable {
                 .store(in: &settingsCancellables)
 
             settings.$orientationMode
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.updateCamera() }
+                .store(in: &settingsCancellables)
+
+            // RNG 変更時もカメラ距離を更新
+            settings.$rangeRingRadiusNm
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in self?.updateCamera() }
                 .store(in: &settingsCancellables)
@@ -311,11 +319,13 @@ struct MapViewRepresentable: UIViewRepresentable {
             case .changed:
                 pinchAccum *= sender.scale
                 sender.scale = 1.0
-                if pinchAccum < 0.6, pinchLevelIndex > 0 {
+                // 指を開いた場合はズームイン (半径縮小)
+                if pinchAccum > 1.4, pinchLevelIndex > 0 {
                     pinchLevelIndex -= 1
                     applyZoom(mapView)
                     pinchAccum = 1.0
-                } else if pinchAccum > 1.4, pinchLevelIndex < Settings.zoomDiametersNm.count - 1 {
+                // 指を閉じた場合はズームアウト (半径拡大)
+                } else if pinchAccum < 0.6, pinchLevelIndex < Settings.zoomDiametersNm.count - 1 {
                     pinchLevelIndex += 1
                     applyZoom(mapView)
                     pinchAccum = 1.0
@@ -516,6 +526,9 @@ struct MapViewRepresentable: UIViewRepresentable {
 
             DispatchQueue.main.async {
                 let cam = mapView.camera
+                // ズーム距離を設定
+                let meters = metersForRng(self.settings.rangeRingRadiusNm) * 0.65
+                cam.centerCoordinateDistance = meters
                 switch self.settings.orientationMode {
                 case .northUp:
                     cam.heading = 0
