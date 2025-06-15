@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 
 struct RTreeRect {
     var minX: Double
