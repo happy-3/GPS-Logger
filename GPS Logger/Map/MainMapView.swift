@@ -190,8 +190,7 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         if !context.coordinator.regionSet,
            let loc = locationManager.lastLocation {
-            let diameterNm = settings.rangeRingRadiusNm * 2
-            let meters = diameterNm * 1852.0
+            let meters = metersForRng(settings.rangeRingRadiusNm)
             let camera = map.camera
             camera.centerCoordinateDistance = meters * 0.65
             camera.centerCoordinate = loc.coordinate
@@ -323,17 +322,15 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
 
         private func applyZoom(_ mapView: MKMapView) {
-            let diameterNm = Settings.zoomDiametersNm[pinchLevelIndex]
-            settings.rangeRingRadiusNm = diameterNm / 2
+            let radiusNm = Settings.zoomDiametersNm[pinchLevelIndex] / 2
+            settings.rangeRingRadiusNm = radiusNm
 
-            let meters = diameterNm * 1852.0
-            let camera = mapView.camera
-            camera.centerCoordinateDistance = meters * 0.65
-            if !freeScroll.wrappedValue,
-               let loc = locationManager.lastLocation {
-                camera.centerCoordinate = loc.coordinate
-            }
-            mapView.setCamera(camera, animated: true)
+            let center = locationManager.lastLocation?.coordinate ?? mapView.region.center
+            let meters = metersForRng(radiusNm)
+            let region = MKCoordinateRegion(center: center,
+                                            latitudinalMeters: meters,
+                                            longitudinalMeters: meters)
+            mapView.setRegion(region, animated: true)
 
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
@@ -463,6 +460,12 @@ struct MapViewRepresentable: UIViewRepresentable {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
         }
 
+        /// 新しいズーム倍率（旧来の 4 倍）
+        private func metersForRng(_ radiusNm: Double) -> Double {
+            let diameterNm = radiusNm * 4
+            return diameterNm * 2 * 1852.0
+        }
+
         private func updateLayers() {
             guard let mapView else { return }
             // CAShapeLayer はインスタンスを再利用し、パスのみ更新する
@@ -502,27 +505,34 @@ struct MapViewRepresentable: UIViewRepresentable {
             trackLayer.path = vecPath.cgPath
         }
 
+        private func normalizedHeading(_ raw: CLLocationDirection?) -> CLLocationDirection {
+            guard let h = raw, h.isFinite, h >= 0 else { return 0 }
+            return fmod(h, 360)
+        }
+
         private func updateCamera() {
             guard let mapView,
                   let loc = locationManager.lastLocation else { return }
-            let cam = mapView.camera
 
-            switch settings.orientationMode {
-            case .northUp:
-                cam.heading = 0
-            case .trackUp:
-                cam.heading = loc.course
-            case .magneticUp:
-                cam.heading = locationManager.lastHeading?.magneticHeading ?? loc.course
-            case .manual:
-                break
+            DispatchQueue.main.async {
+                let cam = mapView.camera
+                switch self.settings.orientationMode {
+                case .northUp:
+                    cam.heading = 0
+                case .trackUp:
+                    cam.heading = self.normalizedHeading(loc.course)
+                case .magneticUp:
+                    cam.heading = self.normalizedHeading(
+                        self.locationManager.lastHeading?.magneticHeading ?? loc.course)
+                case .manual:
+                    break
+                }
+                if !self.freeScroll.wrappedValue {
+                    cam.centerCoordinate = loc.coordinate
+                }
+                mapView.setCamera(cam, animated: false)
+                mapView.isRotateEnabled = (self.settings.orientationMode == .manual)
             }
-
-            if !freeScroll.wrappedValue {
-                cam.centerCoordinate = loc.coordinate
-            }
-            mapView.setCamera(cam, animated: false)
-            mapView.isRotateEnabled = (settings.orientationMode == .manual)
         }
 
         private func updateAircraftLocation(_ loc: CLLocation) {
