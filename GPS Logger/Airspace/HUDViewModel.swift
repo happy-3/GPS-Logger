@@ -41,7 +41,7 @@ final class HUDViewModel: ObservableObject, AirspaceSlimBuilder {
         let pos = loc.coordinate
         let alt = loc.altitude
         let now = Date()
-        Logger.airspace.debug(String(format: "HUD GPS sample lat=%.4f lon=%.4f alt=%.1f", pos.latitude, pos.longitude, alt))
+        Logger.airspace.debug("HUD GPS sample lat=\(String(format: "%.4f", pos.latitude)) lon=\(String(format: "%.4f", pos.longitude)) alt=\(String(format: "%.1f", alt))")
         if let lp = lastPos, let la = lastAlt, let lt = lastTS {
             let dist = CLLocation(latitude: lp.latitude, longitude: lp.longitude)
                 .distance(from: CLLocation(latitude: pos.latitude, longitude: pos.longitude))
@@ -107,7 +107,7 @@ final class HUDViewModel: ObservableObject, AirspaceSlimBuilder {
 
     /// Map 画面でタップされた位置を処理
     func onMapTap(_ coord: CLLocationCoordinate2D) {
-        Logger.airspace.debug(String(format: "HUD map tap lat=%.4f lon=%.4f", coord.latitude, coord.longitude))
+        Logger.airspace.debug("HUD map tap lat=\(String(format: "%.4f", coord.latitude)) lon=\(String(format: "%.4f", coord.longitude))")
         guard zoneQueryOn else { return }
         let hit = tree.search(point: coord)
         hit.sort { a, b in
