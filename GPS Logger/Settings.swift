@@ -53,6 +53,21 @@ final class Settings: ObservableObject {
     // Mach/CAS calculation option
     @UserDefaultBacked(key: "enableMachCalculation") var enableMachCalculation: Bool = true
 
+    enum MapOrientationMode: String, CaseIterable, Identifiable {
+        case northUp, trackUp, magneticUp, manual
+        var id: Self { self }
+        var label: String {
+            switch self {
+            case .northUp: "North UP"
+            case .trackUp: "Track UP"
+            case .magneticUp: "Magnetic UP"
+            case .manual: "Free Rotate"
+            }
+        }
+    }
+
+    @UserDefaultBacked(key: "orientationMode") var orientationMode: MapOrientationMode = .trackUp
+
     /// ズーム可能な正方形サイズ (一辺) を NM で定義
     static let zoomDiametersNm: [Double] = [5, 10, 20, 40, 80, 160, 320]
 
@@ -212,6 +227,11 @@ final class Settings: ObservableObject {
             .store(in: &cancellables)
 
         $useNightTheme
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $orientationMode
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
