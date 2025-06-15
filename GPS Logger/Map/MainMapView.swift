@@ -66,26 +66,20 @@ struct MainMapView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 10)
             
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        VStack(spacing: 8) {
-                            Image(systemName: "z.circle.fill")
-                                .resizable()
-                                .frame(width: 44, height: 44)
-                                .opacity(freeScroll ? 1.0 : 0.3)
-                                .foregroundStyle(freeScroll ? Color.accentColor : Color.primary)
-                                .gesture(
-                                    LongPressGesture(minimumDuration: 0)
-                                        .onChanged { _ in freeScroll = true }
-                                        .onEnded { _ in freeScroll = false }
-                                )
+                VStack(spacing: 8) {
+                    Image(systemName: "z.circle.fill")
+                        .resizable()
+                        .frame(width: 44, height: 44)
+                        .opacity(freeScroll ? 1.0 : 0.3)
+                        .foregroundStyle(freeScroll ? Color.accentColor : Color.primary)
+                        .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
+                            freeScroll = pressing
+                        }, perform: {})
 
-                            HUDView(viewModel: hudViewModel)
-                        }
-                    }
+                    HUDView(viewModel: hudViewModel)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding([.trailing, .bottom], 10)
 
                 if hudViewModel.showStack {
                     VStack {
@@ -136,7 +130,11 @@ struct MainMapView: View {
                 }
             }
             .onAppear {
+                UIApplication.shared.isIdleTimerDisabled = true
                 locationManager.startUpdatingForDisplay()
+            }
+            .onDisappear {
+                UIApplication.shared.isIdleTimerDisabled = false
             }
             .onReceive(locationManager.$lastLocation.compactMap { $0 }) { loc in
                 hudViewModel.onNewGPSSample(loc)
@@ -318,13 +316,17 @@ struct MapViewRepresentable: UIViewRepresentable {
         private func applyZoom(_ mapView: MKMapView) {
             let diameter = Settings.zoomDiametersNm[pinchLevelIndex]
             settings.rangeRingRadiusNm = diameter / 2
+            let center: CLLocationCoordinate2D
             if let loc = locationManager.lastLocation {
-                let meters = diameter * 1852.0
-                let region = MKCoordinateRegion(center: loc.coordinate,
-                                                latitudinalMeters: meters,
-                                                longitudinalMeters: meters)
-                mapView.setRegion(region, animated: true)
+                center = loc.coordinate
+            } else {
+                center = mapView.region.center
             }
+            let meters = diameter * 1852.0
+            let region = MKCoordinateRegion(center: center,
+                                            latitudinalMeters: meters,
+                                            longitudinalMeters: meters)
+            mapView.setRegion(region, animated: true)
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
 
