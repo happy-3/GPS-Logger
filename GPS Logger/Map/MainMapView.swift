@@ -2,6 +2,12 @@ import SwiftUI
 import MapKit
 import Combine
 
+/// 新しいズーム倍率（旧来の 4 倍）
+private func metersForRng(_ radiusNm: Double) -> Double {
+    let diameterNm = radiusNm * 4
+    return diameterNm * 2 * 1852.0
+}
+
 /// Map 表示を行うメインビュー
 struct MainMapView: View {
     @StateObject var settings: Settings
@@ -458,12 +464,6 @@ struct MapViewRepresentable: UIViewRepresentable {
             let work = DispatchWorkItem { [weak self] in self?.updateLayers() }
             pendingLayerWorkItem = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
-        }
-
-        /// 新しいズーム倍率（旧来の 4 倍）
-        private func metersForRng(_ radiusNm: Double) -> Double {
-            let diameterNm = radiusNm * 4
-            return diameterNm * 2 * 1852.0
         }
 
         private func updateLayers() {
