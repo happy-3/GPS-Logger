@@ -53,8 +53,11 @@ final class Settings: ObservableObject {
     // Mach/CAS calculation option
     @UserDefaultBacked(key: "enableMachCalculation") var enableMachCalculation: Bool = true
 
-    /// 使用可能なレンジ段階 (レンジリング半径)
-    static let rangeLevelsNm: [Double] = [2.5, 5, 10, 20, 40, 80, 160]
+    /// ズーム可能な正方形サイズ (一辺) を NM で定義
+    static let zoomDiametersNm: [Double] = [5, 10, 20, 40, 80, 160, 320]
+
+    /// 既存コードとの互換用に半径値も保持
+    static let rangeLevelsNm: [Double] = zoomDiametersNm.map { $0 / 2 }
 
     /// レンジリングの半径 (NM)
     @UserDefaultBacked(key: "rangeRingRadiusNm") var rangeRingRadiusNm: Double = 10.0

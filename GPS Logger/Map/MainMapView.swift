@@ -71,18 +71,16 @@ struct MainMapView: View {
                     HStack {
                         Spacer()
                         VStack(spacing: 8) {
-                            Button(action: {
-                                freeScroll.toggle()
-                                DispatchQueue.main.async {
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                }
-                            }) {
-                                Image(systemName: "z.circle.fill")
-                                    .resizable()
-                                    .frame(width: 44, height: 44)
-                                    .opacity(freeScroll ? 1.0 : 0.3)
-                                    .foregroundStyle(freeScroll ? Color.accentColor : Color.primary)
-                            }
+                            Image(systemName: "z.circle.fill")
+                                .resizable()
+                                .frame(width: 44, height: 44)
+                                .opacity(freeScroll ? 1.0 : 0.3)
+                                .foregroundStyle(freeScroll ? Color.accentColor : Color.primary)
+                                .gesture(
+                                    PressGesture(minimumDuration: 0)
+                                        .onChanged { _ in freeScroll = true }
+                                        .onEnded { _ in freeScroll = false }
+                                )
 
                             HUDView(viewModel: hudViewModel)
                         }
@@ -162,6 +160,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         map.delegate = context.coordinator
         map.isZoomEnabled = false
         map.isScrollEnabled = freeScroll
+        map.preferredFramesPerSecond = 30
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
         map.addGestureRecognizer(tap)
         let long = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
@@ -229,6 +228,10 @@ struct MapViewRepresentable: UIViewRepresentable {
         private var navInfo: Binding<NavComputed?>
         private var freeScroll: Binding<Bool>
         private var lastVisibleRect = MKMapRect.null
+        private var pendingLayerWorkItem: DispatchWorkItem?
+
+        private var pinchLevelIndex = 0
+        private var pinchAccum: CGFloat = 1.0
 
         init(airspaceManager: AirspaceManager,
              settings: Settings,
@@ -255,12 +258,12 @@ struct MapViewRepresentable: UIViewRepresentable {
 
             settings.$rangeRingRadiusNm
                 .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in self?.updateLayers() }
+                .sink { [weak self] _ in self?.scheduleUpdateLayers() }
                 .store(in: &settingsCancellables)
 
             settings.$useNightTheme
                 .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in self?.updateLayers() }
+                .sink { [weak self] _ in self?.scheduleUpdateLayers() }
                 .store(in: &settingsCancellables)
         }
 
@@ -286,21 +289,44 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
 
         @objc func handlePinch(_ sender: UIPinchGestureRecognizer) {
-            guard sender.state == .changed || sender.state == .ended else { return }
-            let scale = Double(sender.scale)
-            let current = settings.rangeRingRadiusNm / scale
-            let levels = Settings.rangeLevelsNm
-            let nearest = levels.min(by: { abs($0 - current) < abs($1 - current) }) ?? settings.rangeRingRadiusNm
-            settings.rangeRingRadiusNm = nearest
-            if let mapView = mapView,
-               let loc = locationManager.lastLocation {
-                let meters = settings.rangeRingRadiusNm * 2 * 1852.0
+            guard let mapView = mapView else { return }
+            switch sender.state {
+            case .began:
+                let radius = settings.rangeRingRadiusNm
+                let levels = Settings.zoomDiametersNm.map { $0 / 2 }
+                let idx = levels.enumerated().min(by: { abs($0.element - radius) < abs($1.element - radius) })?.offset ?? 0
+                pinchLevelIndex = idx
+                pinchAccum = 1.0
+            case .changed:
+                pinchAccum *= sender.scale
+                sender.scale = 1.0
+                if pinchAccum < 0.6, pinchLevelIndex > 0 {
+                    pinchLevelIndex -= 1
+                    applyZoom(mapView)
+                    pinchAccum = 1.0
+                } else if pinchAccum > 1.4, pinchLevelIndex < Settings.zoomDiametersNm.count - 1 {
+                    pinchLevelIndex += 1
+                    applyZoom(mapView)
+                    pinchAccum = 1.0
+                }
+            case .ended, .cancelled:
+                pinchAccum = 1.0
+            default:
+                break
+            }
+        }
+
+        private func applyZoom(_ mapView: MKMapView) {
+            let diameter = Settings.zoomDiametersNm[pinchLevelIndex]
+            settings.rangeRingRadiusNm = diameter / 2
+            if let loc = locationManager.lastLocation {
+                let meters = diameter * 1852.0
                 let region = MKCoordinateRegion(center: loc.coordinate,
                                                 latitudinalMeters: meters,
                                                 longitudinalMeters: meters)
                 mapView.setRegion(region, animated: true)
             }
-            sender.scale = 1.0
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
 
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
@@ -411,7 +437,7 @@ struct MapViewRepresentable: UIViewRepresentable {
                 airspaceManager.updateMapRect(rect)
                 lastVisibleRect = rect
             }
-            updateLayers()
+            scheduleUpdateLayers()
         }
 
         private func formattedProps(_ props: [String: Any]) -> String {
@@ -421,8 +447,16 @@ struct MapViewRepresentable: UIViewRepresentable {
             return items.joined(separator: "\n")
         }
 
+        private func scheduleUpdateLayers() {
+            pendingLayerWorkItem?.cancel()
+            let work = DispatchWorkItem { [weak self] in self?.updateLayers() }
+            pendingLayerWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
+        }
+
         private func updateLayers() {
             guard let mapView else { return }
+            // CAShapeLayer はインスタンスを再利用し、パスのみ更新する
             if rangeLayer.superlayer == nil {
                 mapView.layer.addSublayer(rangeLayer)
             }
@@ -484,7 +518,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             } else {
                 mapView?.addAnnotation(aircraft)
             }
-            updateLayers()
+            scheduleUpdateLayers()
             updateNav()
             updateCamera()
         }
