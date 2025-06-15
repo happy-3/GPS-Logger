@@ -4,6 +4,7 @@ import UIKit
 import Combine
 
 /// Handles location updates and recording of log entries and photos.
+@MainActor
 final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, PressureAltitudeSource {
     private let locationManager = CLLocationManager()
 
@@ -72,9 +73,11 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                 guard let self else { return }
                 if self.isRecording {
                     self.logTimer?.invalidate()
-                    self.logTimer = Timer.scheduledTimer(withTimeInterval: newInterval, repeats: true) { [weak self] _ in
-                        self?.recordLog()
-                    }
+                    self.logTimer = Timer.scheduledTimer(timeInterval: newInterval,
+                                                         target: self,
+                                                         selector: #selector(handleLogTimer),
+                                                         userInfo: nil,
+                                                         repeats: true)
                 }
             }
             .store(in: &cancellables)
@@ -110,9 +113,15 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         previousRawAltitudeTimestamp = nil
         pressureAltitudeFt = nil
 
-        logTimer = Timer.scheduledTimer(withTimeInterval: settings.logInterval, repeats: true) { [weak self] _ in
-            self?.recordLog()
-        }
+        logTimer = Timer.scheduledTimer(timeInterval: settings.logInterval,
+                                        target: self,
+                                        selector: #selector(handleLogTimer),
+                                        userInfo: nil,
+                                        repeats: true)
+    }
+
+    @objc private func handleLogTimer() {
+        recordLog()
     }
 
     func stopRecording() {
