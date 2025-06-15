@@ -37,7 +37,7 @@ final class MBTilesOverlay: MKTileOverlay {
 
     override func loadTile(at path: MKTileOverlayPath, result: @escaping (Data?, Error?) -> Void) {
         queue.async {
-            guard let handle = self.db, let stmt = self.stmt else {
+            guard self.db != nil, let stmt = self.stmt else {
                 result(nil, NSError(domain: "MBTiles", code: 1))
                 return
             }
