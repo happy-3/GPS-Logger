@@ -182,14 +182,15 @@ struct MapViewRepresentable: UIViewRepresentable {
         context.coordinator.updateForCurrentState()
         let compass = MKCompassButton(mapView: map)
         compass.compassVisibility = .visible
-        compass.addTarget(context.coordinator, action: #selector(Coordinator.handleCompassTap), for: .touchUpInside)
+        let compassTap = UITapGestureRecognizer(target: context.coordinator,
+                                                action: #selector(Coordinator.handleCompassTap))
+        compass.addGestureRecognizer(compassTap)
         map.addSubview(compass)
         compass.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             compass.topAnchor.constraint(equalTo: map.topAnchor, constant: 10),
             compass.trailingAnchor.constraint(equalTo: map.trailingAnchor, constant: -10)
         ])
-        context.coordinator.compassButton = compass
         if let mbURL = Bundle.module.url(forResource: "basemap", withExtension: "mbtiles"),
            let overlay = MBTilesOverlay(mbtilesURL: mbURL) {
             map.addOverlay(overlay, level: .aboveLabels)
@@ -257,7 +258,6 @@ struct MapViewRepresentable: UIViewRepresentable {
         private var waypoint: Binding<Waypoint?>
         private var navInfo: Binding<NavComputed?>
         private var freeScroll: Binding<Bool>
-        private var compassButton: MKCompassButton?
         private var lastVisibleRect = MKMapRect.null
         private let layerUpdateSubject = PassthroughSubject<Void, Never>()
         private var layerUpdateCancellable: AnyCancellable?
