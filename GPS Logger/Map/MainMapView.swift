@@ -52,6 +52,8 @@ struct MainMapView: View {
                     .ignoresSafeArea()
 
                 if let nav = navInfo {
+                    // bannerAnnotation は廃止したため、ナビゲーション情報は
+                    // 画面中央の HUD で表示し続ける
                     TargetBannerView(nav: nav)
                         .position(x: UIScreen.main.bounds.midX, y: UIScreen.main.bounds.midY)
                 }
