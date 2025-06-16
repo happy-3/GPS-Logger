@@ -187,9 +187,17 @@ struct MapViewRepresentable: UIViewRepresentable {
     }
 
     func updateUIView(_ map: MKMapView, context: Context) {
-        let current = map.overlays.filter { !($0 is MBTilesOverlay) }
-        map.removeOverlays(current)
-        map.addOverlays(airspaceManager.displayOverlays)
+        let targetIDs = Set(airspaceManager.displayOverlays.map { ObjectIdentifier($0) })
+        let toRemove = map.overlays
+            .filter { context.coordinator.overlayIDs.contains(ObjectIdentifier($0)) }
+            .filter { !targetIDs.contains(ObjectIdentifier($0)) }
+        if !toRemove.isEmpty { map.removeOverlays(toRemove) }
+
+        let toAdd = airspaceManager.displayOverlays
+            .filter { !context.coordinator.overlayIDs.contains(ObjectIdentifier($0)) }
+        if !toAdd.isEmpty { map.addOverlays(toAdd) }
+
+        context.coordinator.overlayIDs = targetIDs
 
         map.isScrollEnabled = freeScroll
 
@@ -230,12 +238,14 @@ struct MapViewRepresentable: UIViewRepresentable {
         private var rangeLayer = CAShapeLayer()
         private var trackLayer = CAShapeLayer()
         private var targetOverlay: MKPolyline?
-        private var bannerAnnotation: MKPointAnnotation?
+        var overlayIDs = Set<ObjectIdentifier>()
+        private var rendererCache: [ObjectIdentifier: MKOverlayRenderer] = [:]
         private var waypoint: Binding<Waypoint?>
         private var navInfo: Binding<NavComputed?>
         private var freeScroll: Binding<Bool>
         private var lastVisibleRect = MKMapRect.null
-        private var pendingLayerWorkItem: DispatchWorkItem?
+        private let layerUpdateSubject = PassthroughSubject<Void, Never>()
+        private var layerUpdateCancellable: AnyCancellable?
 
         private var pinchLevelIndex = 0
         private var pinchAccum: CGFloat = 1.0
@@ -255,6 +265,10 @@ struct MapViewRepresentable: UIViewRepresentable {
             self.navInfo = navInfo
             self.freeScroll = freeScroll
             super.init()
+
+            layerUpdateCancellable = layerUpdateSubject
+                .debounce(for: .milliseconds(200), scheduler: DispatchQueue.main)
+                .sink { [weak self] in self?.updateLayers() }
 
             cancellable = locationManager.$lastLocation
                 .compactMap { $0 }
@@ -304,7 +318,6 @@ struct MapViewRepresentable: UIViewRepresentable {
                 waypoint.wrappedValue = nil
                 navInfo.wrappedValue = nil
                 if let overlay = targetOverlay { mapView?.removeOverlay(overlay) }
-                if let ann = bannerAnnotation { mapView?.removeAnnotation(ann) }
             }
         }
 
@@ -357,35 +370,43 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-            if let overlay = overlay as? MBTilesOverlay {
-                return MKTileOverlayRenderer(tileOverlay: overlay)
+            let key = ObjectIdentifier(overlay)
+            if let cached = rendererCache[key] { return cached }
+
+            let renderer: MKOverlayRenderer
+            if let ov = overlay as? MBTilesOverlay {
+                renderer = MKTileOverlayRenderer(tileOverlay: ov)
             } else if let poly = overlay as? MKPolyline {
-                let renderer = MKPolylineRenderer(polyline: poly)
-                let cat = (poly.subtitle ?? "")
+                let r = MKPolylineRenderer(polyline: poly)
+                let cat = poly.subtitle ?? ""
                 let hex = settings.airspaceStrokeColors[cat] ?? "FF0000FF"
-                renderer.strokeColor = UIColor(hex: hex) ?? .red
-                renderer.lineWidth = 2
-                return renderer
+                r.strokeColor = UIColor(hex: hex) ?? .red
+                r.lineWidth = 2
+                renderer = r
             } else if let polygon = overlay as? MKPolygon {
-                let renderer = MKPolygonRenderer(polygon: polygon)
-                let cat = (polygon.subtitle ?? "")
+                let r = MKPolygonRenderer(polygon: polygon)
+                let cat = polygon.subtitle ?? ""
                 let strokeHex = settings.airspaceStrokeColors[cat] ?? "0000FFFF"
                 let fillHex = settings.airspaceFillColors[cat] ?? "0000FF33"
-                renderer.strokeColor = UIColor(hex: strokeHex) ?? .blue
-                renderer.fillColor = UIColor(hex: fillHex) ?? UIColor.blue.withAlphaComponent(0.2)
-                renderer.lineWidth = 1
-                return renderer
+                r.strokeColor = UIColor(hex: strokeHex) ?? .blue
+                r.fillColor = UIColor(hex: fillHex) ?? UIColor.blue.withAlphaComponent(0.2)
+                r.lineWidth = 1
+                renderer = r
             } else if let circle = overlay as? MKCircle {
-                let renderer = MKCircleRenderer(circle: circle)
-                let cat = (circle.subtitle ?? "")
+                let r = MKCircleRenderer(circle: circle)
+                let cat = circle.subtitle ?? ""
                 let strokeHex = settings.airspaceStrokeColors[cat] ?? "800080FF"
                 let fillHex = settings.airspaceFillColors[cat] ?? "80008055"
-                renderer.strokeColor = UIColor(hex: strokeHex) ?? .purple
-                renderer.fillColor = UIColor(hex: fillHex) ?? UIColor.purple.withAlphaComponent(0.3)
-                renderer.lineWidth = 1
-                return renderer
+                r.strokeColor = UIColor(hex: strokeHex) ?? .purple
+                r.fillColor = UIColor(hex: fillHex) ?? UIColor.purple.withAlphaComponent(0.3)
+                r.lineWidth = 1
+                renderer = r
+            } else {
+                renderer = MKOverlayRenderer(overlay: overlay)
             }
-            return MKOverlayRenderer(overlay: overlay)
+
+            rendererCache[key] = renderer
+            return renderer
         }
 
 
@@ -396,24 +417,6 @@ struct MapViewRepresentable: UIViewRepresentable {
             }
 
 
-            if annotation === bannerAnnotation {
-                let id = "banner"
-                let view = mapView.dequeueReusableAnnotationView(withIdentifier: id) ?? MKAnnotationView(annotation: annotation, reuseIdentifier: id)
-                if let nav = navInfo.wrappedValue {
-                    let label = UILabel()
-                    label.numberOfLines = 0
-                    label.font = UIFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
-                    let fmt = DateFormatter()
-                    fmt.dateFormat = "HH:mm:ss"
-                    label.text = String(format: "BRG %03.0f\nDST %.1f\nETE %.0f\nETA %@", nav.bearing, nav.distance, nav.ete, fmt.string(from: nav.eta))
-                    label.textColor = .white
-                    label.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-                    label.sizeToFit()
-                    view.addSubview(label)
-                    view.bounds = label.bounds
-                }
-                return view
-            }
 
             let id = "info"
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: id) ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
@@ -445,10 +448,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
 
         private func scheduleUpdateLayers() {
-            pendingLayerWorkItem?.cancel()
-            let work = DispatchWorkItem { [weak self] in self?.updateLayers() }
-            pendingLayerWorkItem = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
+            layerUpdateSubject.send(())
         }
 
         private func updateLayers() {
@@ -550,12 +550,6 @@ struct MapViewRepresentable: UIViewRepresentable {
             targetOverlay = poly
             mapView.addOverlay(poly)
 
-            let mid = GeodesicCalculator.destinationPoint(from: state.position, courseDeg: bd.bearing, distanceNm: bd.distance/2)
-            if let ann = bannerAnnotation { mapView.removeAnnotation(ann) }
-            let ann = MKPointAnnotation()
-            ann.coordinate = mid
-            bannerAnnotation = ann
-            mapView.addAnnotation(ann)
         }
 
         func updateForCurrentState() {

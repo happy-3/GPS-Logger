@@ -101,7 +101,9 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
                 Logger.airspace.debug("Searching bundle at \(bundleDir?.path ?? "nil")")
                 let jsons = Bundle.module.urls(forResourcesWithExtension: "geojson", subdirectory: nil) ?? []
                 let mbts = Bundle.module.urls(forResourcesWithExtension: "mbtiles", subdirectory: nil) ?? []
-                files = jsons + mbts
+                let mbNames = Set(mbts.map { $0.deletingPathExtension().lastPathComponent })
+                let filteredJsons = jsons.filter { !mbNames.contains($0.deletingPathExtension().lastPathComponent) }
+                files = mbts + filteredJsons
 
                 if files.isEmpty {
                     Logger.airspace.debug("No airspace data found in bundle")
@@ -109,7 +111,10 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
                         let dir = docs.appendingPathComponent("Airspace")
                         Logger.airspace.debug("Searching documents at \(dir.path)")
                         if let all = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
-                            files = all.filter { ["geojson", "mbtiles"].contains($0.pathExtension.lowercased()) }
+                            let mbts = all.filter { $0.pathExtension.lowercased() == "mbtiles" }
+                            let mbNames = Set(mbts.map { $0.deletingPathExtension().lastPathComponent })
+                            let jsons = all.filter { $0.pathExtension.lowercased() == "geojson" && !mbNames.contains($0.deletingPathExtension().lastPathComponent) }
+                            files = mbts + jsons
                         }
                     }
                 }
