@@ -66,6 +66,7 @@ struct FlightAssistView: View {
         let ciSpeed: Double
         let duration: TimeInterval
 
+        @MainActor
         func isStable(using settings: Settings) -> Bool {
             duration >= settings.faStableDuration &&
             ciTrack <= settings.faTrackCILimit &&
