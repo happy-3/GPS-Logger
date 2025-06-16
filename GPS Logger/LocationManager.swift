@@ -102,7 +102,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         locationManager.pausesLocationUpdatesAutomatically = false
     }
 
-    func startRecording() {
+    @MainActor func startRecording() {
         flightLogManager.startSession()
         isRecording = true
 
@@ -119,25 +119,25 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                                         repeats: true)
     }
 
-    @objc private func handleLogTimer() {
+    @MainActor @objc private func handleLogTimer() {
         recordLog()
     }
 
-    func stopRecording() {
+    @MainActor func stopRecording() {
         isRecording = false
         logTimer?.invalidate()
         logTimer = nil
         altitudeFusionManager.stopUpdates()
     }
 
-    func recordPhotoCapture() -> Int? {
+    @MainActor func recordPhotoCapture() -> Int? {
         if !isRecording { return nil }
         photoCounter += 1
         pendingPhotoIndex = photoCounter
         return photoCounter
     }
 
-    private func updateAltitude(with loc: CLLocation) {
+    @MainActor private func updateAltitude(with loc: CLLocation) {
         let altitudeFt = loc.altitude * 3.28084
         let ellipsoidFt = loc.ellipsoidalAltitude * 3.28084
         let now = Date()
@@ -159,7 +159,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         altitudeFusionManager.startUpdates(gpsAltitude: altitudeFt)
     }
 
-    func recordLog() {
+    @MainActor func recordLog() {
         guard let loc = lastLocation else { return }
         let altitudeFt = rawGpsAltitude
         let now = Date()
