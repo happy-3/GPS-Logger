@@ -45,6 +45,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
 
     private var cancellables = Set<AnyCancellable>()
 
+    @MainActor
     init(flightLogManager: FlightLogManager,
          altitudeFusionManager: AltitudeFusionManager,
          settings: Settings) {

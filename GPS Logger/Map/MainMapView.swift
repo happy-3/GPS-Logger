@@ -456,8 +456,10 @@ struct MapViewRepresentable: UIViewRepresentable {
             let dh = abs(rect.size.height - lastVisibleRect.size.height)
             let threshold = max(rect.size.width, rect.size.height) * 0.1
             if lastVisibleRect.isNull || dx > threshold || dy > threshold || dw > threshold || dh > threshold {
-                airspaceManager.updateMapRect(rect)
                 lastVisibleRect = rect
+                Task { @MainActor in
+                    airspaceManager.updateMapRect(rect)
+                }
             }
             scheduleUpdateLayers()
         }
