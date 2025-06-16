@@ -121,7 +121,7 @@ final class FlightLogManager: ObservableObject {
     }
 
     /// Export all logs as CSV with UTF-8 BOM.
-    func exportCSV() -> URL? {
+    @MainActor func exportCSV() -> URL? {
         guard let folderURL = sessionFolderURL else { return nil }
         let fileName = "FlightLog_\(Int(Date().timeIntervalSince1970)).csv"
         let fileURL = folderURL.appendingPathComponent(fileName)
@@ -193,7 +193,7 @@ final class FlightLogManager: ObservableObject {
     }
 
     /// Export distance measurements as CSV with UTF-8 BOM.
-    func exportDistanceCSV() -> URL? {
+    @MainActor func exportDistanceCSV() -> URL? {
         guard let folderURL = sessionFolderURL else { return nil }
         let fileName = "Distance_\(Int(Date().timeIntervalSince1970)).csv"
         let fileURL = folderURL.appendingPathComponent(fileName)
@@ -226,7 +226,7 @@ final class FlightLogManager: ObservableObject {
     ///   - measurement: The measurement to export logs for.
     ///   - logs: Flight logs displayed in the distance graph.
     /// - Returns: URL of the exported CSV if successful.
-    func exportMeasurementLogs(for measurement: DistanceMeasurement,
+    @MainActor func exportMeasurementLogs(for measurement: DistanceMeasurement,
                                logs: [FlightLog]) -> URL? {
         guard let folderURL = sessionFolderURL else { return nil }
 
@@ -268,7 +268,7 @@ final class FlightLogManager: ObservableObject {
     ///   - measurement: The associated distance measurement.
     ///   - chartImage: Image created from `DistanceGraphView`.
     /// - Returns: URL of the saved PNG if successful.
-    func exportMeasurementGraphImage(for measurement: DistanceMeasurement,
+    @MainActor func exportMeasurementGraphImage(for measurement: DistanceMeasurement,
                                      chartImage: UIImage) -> URL? {
         guard let folderURL = sessionFolderURL else { return nil }
 
