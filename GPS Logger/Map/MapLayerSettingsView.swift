@@ -8,7 +8,10 @@ struct MapLayerSettingsView: View {
 
     var body: some View {
         Form {
-            Picker("Orientation", selection: $settings.orientationMode) {
+            Picker("Orientation", selection: Binding(
+                get: { settings.orientationMode },
+                set: { settings.orientationMode = $0 }
+            )) {
                 ForEach(Settings.MapOrientationMode.allCases) { mode in
                     Text(mode.label).tag(mode)
                 }
