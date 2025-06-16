@@ -227,7 +227,6 @@ struct MapViewRepresentable: UIViewRepresentable {
         private var settingsCancellables = Set<AnyCancellable>()
         var mapView: MKMapView?
         var regionSet = false
-        private var aircraft = MKPointAnnotation()
         private var rangeLayer = CAShapeLayer()
         private var trackLayer = CAShapeLayer()
         private var targetOverlay: MKPolyline?
@@ -396,34 +395,6 @@ struct MapViewRepresentable: UIViewRepresentable {
                 return nil
             }
 
-            if annotation === aircraft {
-                let id = "aircraft"
-                let view = mapView.dequeueReusableAnnotationView(withIdentifier: id) ?? MKAnnotationView(annotation: annotation, reuseIdentifier: id)
-                view.image = UIImage(systemName: "airplane")
-                view.bounds.size = CGSize(width: 30, height: 30)
-                if let hdg = locationManager.lastLocation?.course {
-                    view.transform = CGAffineTransform(rotationAngle: CGFloat(hdg * .pi / 180))
-                }
-                let tag = 1001
-                let label: UILabel
-                if let existing = view.viewWithTag(tag) as? UILabel {
-                    label = existing
-                } else {
-                    label = UILabel()
-                    label.tag = tag
-                    label.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-                    label.textColor = .white
-                    label.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-                    view.addSubview(label)
-                }
-                if let loc = locationManager.lastLocation {
-                    let gs = max(0, loc.speed * 1.94384)
-                    label.text = String(format: "TRK %03.0f° GS %.0f kt ALT %.0f ft", loc.course, gs, locationManager.rawGpsAltitude)
-                    label.sizeToFit()
-                    label.center = CGPoint(x: view.bounds.midX, y: view.bounds.maxY + label.bounds.height/2)
-                }
-                return view
-            }
 
             if annotation === bannerAnnotation {
                 let id = "banner"
@@ -553,19 +524,6 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
 
         private func updateAircraftLocation(_ loc: CLLocation) {
-            aircraft.coordinate = loc.coordinate
-            if let mapView,
-               let view = mapView.view(for: aircraft) {
-                let tag = 1001
-                let label = view.viewWithTag(tag) as? UILabel
-                let gs = max(0, loc.speed * 1.94384)
-                label?.text = String(format: "TRK %03.0f° GS %.0f kt ALT %.0f ft", loc.course, gs, locationManager.rawGpsAltitude)
-                label?.sizeToFit()
-                label?.center = CGPoint(x: view.bounds.midX, y: view.bounds.maxY + (label?.bounds.height ?? 0)/2)
-                view.transform = CGAffineTransform(rotationAngle: CGFloat(loc.course * .pi / 180))
-            } else {
-                mapView?.addAnnotation(aircraft)
-            }
             scheduleUpdateLayers()
             updateNav()
             updateCamera()
@@ -573,10 +531,11 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         private func updateNav() {
             guard let wp = waypoint.wrappedValue,
-                  let mapView else { return }
-            let state = AircraftState(position: aircraft.coordinate,
-                                     groundTrack: locationManager.lastLocation?.course ?? 0,
-                                     groundSpeedKt: max(0, locationManager.lastLocation?.speed ?? 0 * 1.94384),
+                  let mapView,
+                  let loc = locationManager.lastLocation else { return }
+            let state = AircraftState(position: loc.coordinate,
+                                     groundTrack: loc.course,
+                                     groundSpeedKt: max(0, loc.speed * 1.94384),
                                      altitudeFt: locationManager.rawGpsAltitude,
                                      timestamp: Date())
             let bd = GeodesicCalculator.bearingDistance(from: state.position, to: wp.coordinate)
