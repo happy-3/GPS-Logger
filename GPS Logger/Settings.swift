@@ -67,7 +67,11 @@ final class Settings: ObservableObject {
         }
     }
 
-    @UserDefaultBacked(key: "orientationMode") var orientationMode: MapOrientationMode = .trackUp
+    @UserDefaultBacked(key: "orientationMode") var orientationModeValue: String = MapOrientationMode.trackUp.rawValue
+    var orientationMode: MapOrientationMode {
+        get { MapOrientationMode(rawValue: orientationModeValue) ?? .trackUp }
+        set { orientationModeValue = newValue.rawValue }
+    }
 
     /// ズーム可能な正方形サイズ (一辺) を NM で定義
     static let zoomDiametersNm: [Double] = [5, 10, 20, 40, 80, 160, 320]
@@ -232,7 +236,7 @@ final class Settings: ObservableObject {
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
 
-        $orientationMode
+        $orientationModeValue
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)

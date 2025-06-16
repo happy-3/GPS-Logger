@@ -276,7 +276,7 @@ struct MapViewRepresentable: UIViewRepresentable {
                 .sink { [weak self] _ in self?.scheduleUpdateLayers() }
                 .store(in: &settingsCancellables)
 
-            settings.$orientationMode
+            settings.$orientationModeValue
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in self?.updateCamera() }
                 .store(in: &settingsCancellables)
