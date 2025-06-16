@@ -180,7 +180,9 @@ struct MapViewRepresentable: UIViewRepresentable {
            let overlay = MBTilesOverlay(mbtilesURL: mbURL) {
             map.addOverlay(overlay, level: .aboveLabels)
         }
-        airspaceManager.updateMapRect(map.visibleMapRect)
+        DispatchQueue.main.async {
+            airspaceManager.updateMapRect(map.visibleMapRect)
+        }
         return map
     }
 
