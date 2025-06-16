@@ -61,7 +61,7 @@ struct MainMapView: View {
                 HStack {
                     Spacer()
                     Text(String(format: "RNG %.0f NM", settings.rangeRingRadiusNm * 2))
-                        .font(.caption.monospacedDigit())
+                        .font(.title3.monospacedDigit())
                         .padding(4)
                         .background(Color.black.opacity(0.6))
                         .foregroundColor(.white)
@@ -71,8 +71,9 @@ struct MainMapView: View {
                 }
 
                 StatusRibbonView(locationManager: locationManager)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 10)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .offset(y: -UIScreen.main.bounds.height / 3)
+                    .padding(.trailing, 10)
             
                 VStack(spacing: 8) {
                     Image(systemName: "z.circle.fill")
@@ -169,6 +170,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         map.isZoomEnabled = false
         map.isScrollEnabled = freeScroll
         map.isRotateEnabled = (settings.orientationMode == .manual)
+        map.showsCompass = false
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
         map.addGestureRecognizer(tap)
         let long = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
@@ -178,6 +180,16 @@ struct MapViewRepresentable: UIViewRepresentable {
         map.addGestureRecognizer(pinch)
         context.coordinator.mapView = map
         context.coordinator.updateForCurrentState()
+        let compass = MKCompassButton(mapView: map)
+        compass.compassVisibility = .visible
+        compass.addTarget(context.coordinator, action: #selector(Coordinator.handleCompassTap), for: .touchUpInside)
+        map.addSubview(compass)
+        compass.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            compass.topAnchor.constraint(equalTo: map.topAnchor, constant: 10),
+            compass.trailingAnchor.constraint(equalTo: map.trailingAnchor, constant: -10)
+        ])
+        context.coordinator.compassButton = compass
         if let mbURL = Bundle.module.url(forResource: "basemap", withExtension: "mbtiles"),
            let overlay = MBTilesOverlay(mbtilesURL: mbURL) {
             map.addOverlay(overlay, level: .aboveLabels)
@@ -245,6 +257,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         private var waypoint: Binding<Waypoint?>
         private var navInfo: Binding<NavComputed?>
         private var freeScroll: Binding<Bool>
+        private var compassButton: MKCompassButton?
         private var lastVisibleRect = MKMapRect.null
         private let layerUpdateSubject = PassthroughSubject<Void, Never>()
         private var layerUpdateCancellable: AnyCancellable?
@@ -365,6 +378,14 @@ struct MapViewRepresentable: UIViewRepresentable {
             mapView.setRegion(region, animated: true)
 
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+
+        @objc func handleCompassTap() {
+            let modes = Settings.MapOrientationMode.allCases
+            if let idx = modes.firstIndex(of: settings.orientationMode) {
+                let next = modes[(idx + 1) % modes.count]
+                settings.orientationMode = next
+            }
         }
 
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
@@ -602,15 +623,27 @@ struct TargetBannerView: View {
         return fmt.string(from: nav.eta)
     }
 
+    private var eteText: String {
+        let fmt = DateComponentsFormatter()
+        fmt.allowedUnits = [.hour, .minute, .second]
+        fmt.unitsStyle = .positional
+        fmt.zeroFormattingBehavior = [.pad]
+        return fmt.string(from: nav.ete) ?? "--:--:--"
+    }
+
     var body: some View {
         VStack(spacing: 2) {
-            Text(String(format: "BRG %03.0f°", nav.bearing))
-            Text(String(format: "DST %.1f NM", nav.distance))
-            Text(String(format: "ETE %.0f s", nav.ete))
-            Text("ETA \(etaText)")
+            HStack(spacing: 12) {
+                Text(String(format: "BRG %03.0f°", nav.bearing))
+                Text(String(format: "RNG %.1f NM", nav.distance))
+            }
+            HStack(spacing: 12) {
+                Text("ETE \(eteText)")
+                Text("ETA \(etaText)")
+            }
         }
-        .font(.caption2.monospacedDigit())
-        .padding(6)
+        .font(.title3.monospacedDigit())
+        .padding(8)
         .background(Color.black.opacity(0.6))
         .foregroundColor(.white)
         .cornerRadius(6)
@@ -647,8 +680,8 @@ struct StatusRibbonView: View {
             Text("GS \(gsText)")
             Text("ALT \(altText)")
         }
-        .font(.caption.monospacedDigit())
-        .padding(6)
+        .font(.title3.monospacedDigit())
+        .padding(8)
         .background(Color.black.opacity(0.6))
         .foregroundColor(.white)
         .cornerRadius(6)
