@@ -52,7 +52,7 @@ struct MainMapView: View {
                     .ignoresSafeArea()
 
                 Rectangle()
-                    .stroke(Color.red, lineWidth: 4)
+                    .stroke(Color.red, lineWidth: 20)
                     .opacity(gpsAlert ? 1.0 : 0.0)
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: gpsAlert)
                     .ignoresSafeArea()
