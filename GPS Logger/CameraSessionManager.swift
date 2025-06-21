@@ -15,6 +15,7 @@ class CameraSessionManager: NSObject {
     let session = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
     private let queue = DispatchQueue(label: "CameraSessionQueue")
+    private let ciContext = CIContext()
 
     private var lastCaptureTime: Date?
     private var ringBuffer: [Frame] = []
@@ -160,8 +161,7 @@ extension CameraSessionManager: AVCaptureVideoDataOutputSampleBufferDelegate {
     private func imageFromSampleBuffer(_ sampleBuffer: CMSampleBuffer) -> UIImage? {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let context = CIContext()
-        if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
+        if let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) {
             return UIImage(cgImage: cgImage)
         }
         return nil
