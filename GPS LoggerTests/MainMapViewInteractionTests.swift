@@ -22,8 +22,7 @@ final class MainMapViewInteractionTests: XCTestCase {
     private func makeCoordinator(waypoint: Binding<Waypoint?>, navInfo: Binding<NavComputed?>) -> (MapViewRepresentable.Coordinator, LocationManager, MockMapView) {
         let settings = Settings()
         let flm = FlightLogManager(settings: settings)
-        let alt = AltitudeFusionManager(settings: settings)
-        let loc = LocationManager(flightLogManager: flm, altitudeFusionManager: alt, settings: settings)
+        let loc = LocationManager(flightLogManager: flm, settings: settings)
         let air = AirspaceManager(settings: settings)
         let hud = HUDViewModel(airspaceManager: air)
         let repr = MapViewRepresentable(locationManager: loc, airspaceManager: air, settings: settings, hudViewModel: hud, waypoint: waypoint, navInfo: navInfo)

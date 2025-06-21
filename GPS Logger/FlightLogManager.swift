@@ -146,16 +146,7 @@ final class FlightLogManager: ObservableObject {
             Field(header: "magneticVariation", include: true) { "\($0.magneticVariation)" },
             Field(header: "horizontalAccuracy(m)", include: true) { "\($0.horizontalAccuracyM)" },
             Field(header: "verticalAccuracy(ft)", include: true) { "\($0.verticalAccuracyFt)" },
-            Field(header: "altimeterPressure", include: settings.recordAltimeterPressure) { "\($0.altimeterPressure ?? 0)" },
             Field(header: "rawGpsAltitudeChangeRate(ft/min)", include: settings.recordRawGpsRate) { "\($0.rawGpsAltitudeChangeRate ?? 0)" },
-            Field(header: "relativeAltitude(ft)", include: settings.recordRelativeAltitude) { "\($0.relativeAltitude ?? 0)" },
-            Field(header: "barometricAltitude(ft)", include: settings.recordBarometricAltitude) { "\($0.barometricAltitude ?? 0)" },
-            Field(header: "latestAcceleration(ft/s²)", include: settings.recordAcceleration) { "\($0.latestAcceleration ?? 0)" },
-            Field(header: "fusedAltitude(ft)", include: settings.recordFusedAltitude) { "\($0.fusedAltitude ?? 0)" },
-            Field(header: "fusedAltitudeChangeRate(ft/min)", include: settings.recordFusedRate) { "\($0.fusedAltitudeChangeRate ?? 0)" },
-            Field(header: "baselineAltitude(ft)", include: settings.recordBaselineAltitude) { "\($0.baselineAltitude ?? 0)" },
-            Field(header: "measuredAltitude(ft)", include: settings.recordMeasuredAltitude) { "\($0.measuredAltitude ?? 0)" },
-            Field(header: "kalmanUpdateInterval(s)", include: settings.recordKalmanInterval) { "\($0.kalmanUpdateInterval ?? 0)" },
             Field(header: "photoIndex", include: true) { $0.photoIndex.map(String.init) ?? "" },
             Field(header: "estimatedOAT(C)", include: true) { "\($0.estimatedOAT ?? 0)" },
             Field(header: "theoreticalCAS(kt)", include: true) { "\($0.theoreticalCAS ?? 0)" },
@@ -234,17 +225,13 @@ final class FlightLogManager: ObservableObject {
         let fileURL = folderURL.appendingPathComponent(fileName)
 
         var headers = ["timestamp","gpsAltitude(ft)"]
-        if settings.recordFusedAltitude { headers.append("fusedAltitude(ft)") }
         if settings.recordRawGpsRate { headers.append("rawGpsAltitudeChangeRate(ft/min)") }
-        if settings.recordFusedRate { headers.append("fusedAltitudeChangeRate(ft/min)") }
         var csvText = headers.joined(separator: ",") + "\n"
         let isoFormatter = ISO8601DateFormatter.jst
         for log in logs {
             let ts = isoFormatter.string(from: log.timestamp)
             var row = ["\(ts)","\(log.gpsAltitude)"]
-            if settings.recordFusedAltitude { row.append("\(log.fusedAltitude ?? 0)") }
             if settings.recordRawGpsRate { row.append("\(log.rawGpsAltitudeChangeRate ?? 0)") }
-            if settings.recordFusedRate { row.append("\(log.fusedAltitudeChangeRate ?? 0)") }
             csvText.append(row.joined(separator: ",") + "\n")
         }
 

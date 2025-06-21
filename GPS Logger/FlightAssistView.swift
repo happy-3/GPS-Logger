@@ -450,7 +450,6 @@ struct FlightAssistView_Previews: PreviewProvider {
         NavigationStack {
             FlightAssistView()
                 .environmentObject(LocationManager(flightLogManager: FlightLogManager(settings: Settings()),
-                                                altitudeFusionManager: AltitudeFusionManager(settings: Settings()),
                                                 settings: Settings()))
                 .environmentObject(Settings())
         }

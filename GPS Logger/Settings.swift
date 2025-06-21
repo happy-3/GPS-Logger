@@ -7,11 +7,7 @@ final class Settings: ObservableObject {
     nonisolated(unsafe) let objectWillChange = ObservableObjectPublisher()
     private var cancellables = Set<AnyCancellable>()
 
-    @UserDefaultBacked(key: "processNoise") var processNoise: Double = 0.2
-    @UserDefaultBacked(key: "measurementNoise") var measurementNoise: Double = 15.0
-    @UserDefaultBacked(key: "useKalmanFilter") var useKalmanFilter: Bool = true
     @UserDefaultBacked(key: "logInterval") var logInterval: Double = 1.0
-    @UserDefaultBacked(key: "baroWeight") var baroWeight: Double = 0.75
 
     // Flight Assist stability thresholds
     @UserDefaultBacked(key: "faStableDuration") var faStableDuration: Double = 3.0
@@ -23,16 +19,7 @@ final class Settings: ObservableObject {
     @UserDefaultBacked(key: "photoPostSeconds") var photoPostSeconds: Double = 3.0
 
     // Recording options
-    @UserDefaultBacked(key: "recordAcceleration") var recordAcceleration: Bool = true
-    @UserDefaultBacked(key: "recordAltimeterPressure") var recordAltimeterPressure: Bool = true
     @UserDefaultBacked(key: "recordRawGpsRate") var recordRawGpsRate: Bool = true
-    @UserDefaultBacked(key: "recordRelativeAltitude") var recordRelativeAltitude: Bool = true
-    @UserDefaultBacked(key: "recordBarometricAltitude") var recordBarometricAltitude: Bool = true
-    @UserDefaultBacked(key: "recordFusedAltitude") var recordFusedAltitude: Bool = true
-    @UserDefaultBacked(key: "recordFusedRate") var recordFusedRate: Bool = true
-    @UserDefaultBacked(key: "recordBaselineAltitude") var recordBaselineAltitude: Bool = true
-    @UserDefaultBacked(key: "recordMeasuredAltitude") var recordMeasuredAltitude: Bool = true
-    @UserDefaultBacked(key: "recordKalmanInterval") var recordKalmanInterval: Bool = true
 
     // Display / record options
     @UserDefaultBacked(key: "showEllipsoidalAltitude") var showEllipsoidalAltitude: Bool = false
@@ -86,22 +73,7 @@ final class Settings: ObservableObject {
     @UserDefaultBacked(key: "useNightTheme") var useNightTheme: Bool = false
 
     init() {
-        $processNoise
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $measurementNoise
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
         $logInterval
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $baroWeight
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
@@ -116,57 +88,7 @@ final class Settings: ObservableObject {
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
 
-        $recordAcceleration
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $recordAltimeterPressure
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
         $recordRawGpsRate
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $recordRelativeAltitude
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $recordBarometricAltitude
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $recordFusedAltitude
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $recordFusedRate
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $recordBaselineAltitude
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $recordMeasuredAltitude
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $recordKalmanInterval
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $useKalmanFilter
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)

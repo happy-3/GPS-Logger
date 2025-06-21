@@ -10,7 +10,6 @@ struct ContentView: View {
     // 各種ObservableObjectの生成（Settingsも含む）
     @StateObject var settings = Settings()
     @StateObject var flightLogManager: FlightLogManager
-    @StateObject var altitudeFusionManager: AltitudeFusionManager
     @StateObject var locationManager: LocationManager
     @EnvironmentObject var airspaceManager: AirspaceManager
     
@@ -98,22 +97,13 @@ struct ContentView: View {
                             .font(.title)
                     }
 
-                    if settings.useKalmanFilter {
-                        if let fusedAlt = altitudeFusionManager.fusedAltitude {
-                            Text(String(format: "高度 (Kalman): %.1f ft", fusedAlt))
-                        } else {
-                            Text(String(format: "高度: %.1f ft", loc.altitude * 3.28084))
-                        }
-                    }
+                    Text(String(format: "高度: %.1f ft", loc.altitude * 3.28084))
                     Text(String(format: "垂直誤差: ±%.1f ft", loc.verticalAccuracy * 3.28084))
                         .font(.title)
                         .padding(.bottom, 40)
                         .foregroundColor(verticalErrorColor(for: loc.verticalAccuracy * 3.28084))
                     Text(String(format: "GPS 高度変化率: %.1f ft/min", locationManager.rawGpsAltitudeChangeRate))
 
-                    if settings.useKalmanFilter {
-                        Text(String(format: "高度変化率 (Kalman): %.1f ft/min", altitudeFusionManager.altitudeChangeRate))
-                    }
 
                     if let wd = windDirection, let ws = windSpeed {
                         let within = windBaseAltitude.map { abs(locationManager.rawGpsAltitude - $0) <= 500 } ?? false
@@ -257,22 +247,17 @@ struct ContentView: View {
         // 初期化順序に注意
         let settings = Settings()
         let flightLogManager = FlightLogManager(settings: settings)
-        let altitudeFusionManager = AltitudeFusionManager(settings: settings)
         let locationManager = LocationManager(flightLogManager: flightLogManager,
-                                              altitudeFusionManager: altitudeFusionManager,
                                               settings: settings)
         _settings = StateObject(wrappedValue: settings)
         _flightLogManager = StateObject(wrappedValue: flightLogManager)
-        _altitudeFusionManager = StateObject(wrappedValue: altitudeFusionManager)
         _locationManager = StateObject(wrappedValue: locationManager)
     }
 
     init(flightLogManager: FlightLogManager,
-         altitudeFusionManager: AltitudeFusionManager,
          locationManager: LocationManager) {
         _settings = StateObject(wrappedValue: flightLogManager.settings)
         _flightLogManager = StateObject(wrappedValue: flightLogManager)
-        _altitudeFusionManager = StateObject(wrappedValue: altitudeFusionManager)
         _locationManager = StateObject(wrappedValue: locationManager)
     }
 
@@ -305,7 +290,6 @@ struct ContentView: View {
         )
         .environmentObject(settings)
         .environmentObject(flightLogManager)
-        .environmentObject(altitudeFusionManager)
         .environmentObject(locationManager)
         .environmentObject(airspaceManager)
     }
@@ -462,7 +446,6 @@ struct ContentView: View {
 private struct NavigationContentView: View {
     @EnvironmentObject var settings: Settings
     @EnvironmentObject var flightLogManager: FlightLogManager
-    @EnvironmentObject var altitudeFusionManager: AltitudeFusionManager
     @EnvironmentObject var locationManager: LocationManager
     @EnvironmentObject var airspaceManager: AirspaceManager
 
@@ -566,7 +549,6 @@ private struct NavigationContentView: View {
             .onAppear {
                 UIApplication.shared.isIdleTimerDisabled = true
                 locationManager.startUpdatingForDisplay()
-                altitudeFusionManager.startUpdates(gpsAltitude: nil)
             }
             .onReceive(uiUpdateTimer) { _ in
                 currentTime = Date()
