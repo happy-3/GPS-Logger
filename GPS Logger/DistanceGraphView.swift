@@ -78,7 +78,6 @@ struct DistanceGraphView_Previews: PreviewProvider {
                 horizontalAccuracyM: 5,
                 verticalAccuracyFt: 10,
                 rawGpsAltitudeChangeRate: 0,
-                latestAcceleration: nil,
                 estimatedOAT: nil,
                 theoreticalCAS: nil,
                 theoreticalHP: nil,

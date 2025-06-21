@@ -174,7 +174,6 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              horizontalAccuracyM: loc.horizontalAccuracy,
                              verticalAccuracyFt: loc.verticalAccuracy * 3.28084,
                              rawGpsAltitudeChangeRate: settings.recordRawGpsRate ? rawGpsAltitudeChangeRate : nil,
-                             latestAcceleration: nil,
                              estimatedOAT: estimatedOAT,
                              theoreticalCAS: theoreticalCAS,
                              theoreticalHP: theoreticalHP,
