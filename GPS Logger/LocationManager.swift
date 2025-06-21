@@ -8,7 +8,6 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     private let locationManager = CLLocationManager()
 
     let flightLogManager: FlightLogManager
-    private let altitudeFusionManager: AltitudeFusionManager
     let settings: Settings
 
     @Published var lastLocation: CLLocation?
@@ -47,10 +46,8 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
 
     @MainActor
     init(flightLogManager: FlightLogManager,
-         altitudeFusionManager: AltitudeFusionManager,
          settings: Settings) {
         self.flightLogManager = flightLogManager
-        self.altitudeFusionManager = altitudeFusionManager
         self.settings = settings
         super.init()
 
@@ -128,7 +125,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         isRecording = false
         logTimer?.invalidate()
         logTimer = nil
-        altitudeFusionManager.stopUpdates()
+        // no sensor updates to stop
     }
 
     @MainActor func recordPhotoCapture() -> Int? {
@@ -154,10 +151,6 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         rawGpsAltitude = altitudeFt
         rawEllipsoidalAltitude = ellipsoidFt
         rawGpsAltitudeChangeRate = vspeed
-        altitudeFusionManager.latestGpsAltitude = altitudeFt
-        altitudeFusionManager.rawGpsVerticalSpeed = vspeed
-        altitudeFusionManager.gpsVerticalAccuracy = loc.verticalAccuracy * 3.28084
-        altitudeFusionManager.startUpdates(gpsAltitude: altitudeFt)
     }
 
     @MainActor func recordLog() {
@@ -169,8 +162,6 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             let spd = loc.speed
             return spd >= 0 ? spd * 1.94384 : nil
         }()
-        let latestAcc = settings.recordAcceleration ? altitudeFusionManager.latestAcceleration : nil
-
         let log = FlightLog(timestamp: now,
                              gpsTimestamp: loc.timestamp,
                              latitude: loc.coordinate.latitude,
@@ -182,16 +173,8 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
                              magneticVariation: declination,
                              horizontalAccuracyM: loc.horizontalAccuracy,
                              verticalAccuracyFt: loc.verticalAccuracy * 3.28084,
-                             altimeterPressure: settings.recordAltimeterPressure ? altitudeFusionManager.altimeterPressure : nil,
                              rawGpsAltitudeChangeRate: settings.recordRawGpsRate ? rawGpsAltitudeChangeRate : nil,
-                             relativeAltitude: settings.recordRelativeAltitude ? altitudeFusionManager.relativeAltitude : nil,
-                             barometricAltitude: settings.recordBarometricAltitude ? altitudeFusionManager.baselineAltitude.map { $0 + (altitudeFusionManager.relativeAltitude ?? 0) } ?? altitudeFt : nil,
-                             latestAcceleration: latestAcc,
-                             fusedAltitude: settings.recordFusedAltitude ? (altitudeFusionManager.fusedAltitude ?? altitudeFt) : nil,
-                             fusedAltitudeChangeRate: settings.recordFusedRate ? altitudeFusionManager.altitudeChangeRate : nil,
-                             baselineAltitude: settings.recordBaselineAltitude ? altitudeFusionManager.baselineAltitude : nil,
-                             measuredAltitude: settings.recordMeasuredAltitude ? altitudeFusionManager.measuredAltitude : nil,
-                             kalmanUpdateInterval: settings.recordKalmanInterval ? altitudeFusionManager.kalmanUpdateInterval : nil,
+                             latestAcceleration: nil,
                              estimatedOAT: estimatedOAT,
                              theoreticalCAS: theoreticalCAS,
                              theoreticalHP: theoreticalHP,

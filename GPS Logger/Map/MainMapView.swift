@@ -13,7 +13,6 @@ private func metersForRng(_ radiusNm: Double) -> Double {
 struct MainMapView: View {
     @StateObject var settings: Settings
     @StateObject var flightLogManager: FlightLogManager
-    @StateObject var altitudeFusionManager: AltitudeFusionManager
     @StateObject var locationManager: LocationManager
     @StateObject var airspaceManager: AirspaceManager
     @State private var showLayerSettings = false
@@ -26,9 +25,7 @@ struct MainMapView: View {
         let settings = Settings()
         _settings = StateObject(wrappedValue: settings)
         let flightLog = FlightLogManager(settings: settings)
-        let altitudeFusion = AltitudeFusionManager(settings: settings)
         _flightLogManager = StateObject(wrappedValue: flightLog)
-        _altitudeFusionManager = StateObject(wrappedValue: altitudeFusion)
 
         let aspManager = AirspaceManager(settings: settings)
         aspManager.loadAll()
@@ -37,7 +34,7 @@ struct MainMapView: View {
         let hudVM = HUDViewModel(airspaceManager: aspManager)
         _hudViewModel = StateObject(wrappedValue: hudVM)
 
-        _locationManager = StateObject(wrappedValue: LocationManager(flightLogManager: flightLog, altitudeFusionManager: altitudeFusion, settings: settings))
+        _locationManager = StateObject(wrappedValue: LocationManager(flightLogManager: flightLog, settings: settings))
     }
 
     var body: some View {
@@ -123,7 +120,6 @@ struct MainMapView: View {
                 NavigationLink("Detail") {
                     ContentView(
                         flightLogManager: flightLogManager,
-                        altitudeFusionManager: altitudeFusionManager,
                         locationManager: locationManager
                     )
                     .environmentObject(airspaceManager)

@@ -40,15 +40,6 @@ struct DistanceGraphView: View {
                 )
                 .foregroundStyle(.red)
             }
-            ForEach(logs) { log in
-                if let fused = log.fusedAltitude {
-                    LineMark(
-                        x: .value("Time", log.timestamp),
-                        y: .value("Kalman Altitude", fused)
-                    )
-                    .foregroundStyle(.blue)
-                }
-            }
         }
         .frame(height: 240)
     }
@@ -86,16 +77,8 @@ struct DistanceGraphView_Previews: PreviewProvider {
                 magneticVariation: 0,
                 horizontalAccuracyM: 5,
                 verticalAccuracyFt: 10,
-                altimeterPressure: nil,
                 rawGpsAltitudeChangeRate: 0,
-                relativeAltitude: 0,
-                barometricAltitude: gpsAlt,
                 latestAcceleration: nil,
-                fusedAltitude: fusedAlt,
-                fusedAltitudeChangeRate: 0,
-                baselineAltitude: nil,
-                measuredAltitude: nil,
-                kalmanUpdateInterval: nil,
                 estimatedOAT: nil,
                 theoreticalCAS: nil,
                 theoreticalHP: nil,
