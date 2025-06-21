@@ -1,6 +1,7 @@
 import SwiftUI
 import MapKit
 import Combine
+import QuartzCore
 
 /// 新しいズーム倍率（旧来の 4 倍）
 private func metersForRng(_ radiusNm: Double) -> Double {
@@ -252,6 +253,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         var regionSet = false
         private var rangeLayer = CAShapeLayer()
         private var trackLayer = CAShapeLayer()
+        private var labelLayers: [CATextLayer] = []
         private var targetOverlay: MKPolyline?
         var overlayIDs = Set<ObjectIdentifier>()
         private var rendererCache: [ObjectIdentifier: MKOverlayRenderer] = [:]
@@ -483,6 +485,8 @@ struct MapViewRepresentable: UIViewRepresentable {
             if trackLayer.superlayer == nil {
                 mapView.layer.addSublayer(trackLayer)
             }
+            labelLayers.forEach { $0.removeFromSuperlayer() }
+            labelLayers.removeAll()
 
             guard let loc = locationManager.lastLocation else { return }
             let center = mapView.convert(loc.coordinate, toPointTo: mapView)
@@ -501,15 +505,54 @@ struct MapViewRepresentable: UIViewRepresentable {
             rangeLayer.lineWidth = 1
             rangeLayer.path = ringPath.cgPath
 
-            let vecDest = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: loc.course, distanceNm: 1)
+            for frac in [0.25, 0.5, 0.75, 1.0] {
+                let nm = rangeNm * frac
+                let label = CATextLayer()
+                label.string = String(format: "%.0f NM", nm)
+                label.fontSize = 12
+                label.alignmentMode = .center
+                label.foregroundColor = rangeLayer.strokeColor
+                label.backgroundColor = UIColor.black.withAlphaComponent(0.5).cgColor
+                label.contentsScale = UIScreen.main.scale
+                let dest = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: 90, distanceNm: nm)
+                var pt = mapView.convert(dest, toPointTo: mapView)
+                pt.x += 12
+                pt.y -= 8
+                label.frame = CGRect(x: pt.x - 20, y: pt.y - 8, width: 40, height: 16)
+                mapView.layer.addSublayer(label)
+                labelLayers.append(label)
+            }
+
+            let vecDest = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: loc.course, distanceNm: rangeNm)
             let vecPt = mapView.convert(vecDest, toPointTo: mapView)
+            let trackVec = CGPoint(x: vecPt.x - center.x, y: vecPt.y - center.y)
+            let vecLen = hypot(trackVec.x, trackVec.y)
+            let unitVec = CGPoint(x: trackVec.x / vecLen, y: trackVec.y / vecLen)
+            let perpVec = CGPoint(x: -unitVec.y, y: unitVec.x)
             let vecPath = UIBezierPath()
             vecPath.move(to: center)
             vecPath.addLine(to: vecPt)
+
+            let gsKt = max(0, loc.speed * 1.94384)
+            if gsKt > 0 {
+                let tickDist = gsKt / 60.0
+                var dist = tickDist
+                let tickLen: CGFloat = 6
+                while dist < rangeNm {
+                    let tickCoord = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: loc.course, distanceNm: dist)
+                    let tickPt = mapView.convert(tickCoord, toPointTo: mapView)
+                    let start = CGPoint(x: tickPt.x + perpVec.x * tickLen, y: tickPt.y + perpVec.y * tickLen)
+                    let end = CGPoint(x: tickPt.x - perpVec.x * tickLen, y: tickPt.y - perpVec.y * tickLen)
+                    vecPath.move(to: start)
+                    vecPath.addLine(to: end)
+                    dist += tickDist
+                }
+            }
             let trackHex = settings.useNightTheme ? Color("TrackNight", bundle: .module).hexString
                                                  : Color("TrackDay", bundle: .module).hexString
             trackLayer.strokeColor = UIColor(hex: trackHex)?.cgColor ?? UIColor.yellow.cgColor
             trackLayer.lineWidth = 2
+            trackLayer.fillColor = UIColor.clear.cgColor
             trackLayer.path = vecPath.cgPath
         }
 
