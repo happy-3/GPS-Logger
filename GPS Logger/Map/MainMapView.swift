@@ -20,6 +20,7 @@ struct MainMapView: View {
     @State private var waypoint: Waypoint? = nil
     @State private var navInfo: NavComputed? = nil
     @State private var freeScroll: Bool = false
+    @State private var gpsAlert: Bool = false
 
     init() {
         let settings = Settings()
@@ -46,7 +47,14 @@ struct MainMapView: View {
                                     hudViewModel: hudViewModel,
                                     waypoint: $waypoint,
                                     navInfo: $navInfo,
-                                    freeScroll: $freeScroll)
+                                    freeScroll: $freeScroll,
+                                    gpsAlert: $gpsAlert)
+                    .ignoresSafeArea()
+
+                Rectangle()
+                    .stroke(Color.red, lineWidth: 4)
+                    .opacity(gpsAlert ? 1.0 : 0.0)
+                    .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: gpsAlert)
                     .ignoresSafeArea()
 
                 if let nav = navInfo {
@@ -56,17 +64,6 @@ struct MainMapView: View {
                         .position(x: UIScreen.main.bounds.midX, y: UIScreen.main.bounds.midY)
                 }
 
-                HStack {
-                    Spacer()
-                    Text(String(format: "RNG %.0f NM", settings.rangeRingRadiusNm * 2))
-                        .font(.title3.monospacedDigit())
-                        .padding(4)
-                        .background(Color.black.opacity(0.6))
-                        .foregroundColor(.white)
-                        .cornerRadius(4)
-                        .padding(.trailing, 10)
-                        .padding(.top, 10)
-                }
 
                 StatusRibbonView(locationManager: locationManager)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
@@ -159,6 +156,7 @@ struct MapViewRepresentable: UIViewRepresentable {
     @Binding var waypoint: Waypoint?
     @Binding var navInfo: NavComputed?
     @Binding var freeScroll: Bool
+    @Binding var gpsAlert: Bool
 
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView(frame: .zero)
@@ -234,7 +232,8 @@ struct MapViewRepresentable: UIViewRepresentable {
                     locationManager: locationManager,
                     waypoint: $waypoint,
                     navInfo: $navInfo,
-                    freeScroll: $freeScroll)
+                    freeScroll: $freeScroll,
+                    gpsAlert: $gpsAlert)
     }
 
     class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
@@ -256,6 +255,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         private var waypoint: Binding<Waypoint?>
         private var navInfo: Binding<NavComputed?>
         private var freeScroll: Binding<Bool>
+        private var gpsAlert: Binding<Bool>
         private var lastVisibleRect = MKMapRect.null
         private let layerUpdateSubject = PassthroughSubject<Void, Never>()
         private var layerUpdateCancellable: AnyCancellable?
@@ -269,7 +269,8 @@ struct MapViewRepresentable: UIViewRepresentable {
              locationManager: LocationManager,
              waypoint: Binding<Waypoint?>,
              navInfo: Binding<NavComputed?>,
-             freeScroll: Binding<Bool>) {
+             freeScroll: Binding<Bool>,
+             gpsAlert: Binding<Bool>) {
             self.airspaceManager = airspaceManager
             self.settings = settings
             self.viewModel = viewModel
@@ -277,6 +278,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             self.waypoint = waypoint
             self.navInfo = navInfo
             self.freeScroll = freeScroll
+            self.gpsAlert = gpsAlert
             super.init()
 
             layerUpdateCancellable = layerUpdateSubject
@@ -485,8 +487,11 @@ struct MapViewRepresentable: UIViewRepresentable {
             labelLayers.removeAll()
 
             guard let loc = locationManager.lastLocation else { return }
+            let validTrack = loc.course >= 0 && loc.horizontalAccuracy >= 0 && loc.horizontalAccuracy <= 100
+            gpsAlert.wrappedValue = !validTrack
             let center = mapView.convert(loc.coordinate, toPointTo: mapView)
             let rangeNm = settings.rangeRingRadiusNm
+            let course = validTrack ? loc.course : 90
             let edge = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: 90, distanceNm: rangeNm)
             let edgePt = mapView.convert(edge, toPointTo: mapView)
             let radius = hypot(edgePt.x - center.x, edgePt.y - center.y)
@@ -510,38 +515,51 @@ struct MapViewRepresentable: UIViewRepresentable {
                 label.foregroundColor = rangeLayer.strokeColor
                 label.backgroundColor = UIColor.black.withAlphaComponent(0.5).cgColor
                 label.contentsScale = UIScreen.main.scale
-                let dest = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: 90, distanceNm: nm)
+                let dest = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: course, distanceNm: nm)
                 var pt = mapView.convert(dest, toPointTo: mapView)
-                pt.x += 12
-                pt.y -= 8
+                let perpVec = CGPoint(x: -sin(course * .pi/180), y: cos(course * .pi/180))
+                pt.x += perpVec.x * 12
+                pt.y += perpVec.y * 12
                 label.frame = CGRect(x: pt.x - 20, y: pt.y - 8, width: 40, height: 16)
                 mapView.layer.addSublayer(label)
                 labelLayers.append(label)
             }
 
-            let vecDest = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: loc.course, distanceNm: rangeNm)
+            let vecDest = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: course, distanceNm: rangeNm)
             let vecPt = mapView.convert(vecDest, toPointTo: mapView)
             let trackVec = CGPoint(x: vecPt.x - center.x, y: vecPt.y - center.y)
             let vecLen = hypot(trackVec.x, trackVec.y)
             let unitVec = CGPoint(x: trackVec.x / vecLen, y: trackVec.y / vecLen)
             let perpVec = CGPoint(x: -unitVec.y, y: unitVec.x)
             let vecPath = UIBezierPath()
-            vecPath.move(to: center)
-            vecPath.addLine(to: vecPt)
+            if validTrack {
+                vecPath.move(to: center)
+                vecPath.addLine(to: vecPt)
+            }
 
             let gsKt = max(0, loc.speed * 1.94384)
-            if gsKt > 0 {
-                let tickDist = gsKt / 60.0
-                var dist = tickDist
-                let tickLen: CGFloat = 6
-                while dist < rangeNm {
-                    let tickCoord = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: loc.course, distanceNm: dist)
-                    let tickPt = mapView.convert(tickCoord, toPointTo: mapView)
-                    let start = CGPoint(x: tickPt.x + perpVec.x * tickLen, y: tickPt.y + perpVec.y * tickLen)
-                    let end = CGPoint(x: tickPt.x - perpVec.x * tickLen, y: tickPt.y - perpVec.y * tickLen)
-                    vecPath.move(to: start)
-                    vecPath.addLine(to: end)
-                    dist += tickDist
+            if validTrack && gsKt > 0 {
+                let minuteDist = gsKt / 60.0
+                let arrowCoord = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: course, distanceNm: minuteDist)
+                let arrowPt = mapView.convert(arrowCoord, toPointTo: mapView)
+                vecPath.move(to: center)
+                vecPath.addLine(to: arrowPt)
+                let headLen: CGFloat = 10
+                let p1 = CGPoint(x: arrowPt.x - unitVec.x * headLen + perpVec.x * headLen/2,
+                                 y: arrowPt.y - unitVec.y * headLen + perpVec.y * headLen/2)
+                let p2 = CGPoint(x: arrowPt.x - unitVec.x * headLen - perpVec.x * headLen/2,
+                                 y: arrowPt.y - unitVec.y * headLen - perpVec.y * headLen/2)
+                vecPath.move(to: p1)
+                vecPath.addLine(to: arrowPt)
+                vecPath.addLine(to: p2)
+
+                for m in 2...5 {
+                    let dist = minuteDist * Double(m)
+                    if dist > rangeNm { break }
+                    let markCoord = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: course, distanceNm: dist)
+                    let markPt = mapView.convert(markCoord, toPointTo: mapView)
+                    vecPath.move(to: markPt)
+                    vecPath.addArc(withCenter: markPt, radius: 3, startAngle: 0, endAngle: .pi*2, clockwise: true)
                 }
             }
             let trackHex = settings.useNightTheme ? Color("TrackNight", bundle: .module).hexString
@@ -549,6 +567,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             trackLayer.strokeColor = UIColor(hex: trackHex)?.cgColor ?? UIColor.yellow.cgColor
             trackLayer.lineWidth = 2
             trackLayer.fillColor = UIColor.clear.cgColor
+            trackLayer.opacity = validTrack ? 0.5 : 0.0
             trackLayer.path = vecPath.cgPath
         }
 
