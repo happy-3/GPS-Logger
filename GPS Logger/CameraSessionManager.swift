@@ -62,7 +62,8 @@ class CameraSessionManager: NSObject {
     /// dedicated session queue to avoid blocking the main thread.
     func startSession() {
         guard !session.isRunning else { return }
-        queue.async { [session] in
+        queue.async { [self] in
+            videoOutput.setSampleBufferDelegate(self, queue: queue)
             session.startRunning()
         }
     }
@@ -71,6 +72,7 @@ class CameraSessionManager: NSObject {
     /// Like `startRunning()`, `stopRunning()` should also run off the main thread.
     func stopSession() {
         queue.async { [self] in
+            videoOutput.setSampleBufferDelegate(nil, queue: nil)
             if session.isRunning { session.stopRunning() }
             ringBuffer.removeAll()
             lastCaptureTime = nil
