@@ -6,17 +6,23 @@ final class RangeRingOverlay: NSObject, MKOverlay {
     var coordinate: CLLocationCoordinate2D
     var radiusNm: Double
     var courseDeg: Double
+    private(set) var lastHeading: Double
 
     func update(center: CLLocationCoordinate2D, radiusNm: Double, courseDeg: Double) {
         self.coordinate = center
         self.radiusNm = radiusNm
         self.courseDeg = courseDeg
+        let newHeading = courseDeg - MagneticVariation.declination(at: center)
+        if abs(newHeading - lastHeading) >= 1 {
+            lastHeading = newHeading
+        }
     }
 
     init(center: CLLocationCoordinate2D, radiusNm: Double, courseDeg: Double) {
         self.coordinate = center
         self.radiusNm = radiusNm
         self.courseDeg = courseDeg
+        self.lastHeading = courseDeg - MagneticVariation.declination(at: center)
         super.init()
     }
 
@@ -39,17 +45,15 @@ final class RangeRingRenderer: MKOverlayRenderer {
 
     private let overlayObj: RangeRingOverlay
     private let settings: Settings
-    private let locationManager: LocationManager
 
     private var cachedRadius: CGFloat = -1
     private var cachedHeading: Double = -1
     private var ringPath = UIBezierPath()
     private var ticks: [Tick] = []
 
-    init(overlay: RangeRingOverlay, settings: Settings, locationManager: LocationManager) {
+    init(overlay: RangeRingOverlay, settings: Settings) {
         self.overlayObj = overlay
         self.settings = settings
-        self.locationManager = locationManager
         super.init(overlay: overlay)
     }
 
@@ -117,7 +121,7 @@ final class RangeRingRenderer: MKOverlayRenderer {
                                              : Color("RangeRingDay", bundle: .module).hexString
         let ringColor = UIColor(hex: ringHex) ?? .orange
 
-        let heading = locationManager.lastHeading?.magneticHeading ?? (overlayObj.courseDeg - locationManager.declination)
+        let heading = overlayObj.lastHeading
         if radius != cachedRadius || heading != cachedHeading {
             rebuildPaths(radius: radius, heading: heading)
         }
