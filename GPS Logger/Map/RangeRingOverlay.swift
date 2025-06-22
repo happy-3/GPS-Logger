@@ -22,6 +22,7 @@ final class RangeRingOverlay: NSObject, MKOverlay {
     }
 }
 
+@MainActor
 final class RangeRingRenderer: MKOverlayRenderer {
     private let overlayObj: RangeRingOverlay
     private let settings: Settings
