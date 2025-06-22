@@ -398,7 +398,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             if let ov = overlay as? MBTilesOverlay {
                 renderer = MKTileOverlayRenderer(tileOverlay: ov)
             } else if let ring = overlay as? RangeRingOverlay {
-                renderer = RangeRingRenderer(overlay: ring, settings: settings)
+                renderer = RangeRingRenderer(overlay: ring, settings: settings, locationManager: locationManager)
             } else if let track = overlay as? TrackVectorOverlay {
                 renderer = TrackVectorRenderer(overlay: track, settings: settings)
             } else if let poly = overlay as? MKPolyline {
