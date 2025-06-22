@@ -66,9 +66,8 @@ struct MainMapView: View {
 
 
                 StatusRibbonView(locationManager: locationManager)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .offset(y: -UIScreen.main.bounds.height / 3)
-                    .padding(.trailing, 10)
             
                 VStack(spacing: 8) {
                     Image(systemName: "z.circle.fill")
@@ -711,6 +710,7 @@ struct TargetBannerView: View {
 struct StatusRibbonView: View {
     @ObservedObject var locationManager: LocationManager
     @State private var useMetric = false
+    private static let fieldWidth: CGFloat = 150
 
     private var gsText: String {
         if useMetric {
@@ -731,9 +731,9 @@ struct StatusRibbonView: View {
     var body: some View {
         HStack(spacing: 20) {
             Text("GS \(gsText)")
-                .frame(width: 110, alignment: .center)
+                .frame(width: Self.fieldWidth, alignment: .center)
             Text("ALT \(altText)")
-                .frame(width: 110, alignment: .center)
+                .frame(width: Self.fieldWidth, alignment: .center)
         }
         .font(.title3.monospacedDigit())
         .padding(8)
