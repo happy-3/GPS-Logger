@@ -9,6 +9,15 @@ final class TrackVectorOverlay: NSObject, MKOverlay {
     var radiusNm: Double
     var valid: Bool
 
+    func update(center: CLLocationCoordinate2D, courseDeg: Double,
+                groundSpeedKt: Double, radiusNm: Double, valid: Bool) {
+        self.coordinate = center
+        self.courseDeg = courseDeg
+        self.groundSpeedKt = groundSpeedKt
+        self.radiusNm = radiusNm
+        self.valid = valid
+    }
+
     init(center: CLLocationCoordinate2D, courseDeg: Double, groundSpeedKt: Double, radiusNm: Double, valid: Bool) {
         self.coordinate = center
         self.courseDeg = courseDeg

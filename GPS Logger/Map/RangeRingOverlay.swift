@@ -7,6 +7,12 @@ final class RangeRingOverlay: NSObject, MKOverlay {
     var radiusNm: Double
     var courseDeg: Double
 
+    func update(center: CLLocationCoordinate2D, radiusNm: Double, courseDeg: Double) {
+        self.coordinate = center
+        self.radiusNm = radiusNm
+        self.courseDeg = courseDeg
+    }
+
     init(center: CLLocationCoordinate2D, radiusNm: Double, courseDeg: Double) {
         self.coordinate = center
         self.radiusNm = radiusNm
