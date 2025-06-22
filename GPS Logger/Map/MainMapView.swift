@@ -51,7 +51,7 @@ struct MainMapView: View {
                                     gpsAlert: $gpsAlert)
                     .ignoresSafeArea()
 
-                Rectangle()
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
                     .stroke(Color.red, lineWidth: 20)
                     .opacity(gpsAlert ? 1.0 : 0.0)
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: gpsAlert)
@@ -730,13 +730,10 @@ struct StatusRibbonView: View {
 
     var body: some View {
         HStack(spacing: 20) {
-            if let track = locationManager.lastLocation?.course, track >= 0 {
-                Text(String(format: "TRK %.0f°", track))
-            } else {
-                Text("TRK --")
-            }
             Text("GS \(gsText)")
+                .frame(width: 110, alignment: .center)
             Text("ALT \(altText)")
+                .frame(width: 110, alignment: .center)
         }
         .font(.title3.monospacedDigit())
         .padding(8)
