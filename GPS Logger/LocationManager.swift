@@ -22,6 +22,9 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var declination: Double = 0.0
     @Published var lastHeading: CLHeading?
 
+    private var declinationLocation: CLLocation?
+    private var declinationTimestamp: Date?
+
     var photoCounter: Int = 0
     var pendingPhotoIndex: Int? = nil
     var logTimer: Timer?
@@ -197,6 +200,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         Task { @MainActor in
             self.lastLocation = latest
             self.updateAltitude(with: latest)
+            self.updateDeclinationIfNeeded(with: latest)
         }
     }
 
@@ -218,9 +222,30 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
         Task { @MainActor in
             self.lastHeading = newHeading
-            if newHeading.headingAccuracy >= 0 {
-                self.declination = newHeading.trueHeading - newHeading.magneticHeading
+        }
+    }
+
+    @MainActor
+    private func updateDeclinationIfNeeded(with loc: CLLocation) {
+        let distanceThreshold: CLLocationDistance = 50_000
+        let timeThreshold: TimeInterval = 21_600  // 6 時間
+
+        var needUpdate = false
+        if let prevLoc = declinationLocation,
+           let prevTime = declinationTimestamp {
+            let distance = loc.distance(from: prevLoc)
+            let age = Date().timeIntervalSince(prevTime)
+            if distance > distanceThreshold || age > timeThreshold {
+                needUpdate = true
             }
+        } else {
+            needUpdate = true
+        }
+
+        if needUpdate {
+            declination = MagneticVariation.declination(at: loc.coordinate)
+            declinationLocation = loc
+            declinationTimestamp = Date()
         }
     }
 }
