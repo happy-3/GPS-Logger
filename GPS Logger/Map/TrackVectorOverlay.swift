@@ -26,6 +26,7 @@ final class TrackVectorOverlay: NSObject, MKOverlay {
     }
 }
 
+@MainActor
 final class TrackVectorRenderer: MKOverlayRenderer {
     private let overlayObj: TrackVectorOverlay
     private let settings: Settings
@@ -41,7 +42,7 @@ final class TrackVectorRenderer: MKOverlayRenderer {
         let centerPt = point(for: MKMapPoint(overlayObj.coordinate))
         let dest = GeodesicCalculator.destinationPoint(from: overlayObj.coordinate, courseDeg: overlayObj.courseDeg, distanceNm: overlayObj.radiusNm)
         let destPt = point(for: MKMapPoint(dest))
-        var path = CGMutablePath()
+        let path = CGMutablePath()
         path.move(to: centerPt)
         path.addLine(to: destPt)
 
