@@ -38,7 +38,21 @@ struct MagneticVariation {
                 value = model.declination(atLatitude: coordinate.latitude,
                                           longitude: coordinate.longitude,
                                           altitude: 0)
+            } else {
+                // CLGeomagneticModel が利用できない場合は独自計算を行う
+                let geo = Geomagnetism(longitude: coordinate.longitude,
+                                       latitude: coordinate.latitude,
+                                       altitude: 0,
+                                       date: date)
+                value = geo.declination
             }
+        } else {
+            // iOS 16 未満では Geomagnetism を使って算出
+            let geo = Geomagnetism(longitude: coordinate.longitude,
+                                   latitude: coordinate.latitude,
+                                   altitude: 0,
+                                   date: date)
+            value = geo.declination
         }
         cachedCoordinate = coordinate
         cachedDate = date
