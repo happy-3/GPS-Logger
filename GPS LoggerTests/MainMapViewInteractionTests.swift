@@ -55,7 +55,7 @@ final class MainMapViewInteractionTests: XCTestCase {
         let location = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5, course: 90, speed: 100/1.94384, timestamp: Date())
         loc.lastLocation = location
         coord.updateForCurrentState()
-        let hasLayer = map.layer.sublayers?.contains { $0 is CAShapeLayer } ?? false
-        XCTAssertTrue(hasLayer)
+        let hasOverlay = map.overlays.contains { $0 is RangeRingOverlay }
+        XCTAssertTrue(hasOverlay)
     }
 }
