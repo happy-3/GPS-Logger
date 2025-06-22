@@ -58,4 +58,31 @@ final class MainMapViewInteractionTests: XCTestCase {
         let hasOverlay = map.overlays.contains { $0 is RangeRingOverlay }
         XCTAssertTrue(hasOverlay)
     }
+
+    func testOverlayObjectsAreReused() {
+        var wp: Waypoint?
+        var nav: NavComputed?
+        let bwp = Binding<Waypoint?>(get: { wp }, set: { wp = $0 })
+        let bnav = Binding<NavComputed?>(get: { nav }, set: { nav = $0 })
+        let (coord, loc, map) = makeCoordinator(waypoint: bwp, navInfo: bnav)
+
+        let loc1 = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5, course: 90, speed: 80/1.94384, timestamp: Date())
+        loc.lastLocation = loc1
+        coord.updateForCurrentState()
+
+        let ring1 = map.overlays.first { $0 is RangeRingOverlay } as? RangeRingOverlay
+        let track1 = map.overlays.first { $0 is TrackVectorOverlay } as? TrackVectorOverlay
+
+        let loc2 = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 1, longitude: 1), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5, course: 100, speed: 50/1.94384, timestamp: Date())
+        loc.lastLocation = loc2
+        coord.updateForCurrentState()
+
+        let ring2 = map.overlays.first { $0 is RangeRingOverlay } as? RangeRingOverlay
+        let track2 = map.overlays.first { $0 is TrackVectorOverlay } as? TrackVectorOverlay
+
+        XCTAssertTrue(ring1 === ring2)
+        XCTAssertTrue(track1 === track2)
+        XCTAssertEqual(ring2?.coordinate.latitude, 1, accuracy: 0.0001)
+        XCTAssertEqual(track2?.courseDeg, 100, accuracy: 0.0001)
+    }
 }

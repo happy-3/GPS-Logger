@@ -465,7 +465,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
 
         func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
-            scheduleUpdateLayers()
+            // 移動のみではオーバーレイを再生成しない
         }
 
         private func formattedProps(_ props: [String: Any]) -> String {
@@ -481,26 +481,39 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         private func updateLayers() {
             guard let mapView else { return }
-            if let overlay = rangeOverlay { mapView.removeOverlay(overlay) }
-            if let overlay = trackOverlay { mapView.removeOverlay(overlay) }
-
             guard let loc = locationManager.lastLocation else { return }
+
             let validTrack = loc.course >= 0 && loc.horizontalAccuracy >= 0 && loc.horizontalAccuracy <= 100
             gpsAlert.wrappedValue = !validTrack
             let rangeNm = settings.rangeRingRadiusNm
             let course = validTrack ? loc.course : 90
 
-            let ring = RangeRingOverlay(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
-            rangeOverlay = ring
-            mapView.addOverlay(ring)
+            if let ring = rangeOverlay {
+                ring.update(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
+                rendererCache[ObjectIdentifier(ring)]?.setNeedsDisplay()
+            } else {
+                let ring = RangeRingOverlay(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
+                rangeOverlay = ring
+                mapView.addOverlay(ring)
+            }
 
-            let track = TrackVectorOverlay(center: loc.coordinate,
-                                           courseDeg: course,
-                                           groundSpeedKt: max(0, loc.speed * 1.94384),
-                                           radiusNm: rangeNm,
-                                           valid: validTrack)
-            trackOverlay = track
-            mapView.addOverlay(track)
+            let gs = max(0, loc.speed * 1.94384)
+            if let track = trackOverlay {
+                track.update(center: loc.coordinate,
+                             courseDeg: course,
+                             groundSpeedKt: gs,
+                             radiusNm: rangeNm,
+                             valid: validTrack)
+                rendererCache[ObjectIdentifier(track)]?.setNeedsDisplay()
+            } else {
+                let track = TrackVectorOverlay(center: loc.coordinate,
+                                               courseDeg: course,
+                                               groundSpeedKt: gs,
+                                               radiusNm: rangeNm,
+                                               valid: validTrack)
+                trackOverlay = track
+                mapView.addOverlay(track)
+            }
         }
 
         private func normalizedHeading(_ raw: CLLocationDirection?) -> CLLocationDirection {
