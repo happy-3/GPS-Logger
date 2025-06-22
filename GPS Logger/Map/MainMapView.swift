@@ -245,9 +245,8 @@ struct MapViewRepresentable: UIViewRepresentable {
         private var settingsCancellables = Set<AnyCancellable>()
         var mapView: MKMapView?
         var regionSet = false
-        private var rangeLayer = CAShapeLayer()
-        private var trackLayer = CAShapeLayer()
-        private var labelLayers: [CATextLayer] = []
+        private var rangeOverlay: RangeRingOverlay?
+        private var trackOverlay: TrackVectorOverlay?
         private var targetOverlay: MKPolyline?
         var overlayIDs = Set<ObjectIdentifier>()
         private var rendererCache: [ObjectIdentifier: MKOverlayRenderer] = [:]
@@ -398,6 +397,10 @@ struct MapViewRepresentable: UIViewRepresentable {
             let renderer: MKOverlayRenderer
             if let ov = overlay as? MBTilesOverlay {
                 renderer = MKTileOverlayRenderer(tileOverlay: ov)
+            } else if let ring = overlay as? RangeRingOverlay {
+                renderer = RangeRingRenderer(overlay: ring, settings: settings)
+            } else if let track = overlay as? TrackVectorOverlay {
+                renderer = TrackVectorRenderer(overlay: track, settings: settings)
             } else if let poly = overlay as? MKPolyline {
                 let r = MKPolylineRenderer(polyline: poly)
                 let cat = poly.subtitle ?? ""
@@ -459,6 +462,9 @@ struct MapViewRepresentable: UIViewRepresentable {
                     airspaceManager.updateMapRect(rect)
                 }
             }
+        }
+
+        func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
             scheduleUpdateLayers()
         }
 
@@ -475,99 +481,26 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         private func updateLayers() {
             guard let mapView else { return }
-            // CAShapeLayer はインスタンスを再利用し、パスのみ更新する
-            if rangeLayer.superlayer == nil {
-                mapView.layer.addSublayer(rangeLayer)
-            }
-            if trackLayer.superlayer == nil {
-                mapView.layer.addSublayer(trackLayer)
-            }
-            labelLayers.forEach { $0.removeFromSuperlayer() }
-            labelLayers.removeAll()
+            if let overlay = rangeOverlay { mapView.removeOverlay(overlay) }
+            if let overlay = trackOverlay { mapView.removeOverlay(overlay) }
 
             guard let loc = locationManager.lastLocation else { return }
             let validTrack = loc.course >= 0 && loc.horizontalAccuracy >= 0 && loc.horizontalAccuracy <= 100
             gpsAlert.wrappedValue = !validTrack
-            let center = mapView.convert(loc.coordinate, toPointTo: mapView)
             let rangeNm = settings.rangeRingRadiusNm
             let course = validTrack ? loc.course : 90
-            let edge = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: 90, distanceNm: rangeNm)
-            let edgePt = mapView.convert(edge, toPointTo: mapView)
-            let radius = hypot(edgePt.x - center.x, edgePt.y - center.y)
-            let ringPath = UIBezierPath()
-            for frac in [0.25, 0.5, 0.75, 1.0] {
-                ringPath.append(UIBezierPath(arcCenter: center, radius: radius * frac, startAngle: 0, endAngle: .pi*2, clockwise: true))
-            }
-            rangeLayer.fillColor = UIColor.clear.cgColor
-            let ringHex = settings.useNightTheme ? Color("RangeRingNight", bundle: .module).hexString
-                                                 : Color("RangeRingDay", bundle: .module).hexString
-            rangeLayer.strokeColor = UIColor(hex: ringHex)?.cgColor ?? UIColor.orange.cgColor
-            rangeLayer.lineWidth = 1
-            rangeLayer.path = ringPath.cgPath
 
-            for frac in [0.25, 0.5, 0.75, 1.0] {
-                let nm = rangeNm * frac
-                let label = CATextLayer()
-                label.string = String(format: "%.0f NM", nm)
-                label.fontSize = 12
-                label.alignmentMode = .center
-                label.foregroundColor = rangeLayer.strokeColor
-                label.backgroundColor = UIColor.black.withAlphaComponent(0.5).cgColor
-                label.contentsScale = UIScreen.main.scale
-                let dest = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: course, distanceNm: nm)
-                var pt = mapView.convert(dest, toPointTo: mapView)
-                let perpVec = CGPoint(x: -sin(course * .pi/180), y: cos(course * .pi/180))
-                pt.x += perpVec.x * 12
-                pt.y += perpVec.y * 12
-                label.frame = CGRect(x: pt.x - 20, y: pt.y - 8, width: 40, height: 16)
-                mapView.layer.addSublayer(label)
-                labelLayers.append(label)
-            }
+            let ring = RangeRingOverlay(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
+            rangeOverlay = ring
+            mapView.addOverlay(ring)
 
-            let vecDest = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: course, distanceNm: rangeNm)
-            let vecPt = mapView.convert(vecDest, toPointTo: mapView)
-            let trackVec = CGPoint(x: vecPt.x - center.x, y: vecPt.y - center.y)
-            let vecLen = hypot(trackVec.x, trackVec.y)
-            let unitVec = CGPoint(x: trackVec.x / vecLen, y: trackVec.y / vecLen)
-            let perpVec = CGPoint(x: -unitVec.y, y: unitVec.x)
-            let vecPath = UIBezierPath()
-            if validTrack {
-                vecPath.move(to: center)
-                vecPath.addLine(to: vecPt)
-            }
-
-            let gsKt = max(0, loc.speed * 1.94384)
-            if validTrack && gsKt > 0 {
-                let minuteDist = gsKt / 60.0
-                let arrowCoord = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: course, distanceNm: minuteDist)
-                let arrowPt = mapView.convert(arrowCoord, toPointTo: mapView)
-                vecPath.move(to: center)
-                vecPath.addLine(to: arrowPt)
-                let headLen: CGFloat = 10
-                let p1 = CGPoint(x: arrowPt.x - unitVec.x * headLen + perpVec.x * headLen/2,
-                                 y: arrowPt.y - unitVec.y * headLen + perpVec.y * headLen/2)
-                let p2 = CGPoint(x: arrowPt.x - unitVec.x * headLen - perpVec.x * headLen/2,
-                                 y: arrowPt.y - unitVec.y * headLen - perpVec.y * headLen/2)
-                vecPath.move(to: p1)
-                vecPath.addLine(to: arrowPt)
-                vecPath.addLine(to: p2)
-
-                for m in 2...5 {
-                    let dist = minuteDist * Double(m)
-                    if dist > rangeNm { break }
-                    let markCoord = GeodesicCalculator.destinationPoint(from: loc.coordinate, courseDeg: course, distanceNm: dist)
-                    let markPt = mapView.convert(markCoord, toPointTo: mapView)
-                    vecPath.move(to: markPt)
-                    vecPath.addArc(withCenter: markPt, radius: 3, startAngle: 0, endAngle: .pi*2, clockwise: true)
-                }
-            }
-            let trackHex = settings.useNightTheme ? Color("TrackNight", bundle: .module).hexString
-                                                 : Color("TrackDay", bundle: .module).hexString
-            trackLayer.strokeColor = UIColor(hex: trackHex)?.cgColor ?? UIColor.yellow.cgColor
-            trackLayer.lineWidth = 2
-            trackLayer.fillColor = UIColor.clear.cgColor
-            trackLayer.opacity = validTrack ? 0.5 : 0.0
-            trackLayer.path = vecPath.cgPath
+            let track = TrackVectorOverlay(center: loc.coordinate,
+                                           courseDeg: course,
+                                           groundSpeedKt: max(0, loc.speed * 1.94384),
+                                           radiusNm: rangeNm,
+                                           valid: validTrack)
+            trackOverlay = track
+            mapView.addOverlay(track)
         }
 
         private func normalizedHeading(_ raw: CLLocationDirection?) -> CLLocationDirection {
