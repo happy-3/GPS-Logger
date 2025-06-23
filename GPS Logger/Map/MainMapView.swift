@@ -505,8 +505,19 @@ struct MapViewRepresentable: UIViewRepresentable {
             let course = validTrack ? loc.course : 90
 
             if let ring = rangeOverlay {
-                ring.update(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
-                rendererCache[ObjectIdentifier(ring)]?.setNeedsDisplay()
+                let dist = GeodesicCalculator.bearingDistance(from: ring.coordinate,
+                                                              to: loc.coordinate).distance
+                let ratio = max(rangeNm / ring.radiusNm, ring.radiusNm / rangeNm)
+                if dist > ring.radiusNm * 10 || ratio >= 3 {
+                    mapView.removeOverlay(ring)
+                    rendererCache.removeValue(forKey: ObjectIdentifier(ring))
+                    let newRing = RangeRingOverlay(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
+                    rangeOverlay = newRing
+                    mapView.addOverlay(newRing, level: .aboveLabels)
+                } else {
+                    ring.update(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
+                    rendererCache[ObjectIdentifier(ring)]?.setNeedsDisplay()
+                }
             } else {
                 let ring = RangeRingOverlay(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
                 rangeOverlay = ring
@@ -515,12 +526,27 @@ struct MapViewRepresentable: UIViewRepresentable {
 
             let gs = max(0, loc.speed * 1.94384)
             if let track = trackOverlay {
-                track.update(center: loc.coordinate,
-                             courseDeg: course,
-                             groundSpeedKt: gs,
-                             radiusNm: rangeNm,
-                             valid: validTrack)
-                rendererCache[ObjectIdentifier(track)]?.setNeedsDisplay()
+                let dist = GeodesicCalculator.bearingDistance(from: track.coordinate,
+                                                              to: loc.coordinate).distance
+                let ratio = max(rangeNm / track.radiusNm, track.radiusNm / rangeNm)
+                if dist > track.radiusNm * 10 || ratio >= 3 {
+                    mapView.removeOverlay(track)
+                    rendererCache.removeValue(forKey: ObjectIdentifier(track))
+                    let newTrack = TrackVectorOverlay(center: loc.coordinate,
+                                                     courseDeg: course,
+                                                     groundSpeedKt: gs,
+                                                     radiusNm: rangeNm,
+                                                     valid: validTrack)
+                    trackOverlay = newTrack
+                    mapView.addOverlay(newTrack, level: .aboveLabels)
+                } else {
+                    track.update(center: loc.coordinate,
+                                 courseDeg: course,
+                                 groundSpeedKt: gs,
+                                 radiusNm: rangeNm,
+                                 valid: validTrack)
+                    rendererCache[ObjectIdentifier(track)]?.setNeedsDisplay()
+                }
             } else {
                 let track = TrackVectorOverlay(center: loc.coordinate,
                                                courseDeg: course,
