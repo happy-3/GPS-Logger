@@ -446,6 +446,11 @@ struct MapViewRepresentable: UIViewRepresentable {
             let id = "info"
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: id) ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
             view.canShowCallout = true
+            if let ann = annotation as? MKPointAnnotation, let category = ann.subtitle {
+                if let mv = view as? MKMarkerAnnotationView {
+                    mv.calloutOffset = calloutOffset(for: category)
+                }
+            }
             return view
         }
 
@@ -473,6 +478,17 @@ struct MapViewRepresentable: UIViewRepresentable {
             let filtered = props.filter { $0.key != "name" }
             let items = filtered.prefix(3).map { "\($0.key): \($0.value)" }
             return items.joined(separator: "\n")
+        }
+
+        private func calloutOffset(for category: String) -> CGPoint {
+            switch category.uppercased() {
+            case "CTR", "INFO ZONE":
+                return CGPoint(x: 0, y: -10)
+            case "TCA", "ACA", "PCA":
+                return CGPoint(x: 0, y: -20)
+            default:
+                return CGPoint(x: 0, y: -15)
+            }
         }
 
         private func scheduleUpdateLayers() {
