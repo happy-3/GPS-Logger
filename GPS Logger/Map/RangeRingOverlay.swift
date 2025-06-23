@@ -70,7 +70,10 @@ final class RangeRingRenderer: MKOverlayRenderer {
         ringLabels.removeAll()
         let labelOffset = radius * 0.05
         let labelAngle = 135.0
-        for frac in [0.25, 0.5, 0.75, 1.0] {
+        // コンパスローズとして利用する半径
+        let compassRadius = radius * 0.5
+
+        for frac in [0.25, 0.75, 1.0] {
             let r = radius * frac
             ringPath.append(UIBezierPath(ovalIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2)))
 
@@ -80,12 +83,19 @@ final class RangeRingRenderer: MKOverlayRenderer {
             ringLabels.append(RingLabel(text: text, pos: p))
         }
 
+        // 中間リング(0.5R)のラベル
+        var midLabelPos = CGPoint(x: 0, y: -(compassRadius + labelOffset))
+        midLabelPos = midLabelPos.applying(CGAffineTransform(rotationAngle: CGFloat((labelAngle + heading) * .pi / 180)))
+        let midText = String(format: "%.0f NM", overlayObj.radiusNm * 0.5)
+        ringLabels.append(RingLabel(text: midText, pos: midLabelPos))
+
         ticks.removeAll()
         let majorLen = radius * 0.1
         let midLen = majorLen * 2.0 / 3.0
         let tenLen = majorLen * 0.5
         let minorLen = majorLen * 0.3
-        let labelRadius = radius * 0.75
+        let outerLabelRadius = radius + labelOffset
+        let midLabelRadius = compassRadius - labelOffset
 
         for deg in stride(from: 0, to: 360, by: 5) {
             let path = UIBezierPath()
@@ -106,15 +116,16 @@ final class RangeRingRenderer: MKOverlayRenderer {
                 width = 1.0
             }
 
-            path.move(to: CGPoint(x: 0, y: -radius))
-            path.addLine(to: CGPoint(x: 0, y: -radius + len))
+            path.move(to: CGPoint(x: 0, y: -compassRadius))
+            path.addLine(to: CGPoint(x: 0, y: -compassRadius + len))
 
             var transform = CGAffineTransform(rotationAngle: CGFloat((Double(deg) + heading) * .pi / 180))
             path.apply(transform)
 
             var labelPos: CGPoint? = nil
             if let _ = label {
-                var p = CGPoint(x: 0, y: -labelRadius)
+                let r = (deg % 90 == 0) ? outerLabelRadius : midLabelRadius
+                var p = CGPoint(x: 0, y: -r)
                 p = p.applying(transform)
                 labelPos = p
             }
