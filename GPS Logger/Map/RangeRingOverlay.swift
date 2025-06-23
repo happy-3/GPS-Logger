@@ -50,6 +50,11 @@ final class RangeRingRenderer: MKOverlayRenderer {
     private var cachedHeading: Double = -1
     private var ringPath = UIBezierPath()
     private var ticks: [Tick] = []
+    private struct RingLabel {
+        let text: String
+        let pos: CGPoint
+    }
+    private var ringLabels: [RingLabel] = []
 
     init(overlay: RangeRingOverlay, settings: Settings) {
         self.overlayObj = overlay
@@ -62,9 +67,17 @@ final class RangeRingRenderer: MKOverlayRenderer {
         cachedHeading = heading
 
         ringPath = UIBezierPath()
+        ringLabels.removeAll()
+        let labelOffset = radius * 0.05
+        let labelAngle = 135.0
         for frac in [0.25, 0.5, 0.75, 1.0] {
             let r = radius * frac
             ringPath.append(UIBezierPath(ovalIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2)))
+
+            var p = CGPoint(x: 0, y: -(r + labelOffset))
+            p = p.applying(CGAffineTransform(rotationAngle: CGFloat((labelAngle + heading) * .pi / 180)))
+            let text = String(format: "%.0f NM", overlayObj.radiusNm * frac)
+            ringLabels.append(RingLabel(text: text, pos: p))
         }
 
         ticks.removeAll()
@@ -151,6 +164,13 @@ final class RangeRingRenderer: MKOverlayRenderer {
             let str = NSString(string: label)
             let size = str.size(withAttributes: attrs)
             let rect = CGRect(x: pos.x - size.width / 2, y: pos.y - size.height / 2, width: size.width, height: size.height)
+            str.draw(in: rect, withAttributes: attrs)
+        }
+
+        for ring in ringLabels {
+            let str = NSString(string: ring.text)
+            let size = str.size(withAttributes: attrs)
+            let rect = CGRect(x: ring.pos.x - size.width / 2, y: ring.pos.y - size.height / 2, width: size.width, height: size.height)
             str.draw(in: rect, withAttributes: attrs)
         }
 
