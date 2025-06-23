@@ -119,7 +119,7 @@ final class RangeRingRenderer: MKOverlayRenderer {
             path.move(to: CGPoint(x: 0, y: -compassRadius))
             path.addLine(to: CGPoint(x: 0, y: -compassRadius + len))
 
-            var transform = CGAffineTransform(rotationAngle: CGFloat((Double(deg) + heading) * .pi / 180))
+            let transform = CGAffineTransform(rotationAngle: CGFloat((Double(deg) + heading) * .pi / 180))
             path.apply(transform)
 
             var labelPos: CGPoint? = nil

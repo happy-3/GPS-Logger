@@ -46,10 +46,10 @@ final class Settings: ObservableObject {
         var id: Self { self }
         var label: String {
             switch self {
-            case .northUp: "North UP"
-            case .trackUp: "Track UP"
-            case .magneticUp: "Magnetic UP"
-            case .manual: "Free Rotate"
+            case .northUp: return "North UP"
+            case .trackUp: return "Track UP"
+            case .magneticUp: return "Magnetic UP"
+            case .manual: return "Free Rotate"
             }
         }
     }
