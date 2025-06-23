@@ -12,7 +12,7 @@ final class RangeRingOverlay: NSObject, MKOverlay {
         self.coordinate = center
         self.radiusNm = radiusNm
         self.courseDeg = courseDeg
-        let newHeading = courseDeg - MagneticVariation.declination(at: center)
+        let newHeading = MagneticVariation.declination(at: center)
         if abs(newHeading - lastHeading) >= 1 {
             lastHeading = newHeading
         }
@@ -22,7 +22,7 @@ final class RangeRingOverlay: NSObject, MKOverlay {
         self.coordinate = center
         self.radiusNm = radiusNm
         self.courseDeg = courseDeg
-        self.lastHeading = courseDeg - MagneticVariation.declination(at: center)
+        self.lastHeading = MagneticVariation.declination(at: center)
         super.init()
     }
 
