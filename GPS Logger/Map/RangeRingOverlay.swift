@@ -7,6 +7,8 @@ final class RangeRingOverlay: NSObject, MKOverlay {
     var radiusNm: Double
     var courseDeg: Double
     private(set) var lastHeading: Double
+    /// ラベルまで含めて描画するため、半径に少し余裕を持たせる
+    private let marginRatio = 1.1
 
     func update(center: CLLocationCoordinate2D, radiusNm: Double, courseDeg: Double) {
         self.coordinate = center
@@ -27,10 +29,11 @@ final class RangeRingOverlay: NSObject, MKOverlay {
     }
 
     var boundingMapRect: MKMapRect {
-        let meters = radiusNm * 1852.0
+        let meters = radiusNm * 1852.0 * marginRatio
         let mapPoints = meters * MKMapPointsPerMeterAtLatitude(coordinate.latitude)
         let center = MKMapPoint(coordinate)
-        return MKMapRect(x: center.x - mapPoints, y: center.y - mapPoints, width: mapPoints * 2, height: mapPoints * 2)
+        return MKMapRect(x: center.x - mapPoints, y: center.y - mapPoints,
+                         width: mapPoints * 2, height: mapPoints * 2)
     }
 }
 
