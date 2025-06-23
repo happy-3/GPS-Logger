@@ -45,10 +45,24 @@ struct DistanceGraphView: View {
     }
 
     /// Render the altitude chart to a `UIImage` for export.
+    @MainActor
     func chartImage() -> UIImage? {
-        let renderer = ImageRenderer(content: altitudeChart)
-        renderer.scale = UIScreen.main.scale
-        return renderer.uiImage
+        let host = UIHostingController(rootView: altitudeChart)
+        host.view.frame = CGRect(x: 0,
+                                 y: 0,
+                                 width: UIScreen.main.bounds.width,
+                                 height: 240)
+        host.view.layoutIfNeeded()
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = UIScreen.main.scale
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: host.view.bounds.size,
+                                              format: format)
+        return renderer.image { _ in
+            host.view.drawHierarchy(in: host.view.bounds,
+                                    afterScreenUpdates: true)
+        }
     }
 }
 
