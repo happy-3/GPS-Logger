@@ -54,6 +54,14 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         self.settings = settings
         super.init()
 
+        // 保存された磁気偏差情報を復元
+        self.declination = settings.lastDeclination
+        if let data = settings.declinationLocation,
+           let savedLoc = try? NSKeyedUnarchiver.unarchivedObject(ofClass: CLLocation.self, from: data) {
+            self.declinationLocation = savedLoc
+        }
+        self.declinationTimestamp = settings.declinationTimestamp
+
         UIDevice.current.isBatteryMonitoringEnabled = true
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
@@ -246,6 +254,13 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             declination = MagneticVariation.declination(at: loc.coordinate)
             declinationLocation = loc
             declinationTimestamp = Date()
+            settings.lastDeclination = declination
+            if let data = try? NSKeyedArchiver.archivedData(withRootObject: loc, requiringSecureCoding: true) {
+                settings.declinationLocation = data
+            } else {
+                settings.declinationLocation = nil
+            }
+            settings.declinationTimestamp = declinationTimestamp
         }
     }
 }
