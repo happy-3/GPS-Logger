@@ -170,6 +170,7 @@ final class RangeRingRenderer: MKOverlayRenderer {
             .backgroundColor: UIColor.black.withAlphaComponent(0.5)
         ]
 
+        UIGraphicsPushContext(context)
         for tick in ticks {
             guard let label = tick.label, let pos = tick.labelPos else { continue }
             let str = NSString(string: label)
@@ -184,6 +185,7 @@ final class RangeRingRenderer: MKOverlayRenderer {
             let rect = CGRect(x: ring.pos.x - size.width / 2, y: ring.pos.y - size.height / 2, width: size.width, height: size.height)
             str.draw(in: rect, withAttributes: attrs)
         }
+        UIGraphicsPopContext()
 
         context.restoreGState()
     }
