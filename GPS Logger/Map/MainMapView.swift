@@ -510,7 +510,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             } else {
                 let ring = RangeRingOverlay(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
                 rangeOverlay = ring
-                mapView.addOverlay(ring)
+                mapView.addOverlay(ring, level: .aboveLabels)
             }
 
             let gs = max(0, loc.speed * 1.94384)
@@ -528,7 +528,7 @@ struct MapViewRepresentable: UIViewRepresentable {
                                                radiusNm: rangeNm,
                                                valid: validTrack)
                 trackOverlay = track
-                mapView.addOverlay(track)
+                mapView.addOverlay(track, level: .aboveLabels)
             }
         }
 
@@ -595,7 +595,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             var coords = [state.position, wp.coordinate]
             let poly = MKPolyline(coordinates: &coords, count: 2)
             targetOverlay = poly
-            mapView.addOverlay(poly)
+            mapView.addOverlay(poly, level: .aboveLabels)
 
         }
 
