@@ -72,6 +72,13 @@ final class Settings: ObservableObject {
     /// Night テーマを使用するかどうか
     @UserDefaultBacked(key: "useNightTheme") var useNightTheme: Bool = false
 
+    /// 前回計算した磁気偏差
+    @UserDefaultBacked(key: "lastDeclination") var lastDeclination: Double = 0.0
+    /// 磁気偏差計算地点
+    @UserDefaultBacked(key: "declinationLocation") var declinationLocation: Data?
+    /// 磁気偏差計算日時
+    @UserDefaultBacked(key: "declinationTimestamp") var declinationTimestamp: Date?
+
     init() {
         $logInterval
             .receive(on: DispatchQueue.main)
@@ -154,6 +161,11 @@ final class Settings: ObservableObject {
             .store(in: &cancellables)
 
         $useNightTheme
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        $lastDeclination
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
