@@ -28,6 +28,8 @@ struct Waypoint: Identifiable {
 struct NavComputed {
     /// 目的地への真方位方位
     var bearing: Double
+    /// 受信局から見たラジアル(真方位)
+    var radial: Double?
     /// 目的地までの距離 (NM)
     var distance: Double
     /// 到達までの予想到達時間 (秒)

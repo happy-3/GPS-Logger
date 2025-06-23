@@ -60,7 +60,7 @@ struct MainMapView: View {
                 if let nav = navInfo {
                     // bannerAnnotation は廃止したため、ナビゲーション情報は
                     // 画面中央の HUD で表示し続ける
-                    TargetBannerView(nav: nav)
+                    TargetBannerView(nav: nav, locationManager: locationManager)
                         .position(x: UIScreen.main.bounds.midX, y: UIScreen.main.bounds.midY)
                 }
 
@@ -568,7 +568,12 @@ struct MapViewRepresentable: UIViewRepresentable {
             let ete = state.groundSpeedKt > 0 ? bd.distance / state.groundSpeedKt * 3600 : 0
             let eta = Date().addingTimeInterval(ete)
             let ten = GeodesicCalculator.tenMinPoint(state: state)
-            navInfo.wrappedValue = NavComputed(bearing: bd.bearing, distance: bd.distance, ete: ete, eta: eta, tenMinPoint: ten)
+            navInfo.wrappedValue = NavComputed(bearing: bd.bearing,
+                                               radial: nil,
+                                               distance: bd.distance,
+                                               ete: ete,
+                                               eta: eta,
+                                               tenMinPoint: ten)
 
             if let old = targetOverlay { mapView.removeOverlay(old) }
             var coords = [state.position, wp.coordinate]
@@ -594,8 +599,31 @@ extension MapViewRepresentable.Coordinator {
               let title = shape.title else { return }
         let rect = overlay.boundingMapRect
         let coord = CLLocationCoordinate2D(latitude: rect.midY, longitude: rect.midX)
+
+        // ナビゲーション計算
+        if let loc = locationManager.lastLocation {
+            let state = AircraftState(position: loc.coordinate,
+                                     groundTrack: loc.course,
+                                     groundSpeedKt: max(0, loc.speed * 1.94384),
+                                     altitudeFt: locationManager.rawGpsAltitude,
+                                     timestamp: Date())
+            let bd = GeodesicCalculator.bearingDistance(from: state.position, to: coord)
+            let ete = state.groundSpeedKt > 0 ? bd.distance / state.groundSpeedKt * 3600 : 0
+            let eta = Date().addingTimeInterval(ete)
+            let ten = GeodesicCalculator.tenMinPoint(state: state)
+            let radial = fmod(bd.bearing + 180.0, 360.0)
+            navInfo.wrappedValue = NavComputed(bearing: bd.bearing,
+                                               radial: radial,
+                                               distance: bd.distance,
+                                               ete: ete,
+                                               eta: eta,
+                                               tenMinPoint: ten)
+        }
+
         let ann = MKPointAnnotation()
-        ann.coordinate = coord
+        // 画面上端へ吹き出しを表示するため、座標を変換してずらす
+        let pt = CGPoint(x: mapView.bounds.midX, y: 40)
+        ann.coordinate = mapView.convert(pt, toCoordinateFrom: mapView)
         ann.title = title
         if let f = overlay as? FeaturePolyline {
             ann.subtitle = formattedProps(f.properties)
@@ -613,12 +641,14 @@ extension MapViewRepresentable.Coordinator {
             mapView.removeAnnotation(ann)
             infoAnnotation = nil
         }
+        navInfo.wrappedValue = nil
     }
 }
 #endif
 
 struct TargetBannerView: View {
     let nav: NavComputed
+    @ObservedObject var locationManager: LocationManager
 
     private var etaText: String {
         let fmt = DateFormatter()
@@ -634,11 +664,27 @@ struct TargetBannerView: View {
         return fmt.string(from: nav.ete) ?? "--:--:--"
     }
 
+    private var radialText: String? {
+        guard let rad = nav.radial else { return nil }
+        guard let loc = locationManager.lastLocation else {
+            return String(format: "RAD %03.0f°", rad)
+        }
+        var mag = rad - MagneticVariation.declination(at: loc.coordinate)
+        if mag < 0 { mag += 360 }
+        if mag >= 360 { mag -= 360 }
+        return String(format: "RAD %03.0f°", mag)
+    }
+
     var body: some View {
         VStack(spacing: 2) {
             HStack(spacing: 12) {
-                Text(String(format: "BRG %03.0f°", nav.bearing))
-                Text(String(format: "RNG %.1f NM", nav.distance))
+                if let rText = radialText {
+                    Text(rText)
+                    Text(String(format: "DME %.1f NM", nav.distance))
+                } else {
+                    Text(String(format: "BRG %03.0f°", nav.bearing))
+                    Text(String(format: "RNG %.1f NM", nav.distance))
+                }
             }
             HStack(spacing: 12) {
                 Text("ETE \(eteText)")
