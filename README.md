@@ -50,7 +50,7 @@ The bundled `jp_asp.geojson` file contains many different airspace types. When l
 
 レンジリングとトラックベクトルは地図を動かしても再生成されません。位置や方位、半径が変わったときにプロパティを更新して描画し直します。これによりパンやズームを繰り返しても不要な計算が発生せず、バッテリー消費を抑えられます。
 
-レンジリング（コンパスローズ）は `MagneticVariation` により算出した磁気偏差を使って、真方位のトラックを磁方位へ変換して描画します。設定画面の「Orientation」ピッカーで `Magnetic UP` を選択するか、コンパスアイコンをタップして `orientationMode` を切り替えると、地図およびレンジリングが磁北基準で表示されます。
+レンジリング（コンパスローズ）は `MagneticVariation` により算出した磁気偏差を基に、地図の真北から磁北方向へ回転させて描画します。設定画面の「Orientation」ピッカーで `Magnetic UP` を選択するか、コンパスアイコンをタップして `orientationMode` を切り替えると、地図およびレンジリングが磁北基準で表示されます。
 
 ## ナビゲーション機能
 
