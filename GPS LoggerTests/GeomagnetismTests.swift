@@ -18,16 +18,6 @@ final class GeomagnetismTests: XCTestCase {
                                    latitude: coord.latitude,
                                    altitude: 0,
                                    date: date)
-            #if canImport(CoreLocation)
-            if #available(iOS 16.0, macOS 13.0, *),
-               let model = CLGeomagneticModel(date: date) {
-                let result = model.declination(atLatitude: coord.latitude,
-                                               longitude: coord.longitude,
-                                               altitude: 0)
-                XCTAssertEqual(geo.declination, result, accuracy: 0.1)
-                continue
-            }
-            #endif
             XCTAssertEqual(geo.declination, expected, accuracy: 0.1)
         }
     }

@@ -32,28 +32,12 @@ struct MagneticVariation {
             }
         }
 
-        var value: Double = 0
-        if #available(iOS 16.0, macOS 13.0, *) {
-            if let model = CLGeomagneticModel(date: date) {
-                value = model.declination(atLatitude: coordinate.latitude,
-                                          longitude: coordinate.longitude,
-                                          altitude: 0)
-            } else {
-                // CLGeomagneticModel が利用できない場合は独自計算を行う
-                let geo = Geomagnetism(longitude: coordinate.longitude,
-                                       latitude: coordinate.latitude,
-                                       altitude: 0,
-                                       date: date)
-                value = geo.declination
-            }
-        } else {
-            // iOS 16 未満では Geomagnetism を使って算出
-            let geo = Geomagnetism(longitude: coordinate.longitude,
-                                   latitude: coordinate.latitude,
-                                   altitude: 0,
-                                   date: date)
-            value = geo.declination
-        }
+        // Geomagnetism を使って磁気偏差を算出
+        let geo = Geomagnetism(longitude: coordinate.longitude,
+                               latitude: coordinate.latitude,
+                               altitude: 0,
+                               date: date)
+        let value = geo.declination
         cachedCoordinate = coordinate
         cachedDate = date
         cachedValue = value
