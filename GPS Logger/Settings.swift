@@ -80,99 +80,41 @@ final class Settings: ObservableObject {
     @UserDefaultBacked(key: "declinationTimestamp") var declinationTimestamp: Date? = nil
 
     init() {
-        $logInterval
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
+        subscribeChanges([
+            $logInterval.asVoid(),
+            $photoPreSeconds.asVoid(),
+            $photoPostSeconds.asVoid(),
+            $recordRawGpsRate.asVoid(),
+            $faStableDuration.asVoid(),
+            $faTrackCILimit.asVoid(),
+            $faSpeedCILimit.asVoid(),
+            $showEllipsoidalAltitude.asVoid(),
+            $recordEllipsoidalAltitude.asVoid(),
+            $enabledAirspaceCategories.asVoid(),
+            $enabledAirspaceGroups.asVoid(),
+            $hiddenFeatureIDs.asVoid(),
+            $airspaceStrokeColors.asVoid(),
+            $airspaceFillColors.asVoid(),
+            $enableMachCalculation.asVoid(),
+            $rangeRingRadiusNm.asVoid(),
+            $useNightTheme.asVoid(),
+            $lastDeclination.asVoid(),
+            $orientationModeValue.asVoid()
+        ])
+    }
 
-        $photoPreSeconds
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
+    private func subscribeChanges(_ publishers: [AnyPublisher<Void, Never>]) {
+        publishers.forEach { publisher in
+            publisher
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.objectWillChange.send() }
+                .store(in: &cancellables)
+        }
+    }
+}
 
-        $photoPostSeconds
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $recordRawGpsRate
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $faStableDuration
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $faTrackCILimit
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $faSpeedCILimit
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $showEllipsoidalAltitude
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $recordEllipsoidalAltitude
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $enabledAirspaceCategories
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $enabledAirspaceGroups
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $hiddenFeatureIDs
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $airspaceStrokeColors
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $airspaceFillColors
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $enableMachCalculation
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $rangeRingRadiusNm
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $useNightTheme
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $lastDeclination
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
-
-        $orientationModeValue
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
+private extension Published.Publisher {
+    func asVoid() -> AnyPublisher<Void, Never> {
+        map { _ in () }.eraseToAnyPublisher()
     }
 }
