@@ -200,7 +200,10 @@ struct MapViewRepresentable: UIViewRepresentable {
         let toRemove = map.overlays
             .filter { context.coordinator.overlayIDs.contains(ObjectIdentifier($0)) }
             .filter { !targetIDs.contains(ObjectIdentifier($0)) }
-        if !toRemove.isEmpty { map.removeOverlays(toRemove) }
+        if !toRemove.isEmpty {
+            map.removeOverlays(toRemove)
+            context.coordinator.clearRenderers(for: toRemove)
+        }
 
         let toAdd = airspaceManager.displayOverlays
             .filter { !context.coordinator.overlayIDs.contains(ObjectIdentifier($0)) }
@@ -330,7 +333,10 @@ struct MapViewRepresentable: UIViewRepresentable {
             if sender.state == .began {
                 waypoint.wrappedValue = nil
                 navInfo.wrappedValue = nil
-                if let overlay = targetOverlay { mapView?.removeOverlay(overlay) }
+                if let overlay = targetOverlay {
+                    mapView?.removeOverlay(overlay)
+                    rendererCache.removeValue(forKey: ObjectIdentifier(overlay))
+                }
             }
         }
 
@@ -617,7 +623,10 @@ struct MapViewRepresentable: UIViewRepresentable {
                                                eta: eta,
                                                tenMinPoint: ten)
 
-            if let old = targetOverlay { mapView.removeOverlay(old) }
+            if let old = targetOverlay {
+                mapView.removeOverlay(old)
+                rendererCache.removeValue(forKey: ObjectIdentifier(old))
+            }
             var coords = [state.position, wp.coordinate]
             let poly = MKPolyline(coordinates: &coords, count: 2)
             targetOverlay = poly
@@ -628,6 +637,12 @@ struct MapViewRepresentable: UIViewRepresentable {
         func updateForCurrentState() {
             if let loc = locationManager.lastLocation {
                 updateAircraftLocation(loc)
+            }
+        }
+
+        func clearRenderers(for overlays: [MKOverlay]) {
+            for ov in overlays {
+                rendererCache.removeValue(forKey: ObjectIdentifier(ov))
             }
         }
     }
