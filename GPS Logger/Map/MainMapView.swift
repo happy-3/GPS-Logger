@@ -159,6 +159,9 @@ struct MapViewRepresentable: UIViewRepresentable {
 
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView(frame: .zero)
+        if let scrollView = map.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
+            scrollView.bounces = false
+        }
         map.showsUserLocation = true
         map.delegate = context.coordinator
         map.isZoomEnabled = false
@@ -214,6 +217,9 @@ struct MapViewRepresentable: UIViewRepresentable {
         context.coordinator.overlayIDs = targetIDs
 
         map.isScrollEnabled = freeScroll
+        if let scrollView = map.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
+            scrollView.bounces = false
+        }
         // isPitchEnabled は設定変更で再有効化されないよう毎回 false を指定
         map.isPitchEnabled = false
 
