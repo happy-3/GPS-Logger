@@ -573,6 +573,9 @@ struct MapViewRepresentable: UIViewRepresentable {
             guard let mapView,
                   let loc = locationManager.lastLocation else { return }
 
+            // フリースクロール中はカメラの自動更新を行わない
+            if freeScroll.wrappedValue { return }
+
             DispatchQueue.main.async {
                 let cam = mapView.camera
                 // ズーム距離を設定
