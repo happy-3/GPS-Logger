@@ -66,7 +66,7 @@ final class TrackVectorRenderer: MKOverlayRenderer {
             let len = hypot(vec.x, vec.y)
             let unit = CGPoint(x: vec.x / len, y: vec.y / len)
             let perp = CGPoint(x: -unit.y, y: unit.x)
-            let headLen: CGFloat = 10 / zoomScale
+            let headLen: CGFloat = 30 / zoomScale
             let p1 = CGPoint(x: arrowPt.x - unit.x * headLen + perp.x * headLen/2,
                              y: arrowPt.y - unit.y * headLen + perp.y * headLen/2)
             let p2 = CGPoint(x: arrowPt.x - unit.x * headLen - perp.x * headLen/2,
@@ -80,15 +80,15 @@ final class TrackVectorRenderer: MKOverlayRenderer {
                 let markCoord = GeodesicCalculator.destinationPoint(from: overlayObj.coordinate, courseDeg: overlayObj.courseDeg, distanceNm: dist)
                 let markPt = point(for: MKMapPoint(markCoord))
                 path.move(to: markPt)
-                path.addEllipse(in: CGRect(x: markPt.x - 3, y: markPt.y - 3, width: 6, height: 6))
+                path.addEllipse(in: CGRect(x: markPt.x - 9, y: markPt.y - 9, width: 18, height: 18))
             }
         }
 
         let trackHex = settings.useNightTheme ? Color("TrackNight", bundle: .module).hexString
                                              : Color("TrackDay", bundle: .module).hexString
         let stroke = UIColor(hex: trackHex) ?? .yellow
-        context.setStrokeColor(stroke.withAlphaComponent(0.5).cgColor)
-        context.setLineWidth(2.0 / zoomScale)
+        context.setStrokeColor(stroke.cgColor)
+        context.setLineWidth(6.0 / zoomScale)
         context.addPath(path)
         context.strokePath()
     }
