@@ -164,6 +164,8 @@ struct MapViewRepresentable: UIViewRepresentable {
         map.isZoomEnabled = false
         map.isScrollEnabled = freeScroll
         map.isRotateEnabled = (settings.orientationMode == .manual)
+        // 俯瞰(ピッチ)操作は常に無効化しておく
+        map.isPitchEnabled = false
         map.showsCompass = false
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
         map.addGestureRecognizer(tap)
@@ -212,6 +214,8 @@ struct MapViewRepresentable: UIViewRepresentable {
         context.coordinator.overlayIDs = targetIDs
 
         map.isScrollEnabled = freeScroll
+        // isPitchEnabled は設定変更で再有効化されないよう毎回 false を指定
+        map.isPitchEnabled = false
 
         context.coordinator.mapView = map
         context.coordinator.updateForCurrentState()
