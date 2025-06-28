@@ -157,18 +157,18 @@ final class RangeRingRenderer: MKOverlayRenderer {
         context.translateBy(x: centerPt.x, y: centerPt.y)
 
         context.setStrokeColor(ringColor.cgColor)
-        context.setLineWidth(1.0 / zoomScale)
+        context.setLineWidth(3.0 / zoomScale)
         context.addPath(ringPath.cgPath)
         context.strokePath()
 
         for tick in ticks {
-            context.setLineWidth(tick.width / zoomScale)
+            context.setLineWidth(tick.width * 3 / zoomScale)
             context.addPath(tick.path.cgPath)
             context.strokePath()
         }
 
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 12),
+            .font: UIFont.systemFont(ofSize: 36),
             .foregroundColor: ringColor,
             .backgroundColor: UIColor.black.withAlphaComponent(0.5)
         ]
