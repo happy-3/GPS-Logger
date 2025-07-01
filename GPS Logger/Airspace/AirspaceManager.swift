@@ -7,6 +7,8 @@ import os
 final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
     /// カテゴリごとに読み込んだオーバーレイを保持
     @Published private(set) var overlaysByCategory: [String: [MKOverlay]] = [:]
+    /// カテゴリごとに読み込んだアノテーションを保持
+    @Published private(set) var annotationsByCategory: [String: [FacilityAnnotation]] = [:]
     /// カテゴリ内で名前からグループ化したオーバーレイ一覧
     @Published private(set) var featureGroupsByCategory: [String: [String: [MKOverlay]]] = [:]
     /// MBTiles ベクターデータのソース
@@ -22,6 +24,8 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
 
     /// 表示対象のオーバーレイ
     @Published private(set) var displayOverlays: [MKOverlay] = []
+    /// 表示対象のアノテーション
+    @Published private(set) var displayAnnotations: [FacilityAnnotation] = []
 
     /// グループごとのカテゴリ一覧
     @Published private(set) var categoriesByGroup: [String: [String]] = [:]
@@ -74,14 +78,20 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else { return }
-                Task { @MainActor in self.updateDisplayOverlays() }
+                Task { @MainActor in
+                    self.updateDisplayOverlays()
+                    self.updateDisplayAnnotations()
+                }
             }
             .store(in: &cancellables)
         settings.$hiddenFeatureIDs
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else { return }
-                Task { @MainActor in self.updateDisplayOverlays() }
+                Task { @MainActor in
+                    self.updateDisplayOverlays()
+                    self.updateDisplayAnnotations()
+                }
             }
             .store(in: &cancellables)
     }
@@ -121,6 +131,7 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
             }
 
             var map: [String: [MKOverlay]] = [:]
+            var annotations: [String: [FacilityAnnotation]] = [:]
             var sources: [String: MBTilesVectorSource] = [:]
             var groupMap: [String: [String]] = [:]
             var catToGroup: [String: String] = [:]
@@ -146,6 +157,7 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
                     } else {
                         let result = self.loadOverlays(from: url, category: base)
                         map[base] = result.overlays
+                        annotations[base] = result.annotations
                         featureGroups[base] = result.groups
                         let grp = Self.parseGroupName(base)
                         groupMap[grp, default: []].append(base)
@@ -169,6 +181,7 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.overlaysByCategory = map
+                self.annotationsByCategory = annotations
                 self.vectorSources = sources
                 self.categoriesByGroup = groupMap
                 self.categoryToGroup = catToGroup
@@ -179,6 +192,7 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
                 Logger.airspace.debug("overlaysByCategory keys: \(Array(self.overlaysByCategory.keys))")
                 Logger.airspace.debug("enabled categories: \(self.settings.enabledAirspaceCategories)")
                 self.updateDisplayOverlays()
+                self.updateDisplayAnnotations()
                 self.slimList = self.buildSlimList(from: map)
                 Logger.airspace.debug("slimList count: \(self.slimList.count)")
             }
@@ -186,7 +200,7 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
     }
 
     /// 単一ファイルからオーバーレイを読み込む
-    private func loadOverlays(from url: URL, category: String) -> (overlays: [MKOverlay], groups: [String: [MKOverlay]]) {
+    private func loadOverlays(from url: URL, category: String) -> (overlays: [MKOverlay], groups: [String: [MKOverlay]], annotations: [FacilityAnnotation]) {
         guard let data = try? Data(contentsOf: url) else {
             Logger.airspace.debug("Could not read data from \(url.path)")
             return ([], [:])
@@ -199,6 +213,7 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
 
         var loaded: [MKOverlay] = []
         var grouped: [String: [MKOverlay]] = [:]
+        var annotations: [FacilityAnnotation] = []
         for (index, feature) in features.enumerated() {
             guard let geometry = feature["geometry"] as? [String: Any],
                   let type = geometry["type"] as? String else { continue }
@@ -240,25 +255,24 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
                 }
             case "Point":
                 if let coord = geometry["coordinates"] as? [Double], coord.count == 2 {
-                    let center = CLLocationCoordinate2D(latitude: coord[1], longitude: coord[0])
-                    let circle = FeatureCircle(center: center, radius: 300)
-                    circle.title = name
-                    circle.subtitle = category
-                    circle.featureID = fid
-                    circle.properties = props
-                    loaded.append(circle)
-                    let g = Self.parseFeatureGroupName(name)
-                    grouped[g, default: []].append(circle)
+                    let ann = FacilityAnnotation()
+                    ann.coordinate = CLLocationCoordinate2D(latitude: coord[1], longitude: coord[0])
+                    ann.title = name
+                    ann.subtitle = category
+                    ann.featureID = fid
+                    ann.properties = props
+                    ann.facilityType = props["type"] as? String ?? ""
+                    annotations.append(ann)
                 }
             default:
                 Logger.airspace.debug("Unsupported geometry type: \(type)")
                 continue
             }
         }
-        if loaded.isEmpty {
+        if loaded.isEmpty && annotations.isEmpty {
             Logger.airspace.debug("No overlays parsed from \(url.lastPathComponent)")
         }
-        return (loaded, grouped)
+        return (loaded, grouped, annotations)
     }
 
     /// jp_asp.geojson をカテゴリ分割して読み込む
@@ -403,11 +417,27 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
         self.displayOverlays = result
     }
 
+    /// 表示対象アノテーションを計算
+    @MainActor
+    private func updateDisplayAnnotations() {
+        var result: [FacilityAnnotation] = []
+        for cat in enabledCategories {
+            let hidden = Set(settings.hiddenFeatureIDs[cat] ?? [])
+            if let list = annotationsByCategory[cat] {
+                for ann in list where !hidden.contains(ann.featureID) {
+                    result.append(ann)
+                }
+            }
+        }
+        self.displayAnnotations = result
+    }
+
     /// MapView から現在の表示範囲を受け取る
     @MainActor
     func updateMapRect(_ rect: MKMapRect) {
         currentMapRect = rect
         updateDisplayOverlays()
+        updateDisplayAnnotations()
     }
 
     /// カテゴリ名からグループ名を抽出

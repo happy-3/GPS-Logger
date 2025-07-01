@@ -216,6 +216,19 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         context.coordinator.overlayIDs = targetIDs
 
+        // annotations
+        let targetAnnIDs = Set(airspaceManager.displayAnnotations.map { ObjectIdentifier($0) })
+        let annToRemove = map.annotations
+            .filter { context.coordinator.annotationIDs.contains(ObjectIdentifier($0 as AnyObject)) }
+            .filter { !targetAnnIDs.contains(ObjectIdentifier($0 as AnyObject)) }
+        if !annToRemove.isEmpty { map.removeAnnotations(annToRemove) }
+
+        let annToAdd = airspaceManager.displayAnnotations
+            .filter { !context.coordinator.annotationIDs.contains(ObjectIdentifier($0)) }
+        if !annToAdd.isEmpty { map.addAnnotations(annToAdd) }
+
+        context.coordinator.annotationIDs = targetAnnIDs
+
         map.isScrollEnabled = freeScroll
         if let scrollView = map.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
             scrollView.bounces = false
@@ -262,6 +275,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         private var trackOverlay: TrackVectorOverlay?
         private var targetOverlay: MKPolyline?
         var overlayIDs = Set<ObjectIdentifier>()
+        var annotationIDs = Set<ObjectIdentifier>()
         private var rendererCache: [ObjectIdentifier: MKOverlayRenderer] = [:]
         private var waypoint: Binding<Waypoint?>
         private var navInfo: Binding<NavComputed?>
@@ -462,7 +476,11 @@ struct MapViewRepresentable: UIViewRepresentable {
             let id = "info"
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: id) ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
             view.canShowCallout = true
-            if let ann = annotation as? MKPointAnnotation, let category = ann.subtitle {
+            if let ann = annotation as? FacilityAnnotation {
+                if let mv = view as? MKMarkerAnnotationView {
+                    mv.calloutOffset = calloutOffset(for: ann.subtitle ?? "")
+                }
+            } else if let ann = annotation as? MKPointAnnotation, let category = ann.subtitle {
                 if let mv = view as? MKMarkerAnnotationView {
                     mv.calloutOffset = calloutOffset(for: category)
                 }

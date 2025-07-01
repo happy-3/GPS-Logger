@@ -47,14 +47,14 @@ final class AirspaceManagerTests: XCTestCase {
         let exp = expectation(description: "load")
         manager.loadAll(urls: [url])
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            if manager.displayOverlays.count == 1 {
+            if manager.displayAnnotations.count == 1 {
                 exp.fulfill()
             }
         }
         wait(for: [exp], timeout: 2.0)
 
-        XCTAssertEqual(manager.displayOverlays.count, 1)
-        XCTAssertTrue(manager.displayOverlays.first is MKCircle)
+        XCTAssertEqual(manager.displayAnnotations.count, 1)
+        XCTAssertTrue(manager.displayAnnotations.first is FacilityAnnotation)
     }
 
     func testFeatureVisibilityToggle() throws {
