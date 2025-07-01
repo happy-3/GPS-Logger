@@ -28,6 +28,25 @@ struct MapLayerSettingsView: View {
                     }
                 }
             }
+
+            if !airspaceManager.annotationsByCategory.isEmpty {
+                Section("施設") {
+                    ForEach(Array(airspaceManager.annotationsByCategory.keys).sorted(), id: \.self) { cat in
+                        Toggle(cat, isOn: Binding(
+                            get: { settings.enabledFacilityCategories.contains(cat) },
+                            set: { val in
+                                if val {
+                                    if !settings.enabledFacilityCategories.contains(cat) {
+                                        settings.enabledFacilityCategories.append(cat)
+                                    }
+                                } else {
+                                    settings.enabledFacilityCategories.removeAll { $0 == cat }
+                                }
+                            }
+                        ))
+                    }
+                }
+            }
         }
         .navigationTitle("レイヤ設定")
     }

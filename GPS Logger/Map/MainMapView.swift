@@ -327,6 +327,11 @@ struct MapViewRepresentable: UIViewRepresentable {
                 }
                 .store(in: &settingsCancellables)
 
+            settings.$enabledFacilityCategories
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.updateFacilityAnnotations() }
+                .store(in: &settingsCancellables)
+
             settings.$useNightTheme
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in self?.scheduleUpdateLayers() }
@@ -555,7 +560,7 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         fileprivate func updateFacilityAnnotations() {
             guard let mapView else { return }
-            let enabled = Set(settings.enabledAirspaceCategories)
+            let enabled = Set(settings.enabledFacilityCategories)
             var targets: [FacilityAnnotation] = []
             for cat in enabled {
                 let hidden = Set(settings.hiddenFeatureIDs[cat] ?? [])

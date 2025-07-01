@@ -18,9 +18,13 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
     /// HUD 用の簡易空域リスト
     @Published private(set) var slimList: [AirspaceSlim] = []
 
-    /// 設定で有効化されているカテゴリ
+    /// 設定で有効化されているオーバーレイカテゴリ
     @MainActor
-    private var enabledCategories: [String] { settings.enabledAirspaceCategories }
+    private var enabledOverlayCategories: [String] { settings.enabledAirspaceCategories }
+
+    /// 設定で有効化されている施設カテゴリ
+    @MainActor
+    private var enabledAnnotationCategories: [String] { settings.enabledFacilityCategories }
 
     /// 表示対象のオーバーレイ
     @Published private(set) var displayOverlays: [MKOverlay] = []
@@ -90,6 +94,16 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
                 guard let self else { return }
                 Task { @MainActor in
                     self.updateDisplayOverlays()
+                    self.updateDisplayAnnotations()
+                }
+            }
+            .store(in: &cancellables)
+
+        settings.$enabledFacilityCategories
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { @MainActor in
                     self.updateDisplayAnnotations()
                 }
             }
@@ -188,6 +202,9 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
                 self.featureGroupsByCategory = featureGroups
                 if self.settings.enabledAirspaceCategories.isEmpty {
                     self.settings.enabledAirspaceCategories = self.categories
+                }
+                if self.settings.enabledFacilityCategories.isEmpty {
+                    self.settings.enabledFacilityCategories = Array(annotations.keys)
                 }
                 Logger.airspace.debug("overlaysByCategory keys: \(Array(self.overlaysByCategory.keys))")
                 Logger.airspace.debug("enabled categories: \(self.settings.enabledAirspaceCategories)")
@@ -398,7 +415,7 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
     @MainActor
     private func updateDisplayOverlays() {
         var result: [MKOverlay] = []
-        for cat in enabledCategories {
+        for cat in enabledOverlayCategories {
             let hidden = Set(settings.hiddenFeatureIDs[cat] ?? [])
             if let overlays = overlaysByCategory[cat] {
                 for ov in overlays {
@@ -421,7 +438,7 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
     @MainActor
     private func updateDisplayAnnotations() {
         var result: [FacilityAnnotation] = []
-        for cat in enabledCategories {
+        for cat in enabledAnnotationCategories {
             let hidden = Set(settings.hiddenFeatureIDs[cat] ?? [])
             if let list = annotationsByCategory[cat] {
                 for ann in list where !hidden.contains(ann.featureID) {
