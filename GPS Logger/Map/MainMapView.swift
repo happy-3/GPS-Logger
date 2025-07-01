@@ -179,6 +179,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         map.addGestureRecognizer(pinch)
         context.coordinator.mapView = map
         context.coordinator.updateForCurrentState()
+        context.coordinator.updateFacilityAnnotations()
         let compass = MKCompassButton(mapView: map)
         compass.compassVisibility = .visible
         let compassTap = UITapGestureRecognizer(target: context.coordinator,
@@ -228,6 +229,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         if !annToAdd.isEmpty { map.addAnnotations(annToAdd) }
 
         context.coordinator.annotationIDs = targetAnnIDs
+        context.coordinator.updateFacilityAnnotations()
 
         map.isScrollEnabled = freeScroll
         if let scrollView = map.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
@@ -276,6 +278,7 @@ struct MapViewRepresentable: UIViewRepresentable {
         private var targetOverlay: MKPolyline?
         var overlayIDs = Set<ObjectIdentifier>()
         var annotationIDs = Set<ObjectIdentifier>()
+        private var annotationCatCancellable: AnyCancellable?
         private var rendererCache: [ObjectIdentifier: MKOverlayRenderer] = [:]
         private var waypoint: Binding<Waypoint?>
         private var navInfo: Binding<NavComputed?>
@@ -339,6 +342,10 @@ struct MapViewRepresentable: UIViewRepresentable {
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in self?.updateCamera() }
                 .store(in: &settingsCancellables)
+
+            annotationCatCancellable = airspaceManager.$annotationsByCategory
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in self?.updateFacilityAnnotations() }
         }
 
         @objc func handleTap(_ sender: UITapGestureRecognizer) {
@@ -471,19 +478,36 @@ struct MapViewRepresentable: UIViewRepresentable {
                 return nil
             }
 
+            let identifier: String
+            if annotation is FacilityAnnotation {
+                identifier = "facility"
+            } else {
+                identifier = "info"
+            }
 
-
-            let id = "info"
-            let view = mapView.dequeueReusableAnnotationView(withIdentifier: id) ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
+            let view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
             view.canShowCallout = true
-            if let ann = annotation as? FacilityAnnotation {
-                if let mv = view as? MKMarkerAnnotationView {
-                    mv.calloutOffset = calloutOffset(for: ann.subtitle ?? "")
+
+            if let ann = annotation as? FacilityAnnotation,
+               let mv = view as? MKMarkerAnnotationView {
+                mv.clusteringIdentifier = "facility"
+                mv.calloutOffset = calloutOffset(for: ann.subtitle ?? "")
+                switch ann.facilityType.lowercased() {
+                case "airport", "ad":
+                    mv.glyphImage = UIImage(systemName: "airplane")
+                case "heliport", "heli" , "helipad":
+                    mv.glyphImage = UIImage(systemName: "helicopter")
+                case "vor":
+                    mv.glyphImage = UIImage(systemName: "antenna.radiowaves.left.and.right")
+                case "ndb":
+                    mv.glyphImage = UIImage(systemName: "dot.radiowaves.left.and.right")
+                default:
+                    mv.glyphImage = UIImage(systemName: "mappin")
                 }
-            } else if let ann = annotation as? MKPointAnnotation, let category = ann.subtitle {
-                if let mv = view as? MKMarkerAnnotationView {
-                    mv.calloutOffset = calloutOffset(for: category)
-                }
+            } else if let ann = annotation as? MKPointAnnotation,
+                      let category = ann.subtitle,
+                      let mv = view as? MKMarkerAnnotationView {
+                mv.calloutOffset = calloutOffset(for: category)
             }
             return view
         }
@@ -527,6 +551,32 @@ struct MapViewRepresentable: UIViewRepresentable {
 
         private func scheduleUpdateLayers() {
             layerUpdateSubject.send(())
+        }
+
+        private func updateFacilityAnnotations() {
+            guard let mapView else { return }
+            let enabled = Set(settings.enabledAirspaceCategories)
+            var targets: [FacilityAnnotation] = []
+            for cat in enabled {
+                let hidden = Set(settings.hiddenFeatureIDs[cat] ?? [])
+                if let list = airspaceManager.annotationsByCategory[cat] {
+                    targets.append(contentsOf: list.filter { !hidden.contains($0.featureID) })
+                }
+            }
+
+            let targetIDs = Set(targets.map { ObjectIdentifier($0) })
+            let existing = mapView.annotations.filter {
+                annotationIDs.contains(ObjectIdentifier($0 as AnyObject))
+            }
+            let toRemove = existing.filter {
+                !targetIDs.contains(ObjectIdentifier($0 as AnyObject))
+            }
+            if !toRemove.isEmpty { mapView.removeAnnotations(toRemove) }
+
+            let toAdd = targets.filter { !annotationIDs.contains(ObjectIdentifier($0)) }
+            if !toAdd.isEmpty { mapView.addAnnotations(toAdd) }
+
+            annotationIDs = targetIDs
         }
 
         private func updateLayers() {
