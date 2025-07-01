@@ -203,12 +203,12 @@ final class AirspaceManager: ObservableObject, AirspaceSlimBuilder {
     private func loadOverlays(from url: URL, category: String) -> (overlays: [MKOverlay], groups: [String: [MKOverlay]], annotations: [FacilityAnnotation]) {
         guard let data = try? Data(contentsOf: url) else {
             Logger.airspace.debug("Could not read data from \(url.path)")
-            return ([], [:])
+            return ([], [:], [])
         }
         guard let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let features = obj["features"] as? [[String: Any]] else {
             Logger.airspace.debug("Invalid GeoJSON: \(url.lastPathComponent)")
-            return ([], [:])
+            return ([], [:], [])
         }
 
         var loaded: [MKOverlay] = []
