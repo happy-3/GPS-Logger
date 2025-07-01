@@ -28,6 +28,7 @@ final class AirspaceManagerTests: XCTestCase {
 
         XCTAssertEqual(manager.displayOverlays.count, 2)
         XCTAssertEqual(Set(settings.enabledAirspaceCategories), Set(["catA", "catB"]))
+        XCTAssertEqual(Set(settings.enabledFacilityCategories), Set())
 
         // カテゴリを片方だけ有効に
         settings.enabledAirspaceCategories = ["catA"]
@@ -55,6 +56,7 @@ final class AirspaceManagerTests: XCTestCase {
 
         XCTAssertEqual(manager.displayAnnotations.count, 1)
         XCTAssertTrue(manager.displayAnnotations.first is FacilityAnnotation)
+        XCTAssertEqual(settings.enabledFacilityCategories, ["catC"])
     }
 
     func testFeatureVisibilityToggle() throws {

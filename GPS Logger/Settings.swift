@@ -31,6 +31,9 @@ final class Settings: ObservableObject {
     /// 有効化された空域グループ
     @UserDefaultBacked(key: "enabledAirspaceGroups") var enabledAirspaceGroups: [String] = []
 
+    /// 表示する施設カテゴリ
+    @UserDefaultBacked(key: "enabledFacilityCategories") var enabledFacilityCategories: [String] = []
+
     /// 非表示フィーチャ ID
     @UserDefaultBacked(key: "hiddenFeatureIDs") var hiddenFeatureIDs: [String: [String]] = [:]
     /// 線色設定
@@ -92,6 +95,7 @@ final class Settings: ObservableObject {
             $recordEllipsoidalAltitude.asVoid(),
             $enabledAirspaceCategories.asVoid(),
             $enabledAirspaceGroups.asVoid(),
+            $enabledFacilityCategories.asVoid(),
             $hiddenFeatureIDs.asVoid(),
             $airspaceStrokeColors.asVoid(),
             $airspaceFillColors.asVoid(),
