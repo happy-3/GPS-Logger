@@ -168,7 +168,8 @@ final class RangeRingRenderer: MKOverlayRenderer {
         }
 
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 36),
+            // ズームによってラベルサイズが変化しないよう調整
+            .font: UIFont.systemFont(ofSize: 36 / zoomScale),
             .foregroundColor: ringColor,
             .backgroundColor: UIColor.black.withAlphaComponent(0.5)
         ]
