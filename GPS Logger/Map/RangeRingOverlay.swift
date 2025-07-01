@@ -54,6 +54,8 @@ final class RangeRingRenderer: MKOverlayRenderer {
         let width: CGFloat
         let label: String?
         let labelPos: CGPoint?
+        /// ラベル描画時に使用する回転角 (deg)
+        let angle: CGFloat
     }
 
     private let overlayObj: RangeRingOverlay
@@ -132,7 +134,8 @@ final class RangeRingRenderer: MKOverlayRenderer {
             path.move(to: CGPoint(x: 0, y: -compassRadius))
             path.addLine(to: CGPoint(x: 0, y: -compassRadius + len))
 
-            let transform = CGAffineTransform(rotationAngle: CGFloat((Double(deg) + heading) * .pi / 180))
+            let angleDeg = Double(deg) + heading
+            let transform = CGAffineTransform(rotationAngle: CGFloat(angleDeg * .pi / 180))
             path.apply(transform)
 
             var labelPos: CGPoint? = nil
@@ -142,7 +145,7 @@ final class RangeRingRenderer: MKOverlayRenderer {
                 p = p.applying(transform)
                 labelPos = p
             }
-            ticks.append(Tick(path: path, width: width, label: label, labelPos: labelPos))
+            ticks.append(Tick(path: path, width: width, label: label, labelPos: labelPos, angle: CGFloat(angleDeg)))
         }
     }
 
@@ -165,6 +168,8 @@ final class RangeRingRenderer: MKOverlayRenderer {
 
         context.saveGState()
         context.translateBy(x: centerPt.x, y: centerPt.y)
+        // 地図の回転角に合わせて全体を回転させる
+        context.rotate(by: CGFloat(overlayObj.mapHeading * .pi / 180))
 
         context.setStrokeColor(ringColor.cgColor)
         context.setLineWidth(3.0 / zoomScale)
@@ -176,9 +181,6 @@ final class RangeRingRenderer: MKOverlayRenderer {
             context.addPath(tick.path.cgPath)
             context.strokePath()
         }
-
-        // テキスト描画時は地図の回転に合わせる
-        context.rotate(by: CGFloat(overlayObj.mapHeading * .pi / 180))
 
         let attrs: [NSAttributedString.Key: Any] = [
             // ズームによってラベルサイズが変化しないよう調整
@@ -192,8 +194,13 @@ final class RangeRingRenderer: MKOverlayRenderer {
             guard let label = tick.label, let pos = tick.labelPos else { continue }
             let str = NSString(string: label)
             let size = str.size(withAttributes: attrs)
-            let rect = CGRect(x: pos.x - size.width / 2, y: pos.y - size.height / 2, width: size.width, height: size.height)
+            context.saveGState()
+            context.translateBy(x: pos.x, y: pos.y)
+            context.rotate(by: tick.angle * .pi / 180)
+            let rect = CGRect(x: -size.width / 2, y: -size.height / 2,
+                              width: size.width, height: size.height)
             str.draw(in: rect, withAttributes: attrs)
+            context.restoreGState()
         }
 
         for ring in ringLabels {
