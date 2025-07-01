@@ -97,7 +97,8 @@ final class RangeRingRenderer: MKOverlayRenderer {
         let midLen = majorLen * 2.0 / 3.0
         let tenLen = majorLen * 0.5
         let minorLen = majorLen * 0.3
-        let midLabelRadius = compassRadius - labelOffset
+        // 方位ラベルを外側に配置して線と重ならないようにする
+        let midLabelRadius = compassRadius + labelOffset
 
         for deg in stride(from: 0, to: 360, by: 5) {
             let path = UIBezierPath()
