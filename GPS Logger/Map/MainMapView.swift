@@ -553,7 +553,7 @@ struct MapViewRepresentable: UIViewRepresentable {
             layerUpdateSubject.send(())
         }
 
-        private func updateFacilityAnnotations() {
+        fileprivate func updateFacilityAnnotations() {
             guard let mapView else { return }
             let enabled = Set(settings.enabledAirspaceCategories)
             var targets: [FacilityAnnotation] = []
