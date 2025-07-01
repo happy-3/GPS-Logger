@@ -6,24 +6,34 @@ final class RangeRingOverlay: NSObject, MKOverlay {
     var coordinate: CLLocationCoordinate2D
     var radiusNm: Double
     var courseDeg: Double
+    /// カメラの heading 値 (地図の回転角)
+    var mapHeading: Double
     private(set) var lastHeading: Double
     /// ラベルまで含めて描画するため、半径に少し余裕を持たせる
     private let marginRatio = 1.1
 
-    func update(center: CLLocationCoordinate2D, radiusNm: Double, courseDeg: Double) {
+    func update(center: CLLocationCoordinate2D,
+                radiusNm: Double,
+                courseDeg: Double,
+                mapHeading: Double) {
         self.coordinate = center
         self.radiusNm = radiusNm
         self.courseDeg = courseDeg
+        self.mapHeading = mapHeading
         let newHeading = MagneticVariation.declination(at: center)
         if abs(newHeading - lastHeading) >= 1 {
             lastHeading = newHeading
         }
     }
 
-    init(center: CLLocationCoordinate2D, radiusNm: Double, courseDeg: Double) {
+    init(center: CLLocationCoordinate2D,
+         radiusNm: Double,
+         courseDeg: Double,
+         mapHeading: Double) {
         self.coordinate = center
         self.radiusNm = radiusNm
         self.courseDeg = courseDeg
+        self.mapHeading = mapHeading
         self.lastHeading = MagneticVariation.declination(at: center)
         super.init()
     }
@@ -166,6 +176,9 @@ final class RangeRingRenderer: MKOverlayRenderer {
             context.addPath(tick.path.cgPath)
             context.strokePath()
         }
+
+        // テキスト描画時は地図の回転に合わせる
+        context.rotate(by: CGFloat(overlayObj.mapHeading * .pi / 180))
 
         let attrs: [NSAttributedString.Key: Any] = [
             // ズームによってラベルサイズが変化しないよう調整

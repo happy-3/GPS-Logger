@@ -530,6 +530,14 @@ struct MapViewRepresentable: UIViewRepresentable {
                     airspaceManager.updateMapRect(rect)
                 }
             }
+
+            if let ring = rangeOverlay {
+                ring.update(center: ring.coordinate,
+                            radiusNm: ring.radiusNm,
+                            courseDeg: ring.courseDeg,
+                            mapHeading: mapView.camera.heading)
+                rendererCache[ObjectIdentifier(ring)]?.setNeedsDisplay()
+            }
         }
 
         func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
@@ -600,15 +608,27 @@ struct MapViewRepresentable: UIViewRepresentable {
                 if dist > ring.radiusNm * 10 || ratio >= 3 {
                     mapView.removeOverlay(ring)
                     rendererCache.removeValue(forKey: ObjectIdentifier(ring))
-                    let newRing = RangeRingOverlay(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
+                    let heading = mapView.camera.heading
+                    let newRing = RangeRingOverlay(center: loc.coordinate,
+                                                 radiusNm: rangeNm,
+                                                 courseDeg: course,
+                                                 mapHeading: heading)
                     rangeOverlay = newRing
                     mapView.addOverlay(newRing, level: .aboveLabels)
                 } else {
-                    ring.update(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
+                    let heading = mapView.camera.heading
+                    ring.update(center: loc.coordinate,
+                                radiusNm: rangeNm,
+                                courseDeg: course,
+                                mapHeading: heading)
                     rendererCache[ObjectIdentifier(ring)]?.setNeedsDisplay()
                 }
             } else {
-                let ring = RangeRingOverlay(center: loc.coordinate, radiusNm: rangeNm, courseDeg: course)
+                let heading = mapView.camera.heading
+                let ring = RangeRingOverlay(center: loc.coordinate,
+                                            radiusNm: rangeNm,
+                                            courseDeg: course,
+                                            mapHeading: heading)
                 rangeOverlay = ring
                 mapView.addOverlay(ring, level: .aboveLabels)
             }
@@ -680,6 +700,14 @@ struct MapViewRepresentable: UIViewRepresentable {
                 }
                 mapView.setCamera(cam, animated: false)
                 mapView.isRotateEnabled = (self.settings.orientationMode == .manual)
+
+                if let ring = self.rangeOverlay {
+                    ring.update(center: ring.coordinate,
+                                radiusNm: ring.radiusNm,
+                                courseDeg: ring.courseDeg,
+                                mapHeading: cam.heading)
+                    self.rendererCache[ObjectIdentifier(ring)]?.setNeedsDisplay()
+                }
             }
         }
 
