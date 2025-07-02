@@ -161,14 +161,20 @@ final class RangeRingRenderer: MKOverlayRenderer {
                                              : Color("RangeRingDay", bundle: .module).hexString
         let ringColor = UIColor(hex: ringHex) ?? .orange
 
-        let heading = overlayObj.lastHeading
+        // 地図の回転角を引いた値を使ってコンパスローズを描画する
+        // lastHeading は磁気偏差 (真北-磁北) を表す
+        // mapHeading は現在の地図の回転角で、これを差し引くことで
+        // 地図表示に合わせた正しい方位を求める
+        let heading = overlayObj.lastHeading - overlayObj.mapHeading
         if radius != cachedRadius || heading != cachedHeading {
             rebuildPaths(radius: radius, heading: heading)
         }
 
         context.saveGState()
         context.translateBy(x: centerPt.x, y: centerPt.y)
-        // 地図の回転角に合わせて全体を回転させる
+        // mapHeading は地図自体の回転角。コンパスローズの計算では
+        // 上記 heading に組み込んでいるため、ここでは mapHeading の
+        // 回転だけを適用してオーバーレイ全体を回転させる
         context.rotate(by: CGFloat(overlayObj.mapHeading * .pi / 180))
 
         context.setStrokeColor(ringColor.cgColor)
