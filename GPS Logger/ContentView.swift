@@ -325,24 +325,8 @@ struct ContentView: View {
             return FlightAssistUtils.oat(tasKt: tasKt, casKt: cas, pressureAltitudeFt: hp)
         }
 
-        let tasMps = tasKt * 0.514444
-
-        if let hp = pressureAltitude {
-            // ISA 温度との差分 1℃ あたり約118.8 ft
-            let tIsa = ISAAtmosphere.temperature(altitudeFt: altitudeFt)
-            let deviation = (hp - altitudeFt) / 118.8
-            let oat = tIsa - deviation
-
-            let speedOfSound = sqrt(1.4 * 287.05 * (oat + 273.15))
-            let mach = tasMps / speedOfSound
-            _ = mach
-            return oat
-        } else {
-            let tIsa = ISAAtmosphere.temperature(altitudeFt: altitudeFt) + 273.15
-            let speedOfSound = sqrt(1.4 * 287.05 * tIsa)
-            let mach = tasMps / speedOfSound
-            return FlightAssistUtils.oat(tasMps: tasMps, mach: mach)
-        }
+        // 気圧高度が未設定、またはCASが得られない場合は高度ベースの推算にフォールバックする
+        return FlightAssistUtils.oat(tasKt: tasKt, altitudeFt: altitudeFt)
     }
 
     /// 風情報に基づき CAS, TAS, OAT, Mach を推算する
