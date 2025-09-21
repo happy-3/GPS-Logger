@@ -43,23 +43,11 @@ final class NavCalcSvc {
     func bearingDistance(from: CLLocationCoordinate2D,
                          to: CLLocationCoordinate2D,
                          declination: Double = 0.0) -> (bearing: Double, distance: Double) {
-        let lat1 = from.latitude * Double.pi / 180
-        let lon1 = from.longitude * Double.pi / 180
-        let lat2 = to.latitude * Double.pi / 180
-        let lon2 = to.longitude * Double.pi / 180
-        let dLon = lon2 - lon1
-        let y = sin(dLon) * cos(lat2)
-        let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-        var bearing = atan2(y, x) * 180 / Double.pi
-        if bearing < 0 { bearing += 360 }
-        // 真方位から磁気偏差を引いて磁方位を得る
-        bearing -= declination
-        if bearing < 0 { bearing += 360 }
-        if bearing >= 360 { bearing -= 360 }
-        let r = 6371.0 // km
-        let d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(dLon)) * r
-        let nm = d / 1.852
-        return (bearing, nm)
+        let result = GeodesicCalculator.bearingDistance(from: from, to: to)
+        var magnetic = result.bearing - declination
+        if magnetic < 0 { magnetic += 360 }
+        if magnetic >= 360 { magnetic -= 360 }
+        return (magnetic, result.distance)
     }
 
     /// 現在地と指定 Navaid との方位・距離を返す
